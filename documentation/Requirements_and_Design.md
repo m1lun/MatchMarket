@@ -32,6 +32,7 @@
 | 2026-11-01 | 3.5, 3.6 | Connected the feed to Messaging: Use Case 4 now starts from the "Message" button on a post, which sends the first price proposal and opens the conversation. |
 | 2026-11-01 | 2, 3.1–3.5, 4.1–4.6, 5 | Following TA feedback, split combined use cases into one goal each (Section 3.4 and the use case diagram) and narrowed the formal use cases to match: Create Post, Rate a Deal, View Recommendations for a Post, Send a Message and Filter Feed. Described Messaging as built: conversations, messages, price proposals that record a deal when accepted, and live updates through Server-Sent Events. Used one term for each idea: deal, proposal, recommendation, hard requirement, soft preference, backend and frontend. Removed the planned ranking preferences use case and the planned Firebase Cloud Messaging push notifications, which are not built. |
 | 2026-11-01 | 3.5, 4.1, 5 | Matched the ranking and categories to the code: soft preferences count by their importance, missing a soft maximum price or soft minimum condition lowers the score, and categories are saved in the singular. |
+| 2026-11-02 | 3.4, 3.6, 4.1, 4.2, 4.5, 5 | Matched the profile to the code: the users collection and `GET`/`PATCH /api/users/me` are built, `GET /api/users/:id/reputation` is documented, and Sign out is a use case. Removed the screen mock-ups, which are optional. Added the Deals interface that Messaging calls to record a deal, and made the frontend's link to Messaging one-way, since the live updates arrive on a request the app makes. |
 
 ---
 
@@ -78,38 +79,39 @@ Each use case covers one goal. The five marked with a link have a formal specifi
 **Authentication** (baseline requirement, not counted as a feature)
 
 1. **Sign in with Google**: The user signs in with their Google account and gains access to their posts and the feed.
+2. **Sign out**: The user taps "Sign out" on the Profile tab, which ends their session on the device and the backend.
 
 **Feature 1: Buyer Requests and Seller Listings**
 
-2. **Create post** ([Use Case 1](#uc1)): A user creates a buyer request or a seller listing.
-3. **View my posts**: A user opens My Posts and sees their own open and closed requests or listings.
-4. **Edit post**: A user changes the fields of one of their posts and saves it. Closed posts can also be edited.
-5. **Close post**: A user closes one of their open posts, which removes it from the feeds and recommendations but keeps it in My Posts.
-6. **Reopen post**: A user reopens one of their closed posts, which shows it in the feeds and recommendations again.
-7. **Delete post**: A user deletes one of their posts permanently, after confirming.
+3. **Create post** ([Use Case 1](#uc1)): A user creates a buyer request or a seller listing.
+4. **View my posts**: A user opens My Posts and sees their own open and closed requests or listings.
+5. **Edit post**: A user changes the fields of one of their posts and saves it. Closed posts can also be edited.
+6. **Close post**: A user closes one of their open posts, which removes it from the feeds and recommendations but keeps it in My Posts.
+7. **Reopen post**: A user reopens one of their closed posts, which shows it in the feeds and recommendations again.
+8. **Delete post**: A user deletes one of their posts permanently, after confirming.
 
 **Feature 2: Two-Sided Matching and Recommended Feeds**
 
-8. **View recommendations for a post** ([Use Case 3](#uc3)): A user sees the posts that fit one of their open posts, ranked by how well they fit, with the distance to each and the travel time for the first page.
-9. **Browse feed**: A user scrolls through other users' open posts, newest first.
-10. **Filter feed** ([Use Case 5](#uc5)): A user narrows the feed by category, price or distance.
-11. **View a post**: A user opens another user's post from the feed or the recommendations to see its details and photos.
+9. **View recommendations for a post** ([Use Case 3](#uc3)): A user sees the posts that fit one of their open posts, ranked by how well they fit, with the distance to each and the travel time for the first page.
+10. **Browse feed**: A user scrolls through other users' open posts, newest first.
+11. **Filter feed** ([Use Case 5](#uc5)): A user narrows the feed by category, price or distance.
+12. **View a post**: A user opens another user's post from the feed or the recommendations to see its details and photos.
 
 **Feature 3: Deals, Ratings and Reputation**
 
-12. **View deals**: A user opens the Deals tab and sees their deals, newest first, as buyer or seller. Each deal shows its title, agreed price, date, the listing and request it came from, the other user's score, and both ratings. Tapping the listing or request opens it, even if it has since closed. A user with no deals sees "No deals yet".
-13. **Rate a deal** ([Use Case 2](#uc2)): A user rates the other side of a deal from 1 to 5 stars with an optional comment. The other user's score updates on the card.
-14. **Edit a rating**: A user changes the stars or comment of a rating they gave earlier, and the other user's score updates.
-15. **Create deal**: When a user accepts a proposal, the system records the deal between the two users at the proposed price and closes the listing and request. It is part of Accept a proposal and is never started on its own.
+13. **View deals**: A user opens the Deals tab and sees their deals, newest first, as buyer or seller. Each deal shows its title, agreed price, date, the listing and request it came from, the other user's score, and both ratings. Tapping the listing or request opens it, even if it has since closed. A user with no deals sees "No deals yet".
+14. **Rate a deal** ([Use Case 2](#uc2)): A user rates the other side of a deal from 1 to 5 stars with an optional comment. The other user's score updates on the card.
+15. **Edit a rating**: A user changes the stars or comment of a rating they gave earlier, and the other user's score updates.
+16. **Create deal**: When a user accepts a proposal, the system records the deal between the two users at the proposed price and closes the listing and request. It is part of Accept a proposal and is never started on its own.
 
 **Feature 4: Messaging**
 
-16. **Start a conversation**: On another user's open post, a user taps "Message" and sends a proposal (a price with an optional note), and the conversation with the post's owner opens. A post opened from the recommendations for one of the user's posts also links that post to the conversation.
-17. **View conversations**: A user opens the Messages tab and sees their conversations, newest activity first, each with the other user, the listing and request, and the last message.
-18. **Send a message** ([Use Case 4](#uc4)): A user sends a message in a conversation, and it appears in the other user's open conversation without refreshing.
-19. **Send a proposal**: A user proposes a price, with an optional note, in a conversation that has no pending or accepted proposal. The proposal appears in the other user's open conversation without refreshing.
-20. **Accept a proposal**: A user accepts the other user's pending proposal. This includes Create deal: the deal is recorded at that price, both posts are closed, and the deal appears in both users' Deals tabs.
-21. **Decline a proposal**: A user declines the other user's pending proposal, after which either user can propose again.
+17. **Start a conversation**: On another user's open post, a user taps "Message" and sends a proposal (a price with an optional note), and the conversation with the post's owner opens. A post opened from the recommendations for one of the user's posts also links that post to the conversation.
+18. **View conversations**: A user opens the Messages tab and sees their conversations, newest activity first, each with the other user, the listing and request, and the last message.
+19. **Send a message** ([Use Case 4](#uc4)): A user sends a message in a conversation, and it appears in the other user's open conversation without refreshing.
+20. **Send a proposal**: A user proposes a price, with an optional note, in a conversation that has no pending or accepted proposal. The proposal appears in the other user's open conversation without refreshing.
+21. **Accept a proposal**: A user accepts the other user's pending proposal. This includes Create deal: the deal is recorded at that price, both posts are closed, and the deal appears in both users' Deals tabs.
+22. **Decline a proposal**: A user declines the other user's pending proposal, after which either user can propose again.
 
 ### **3.5. Formal Use Case Specifications (5 Most Major Use Cases)**
 
@@ -263,18 +265,6 @@ Each use case covers one goal. The five marked with a link have a formal specifi
 - 5b. The network or server is unavailable.
     - 5b1. The app shows "Couldn't load the feed. Check your connection and try again." and a "Retry" button.
 
-### **3.6. Screen Mock-ups**
-
-1. **Feed** ([Use Case 5](#uc5), [Use Case 3](#uc3)): other users' listings ("I'm buying") or requests ("I'm selling"), with the Filters button.
-
-    ![Feed](images/mockup_feed.png)
-
-2. **New request** ([Use Case 1](#uc1)): the request form, where each requirement is marked Hard or Soft with an importance.
-
-    ![New request](images/mockup_new_request.png)
-
-Both screens are built. A post opened from the feed or recommendations links to its messages with a "Message" button. The design keeps the same bottom-tab layout (Feed, My Posts, Profile).
-
 ### **3.7. Non-Functional Requirements**
 
 <a name="nfr1"></a>
@@ -333,7 +323,7 @@ Both screens are built. A post opened from the feed or recommendations links to 
             - **Purpose**: Get travel times from the external routing service for one page of results; returns empty when it is unavailable.
 
 3. **Users and Auth**
-    - **Purpose**: Verifies Google sign-in and issues session tokens. Storing each user's profile, location and preferences is planned.
+    - **Purpose**: Verifies Google sign-in, issues session tokens, and stores each user's profile, which is created at their first sign-in.
     - **Rationale**: Keeps identity and per-user settings in one place so Posts and Matching only depend on a user id; alternative of storing settings on each post was rejected because settings apply across all of a user's posts.
     - **Interfaces**:
         1. `POST /api/auth/google`
@@ -342,9 +332,13 @@ Both screens are built. A post opened from the feed or recommendations links to 
             - **Purpose**: Rotates the token pair.
         3. `POST /api/auth/logout`
             - **Purpose**: Revokes the refresh-token family. Session tokens last 15 minutes; refresh tokens have a 30-day lifetime. Protected routes use requireAuth and currentUser.
-        4. `GET /api/users/me`, `PATCH /api/users/me` *(planned)*
-            - **Purpose**: Read or update profile, typed address and default radius, travel mode, and the four importance weights.
-        5. `userId requireAuth(token)`
+        4. `GET /api/users/me`
+            - **Purpose**: Return the signed-in user's profile: names, email, photo URL, address and location if set, and when it was created and updated. 404 if there is none.
+        5. `PATCH /api/users/me`
+            - **Purpose**: Set the profile address from JSON `{ address, location: { longitude, latitude } }`, or clear it with `{ address: null, location: null }`. Returns the updated profile; 400 for an unsupported field, a missing address, a location out of range, or only one of the two cleared.
+        6. `GET /api/users/:id/reputation`
+            - **Purpose**: Return a user's reputation as `{ userId, score, ratingCount }`: score is the average of the ratings they received, or null when nobody has rated them.
+        7. `userId requireAuth(token)`
             - **Purpose**: Internal interface protecting every other route.
 
 4. **Deals**
@@ -362,6 +356,8 @@ Both screens are built. A post opened from the feed or recommendations links to 
             - **Purpose**: Return one listing, open or closed, to any signed-in user, so a deal card can open its listing. 404 for a malformed or unknown id. The route sits under `/api/feed`, but the Deals tab is its only caller.
         5. `GET /api/feed/requests/:id`
             - **Purpose**: Return one request, open or closed, to any signed-in user, so a deal card can open its request. 404 for a malformed or unknown id. The route sits under `/api/feed`, but the Deals tab is its only caller.
+        6. `Deal insert(Deal deal)`
+            - **Purpose**: Internal interface that records a deal. Messaging calls it when a proposal is accepted, with the listing, request, seller and buyer of the conversation and the proposed price. Rejects a deal with neither a listing nor a request, or a second deal for the same listing or request.
 
 5. **Messaging**
     - **Purpose**: Conversations between two users about a post, their messages, price proposals that record a deal when accepted, and live updates to the open app.
@@ -388,7 +384,7 @@ Both screens are built. A post opened from the feed or recommendations links to 
 ### **4.2. Databases**
 
 1. **MongoDB** (self-hosted in Docker on the cloud VM)
-    - **Purpose**: Stores requests, listings, options, custom fields, sessions, deals, ratings, reputations, conversations and messages, and will store users *(planned)*. Photos for requests and listings are stored in the same database using GridFS (fs.files and fs.chunks), and each post keeps the ids of its photos. Geospatial index on post locations.
+    - **Purpose**: Stores users, requests, listings, options, custom fields, sessions, deals, ratings, reputations, conversations and messages. Photos for requests and listings are stored in the same database using GridFS (fs.files and fs.chunks), and each post keeps the ids of its photos. Geospatial index on post locations.
 
 ### **4.3. External Modules**
 
@@ -433,7 +429,7 @@ Both screens are built. A post opened from the feed or recommendations links to 
 
 ### **4.5. Dependencies Diagram**
 
-Every backend route except `/health` calls `requireAuth` in Users and Auth. The two-way link between the frontend and Messaging is the live updates stream, which the backend writes to while the app keeps it open. Messaging records deals through the Deals component's store when a proposal is accepted.
+Every backend route except `/health` calls `requireAuth` in Users and Auth. The frontend's calls to Messaging include `GET /api/events`, the live updates stream: the backend writes events to that response while the app keeps it open, so the link stays one-way. Messaging records deals through the Deals component's store when a proposal is accepted.
 
 ```mermaid
 flowchart LR
@@ -455,7 +451,7 @@ flowchart LR
     FE --> M
     FE --> GEO
     FE --> D
-    FE <--> MS
+    FE --> MS
     UA --> G
     UA --> DB
     P --> UA
@@ -709,7 +705,7 @@ sequenceDiagram
 
 | **Collection** | **Key fields** |
 | -------------- | -------------- |
-| users *(planned)* | googleSub, name, email, address, location (GeoJSON), defaultRadiusKm, travelMode (walk, bike, drive), weights {price, condition, distance, match} (each an integer 0 to 5, default 3) |
+| users | id (the Google account id, which is every post's ownerId), firstName, lastName, email, pictureUrl (or null), address and location (both set or both absent), createdAt, updatedAt |
 | requests | ownerId, name, category, description, requestFields[] (built-in price (max), condition (min), dimensions {width, height, depth} (max), radiuskm, brand, colour, plus custom fields; each hard, or soft with an importance 1 to 5), address, location, photoIds[] (optional GridFS file ids), status (open, closed) |
 | listings | ownerId, name, category, description, price, condition, listingFields[] (built-in brand, dimensions {width, height, depth}, colour, plus custom fields), address, location, photoIds[] (GridFS file ids), status (open, closed) |
 | options | field, key, label, builtin, createdBy |
