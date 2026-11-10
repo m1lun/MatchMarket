@@ -22,7 +22,6 @@ import type { SessionRepo, Store } from './store/types';
 export interface AppDeps {
   sessions: SessionRepo;
   store?: Store;
-  // Mounts the test-only /api/e2e routes; set from ENABLE_E2E_ROUTES.
   e2eRoutes?: boolean;
 }
 

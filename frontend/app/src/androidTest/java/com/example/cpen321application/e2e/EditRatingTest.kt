@@ -22,9 +22,7 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 
-// Use case 15: Edit a rating (Requirements_and_Design.md, Section 3.4; no formal specification). Each
-// test starts from the main screen with one new deal, seeded through the back-end's E2E route, that the
-// signed-in user has already rated 4 stars with "Smooth deal".
+// Use case 15: Edit a rating. Each test starts with a seeded deal rated 4 stars.
 class EditRatingTest {
     @get:Rule
     val rule = mainRule()
@@ -43,7 +41,7 @@ class EditRatingTest {
         clearSeededDeals()
     }
 
-    // The user changes the stars and comment; the card shows the new rating and the other user's new score.
+    // Success: the new rating and score are shown.
     @Test
     fun editsRating() {
         rule.openDeals()
@@ -61,7 +59,7 @@ class EditRatingTest {
         assertEquals(SavedRating(2, NEW_COMMENT), myRating(dealId))
     }
 
-    // The network or server is unavailable: the app shows an error and the first rating is unchanged.
+    // Offline: an error is shown and the rating is unchanged.
     @Test
     fun keepsRatingWhenEditCannotBeSaved() {
         rule.openDeals()

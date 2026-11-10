@@ -16,9 +16,7 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 
-// Use case 13: View deals (Requirements_and_Design.md, Section 3.4; no formal specification). Each test
-// starts from the main screen with one new deal, seeded through the back-end's E2E route: the signed-in
-// user sold the closed request "E2E desk" to "E2E Buyer" for $45.
+// Use case 13: View deals. Each test starts with a new seeded deal.
 class ViewDealsTest {
     @get:Rule
     val rule = mainRule()
@@ -33,7 +31,7 @@ class ViewDealsTest {
         clearSeededDeals()
     }
 
-    // The deal is listed with its agreed price, the user's role, the other user's score and its request.
+    // The card shows the price, role, score and request.
     @Test
     fun showsDeal() {
         rule.openDeals()
@@ -45,7 +43,7 @@ class ViewDealsTest {
         rule.waitForText("Request")
     }
 
-    // Tapping the deal's request opens it read-only, even though it is closed, and Back returns to the deals.
+    // The closed request opens read-only.
     @Test
     fun opensRequestOfDeal() {
         rule.openDeals()

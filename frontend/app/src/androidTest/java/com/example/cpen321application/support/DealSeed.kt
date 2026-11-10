@@ -15,9 +15,7 @@ import kotlinx.coroutines.runBlocking
 import org.json.JSONObject
 import java.io.IOException
 
-// The deal the backend's E2E deal route makes (backend/src/routes/e2e.ts): the signed-in user sold
-// to their own seed buyer, "E2E Buyer", through the buyer's closed request "E2E desk". The backend must
-// run with ENABLE_E2E_ROUTES=true.
+// Helpers for the backend's /api/e2e/deals routes (needs ENABLE_E2E_ROUTES=true).
 private const val SEED_PATH = "/api/e2e/deals"
 private const val ONLINE_WAIT_MS = 60_000L
 private const val RETRY_DELAY_MS = 1_000L
@@ -25,7 +23,7 @@ private const val LOAD_WAIT_MS = 15_000L
 
 private val sessions by lazy { SessionManager.get(InstrumentationRegistry.getInstrumentation().targetContext) }
 
-// Retries while the emulator is still coming back online, e.g. right after airplane mode is turned off.
+// Retries while the emulator comes back online.
 private fun send(method: String, path: String, body: JSONObject? = null): HttpResult {
     val deadline = System.currentTimeMillis() + ONLINE_WAIT_MS
     while (true) {
@@ -43,15 +41,15 @@ private fun HttpResult.orFail(action: String): HttpResult {
     return this
 }
 
-// Replaces any seeded deal with a new one and returns its id.
+// Seeds a fresh deal and returns its id.
 fun seedDeal(): String = JSONObject(send("POST", SEED_PATH).orFail("Seeding a deal").body).getString("dealId")
 
-// Removes the seeded deal, its rating and the seed buyer's score.
+// Removes the seeded deal.
 fun clearSeededDeals() {
     send("DELETE", SEED_PATH).orFail("Removing the seeded deals")
 }
 
-// Rates the deal through the real ratings API, as the signed-in user, e.g. from another device.
+// Rates the deal as the signed-in user.
 fun rateThroughApi(dealId: String, stars: Int, comment: String = "") {
     send("POST", "/api/deals/$dealId/ratings", JSONObject().put("stars", stars).put("comment", comment))
         .orFail("Rating the deal through the API")
@@ -62,7 +60,7 @@ data class SavedRating(val stars: Int, val comment: String)
 private fun dealsJson(limit: Int) =
     JSONObject(send("GET", "/api/deals?limit=$limit").orFail("Loading the deals").body).getJSONArray("deals")
 
-// The rating the signed-in user gave the deal, read from GET /api/deals, or null if they have not rated it.
+// The user's rating of the deal, or null.
 fun myRating(dealId: String): SavedRating? {
     val deals = dealsJson(limit = 50)
     for (index in 0 until deals.length()) {
@@ -78,21 +76,21 @@ fun myRating(dealId: String): SavedRating? {
 
 fun myStars(dealId: String): Int? = myRating(dealId)?.stars
 
-// A bottom-bar tab; the Deals screen's own "Deals" title is not clickable, so it does not match.
+// A bottom-bar tab (the screen title isn't clickable).
 private fun MainRule.tab(label: String) = onNode(hasText(label) and hasClickAction())
 
-// Taps the Deals tab in the bottom bar, which loads the deals.
+// Opens the Deals tab.
 fun MainRule.openDeals() {
     tab("Deals").performClick()
 }
 
-// Leaves the Deals tab and comes back, so the deals load again.
+// Reloads the Deals tab.
 fun MainRule.reopenDeals() {
     tab("Profile").performClick()
     openDeals()
 }
 
-// The seeded deal is the newest, so it is the first card.
+// The seeded deal is the first card.
 fun MainRule.waitForRateButton() {
     waitUntil(LOAD_WAIT_MS) { onAllNodesWithTag(DealsTags.RATE).fetchSemanticsNodes().isNotEmpty() }
 }
@@ -103,7 +101,7 @@ fun MainRule.tapRateOnSeededDeal() {
     waitUntil(LOAD_WAIT_MS) { onAllNodesWithTag(RateTags.SUBMIT).fetchSemanticsNodes().isNotEmpty() }
 }
 
-// The seeded deal is the newest, so its "Edit" is the first one.
+// The seeded deal's Edit is the first one.
 fun MainRule.tapEditOnSeededDeal() {
     waitUntil(LOAD_WAIT_MS) { onAllNodesWithTag(DealsTags.EDIT).fetchSemanticsNodes().isNotEmpty() }
     onAllNodesWithTag(DealsTags.EDIT).onFirst().performClick()

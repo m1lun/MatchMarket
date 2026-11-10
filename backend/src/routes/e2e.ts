@@ -5,12 +5,9 @@ import { currentUser } from '../sessions';
 import type { Store } from '../store/types';
 import { handle } from './handle';
 
-// Test-only routes that set up and clean up data for the front-end E2E tests, mounted under /api/e2e
-// only when ENABLE_E2E_ROUTES=true. Group new routes by feature.
+// Test-only E2E setup routes, mounted only when ENABLE_E2E_ROUTES=true.
 
-// Deals: a deal needs a second user to accept a price, which a test signed in as one user cannot do,
-// so these routes make the deal. Each caller gets their own seed buyer, so the routes never touch a
-// deal with another real user.
+// Deals use the caller's own seed buyer, never another real user.
 
 export const E2E_DEAL_PRICE = 45;
 export const E2E_REQUEST_NAME = 'E2E desk';
@@ -21,8 +18,7 @@ export function e2eBuyerId(userId: string): string {
   return `e2e-buyer-${userId}`;
 }
 
-// Removes the caller's deals with their seed buyer, the ratings and requests of those deals,
-// and the seed buyer's reputation.
+// Removes the caller's seeded deals and everything linked to them.
 async function clearSeededDeals(store: Store, me: string): Promise<void> {
   const buyer = e2eBuyerId(me);
   const deals = await store.deals.removeBySellerAndBuyer(me, buyer);
@@ -37,8 +33,7 @@ async function clearSeededDeals(store: Store, me: string): Promise<void> {
 export function createE2eRouter(store: Store): Router {
   const router = Router();
 
-  // POST /api/e2e/deals — replaces the caller's seeded deals with one new deal: the caller sold to
-  // their seed buyer ("E2E Buyer") through the buyer's closed request "E2E desk". Returns { dealId }.
+  // POST /api/e2e/deals — replaces the caller's seeded deal; returns { dealId }.
   router.post('/deals', handle(async (_req, res) => {
     const me = currentUser(res).id;
     const buyer = e2eBuyerId(me);
@@ -75,7 +70,7 @@ export function createE2eRouter(store: Store): Router {
     res.status(201).json({ dealId: deal.id });
   }));
 
-  // DELETE /api/e2e/deals — removes the caller's seeded deals; 204 even if there were none.
+  // DELETE /api/e2e/deals — removes the caller's seeded deals.
   router.delete('/deals', handle(async (_req, res) => {
     await clearSeededDeals(store, currentUser(res).id);
     res.status(204).end();

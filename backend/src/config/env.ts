@@ -53,7 +53,7 @@ if (jwtSecret.length < 32) {
 // returned without travel times, as when the service is down.
 const orsApiKey = process.env.ORS_API_KEY?.trim();
 
-// Turns on the test-only /api/e2e routes (src/routes/e2e.ts) that set up E2E test data.
+// Enables the test-only /api/e2e routes.
 const e2eRoutes = process.env.ENABLE_E2E_ROUTES?.trim().toLowerCase() === 'true';
 
 export const env = {

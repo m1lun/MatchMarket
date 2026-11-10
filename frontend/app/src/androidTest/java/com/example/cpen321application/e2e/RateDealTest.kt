@@ -28,8 +28,7 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 
-// Use Case 2: Rate a Deal. Each test starts from the main screen with one new deal, seeded through the
-// backend's E2E route: the signed-in user sold "E2E desk" to "E2E Buyer", who has no ratings yet.
+// Use Case 2: Rate a Deal. Each test starts with a new seeded deal.
 class RateDealTest {
     @get:Rule
     val rule = mainRule()
@@ -47,7 +46,7 @@ class RateDealTest {
         clearSeededDeals()
     }
 
-    // Steps 1–7: the user rates the deal and sees the rating and the other user's new score.
+    // Steps 1–7
     @Test
     fun ratesDeal() {
         rule.openDeals()
@@ -67,7 +66,7 @@ class RateDealTest {
         assertEquals(4, myStars(dealId))
     }
 
-    // 2a: the deals cannot be loaded. 2a1: the app shows an error message and a way to retry.
+    // 2a, 2a1
     @Test
     fun showsErrorWhenDealsCannotLoad() {
         setAirplaneMode(true)
@@ -81,7 +80,7 @@ class RateDealTest {
         rule.waitForRateButton()
     }
 
-    // 5a: the user has not picked any stars. 5a1: "Submit" is disabled.
+    // 5a, 5a1
     @Test
     fun submitDisabledWithoutStars() {
         rule.openDeals()
@@ -95,15 +94,14 @@ class RateDealTest {
         rule.onNodeWithTag(RateTags.SUBMIT).assertIsEnabled()
     }
 
-    // 6a: the user already rated this deal on another device.
-    // 6a1: the app shows "You already rated this deal" and the first rating is unchanged.
+    // 6a, 6a1
     @Test
     fun rejectsSecondRatingFromAnotherDevice() {
         rule.openDeals()
         rule.tapRateOnSeededDeal()
         rule.pickStars(5)
 
-        // The tester's other device rates the deal first.
+        // Rated first from another device.
         rateThroughApi(dealId, stars = 2)
         rule.onNodeWithTag(RateTags.SUBMIT).performClick()
 
@@ -114,7 +112,7 @@ class RateDealTest {
         rule.waitForText("★★☆☆☆")
     }
 
-    // 6b: the network or server is unavailable. 6b1: the app shows an error message and the rating is not saved.
+    // 6b, 6b1
     @Test
     fun keepsRatingUnsavedWhenServerIsUnreachable() {
         rule.openDeals()
