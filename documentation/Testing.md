@@ -12,6 +12,7 @@
 | 2026-10-31 | 2 | Removed the note that no route creates a deal, since accepting a proposal now records one. |
 | 2026-11-01 | 4 | Use Case 1 is now Create Post, after the use cases were split in the Requirements and Design. The table maps the tests to its steps 1–7 and failures 2a, 5a–5d and 6a; the edit, close, reopen and delete tests now cover the Edit, Close, Reopen and Delete post use cases instead of formal steps. |
 | 2026-11-01 | 3 | Added the location and verification of the NFR 2 test, and noted that the NFR 1 test has not been added yet. |
+| 2026-11-09 | 4 | Added the front-end tests for Use Case 2: Rate a Deal (`RateDealTest.kt`), covering steps 1–7 and failures 2a, 5a, 6a and 6b, with the logs of a run (5/5 passed). Explained how each test gets its deal from the back-end's E2E seed route, and why the back-end must run with `E2E_SEED=true`. |
 
 ---
 
@@ -143,8 +144,9 @@ Tests:       1 passed, 1 total
 | -------------- | ------------- |
 | [`CreatePostTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/CreatePostTest.kt) | [Use Case 1: Create Post](Requirements_and_Design.md#uc1), steps 1–7 |
 | [`ManagePostsTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/ManagePostsTest.kt) | [Use Case 1: Create Post](Requirements_and_Design.md#uc1), steps 1–2 and failure 2a. Its other tests cover the Edit post, Close post, Reopen post and Delete post use cases ([Section 3.4](Requirements_and_Design.md#34-use-case-description)), which have no formal specification. |
+| [`RateDealTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/RateDealTest.kt) | [Use Case 2: Rate a Deal](Requirements_and_Design.md#uc2), steps 1–7 and failures 2a, 5a, 6a and 6b |
 
-Shared test steps are in `support/PostRobot.kt`, and the differences between the request and listing forms are in `support/PostForm.kt`.
+Shared test steps are in `support/PostRobot.kt`, and the differences between the request and listing forms are in `support/PostForm.kt`. The Rate a Deal steps and its seeding calls are in `support/DealSeed.kt`.
 
 **How the tests are set up.** Following the course rules, each test starts from the app's main screen with the user already signed in, and assumes no existing data:
 
@@ -153,10 +155,12 @@ Shared test steps are in `support/PostRobot.kt`, and the differences between the
 - **No mocking.** The tests talk to the real back-end. For failure scenarios 2a and 6a ("the network or server is unavailable"), the test switches on the emulator's airplane mode, and switches it off again in `@After` even if the test fails.
 - **Results checked on the server.** When a scenario says nothing is saved, the test asks the back-end with `testPosts()` and checks the list is empty, instead of trusting the screen.
 - **System UI.** The Android photo picker is not part of the app, so it is driven with UI Automator. `TestPhotos` adds small JPEGs to the emulator's gallery before each test and deletes them afterwards.
+- **A seeded deal for Rate a Deal.** A deal is only recorded when a second user accepts a price, which a test signed in as one user cannot do through the app. So before each `RateDealTest` test, `seedDeal()` calls `POST /api/e2e/deals`, a test-only back-end route ([`backend/src/routes/e2eSeed.ts`](../backend/src/routes/e2eSeed.ts)). It removes any deal seeded earlier and creates one new deal: the signed-in tester sold "E2E desk" for $45 to their own seed buyer, "E2E Buyer" (user id `e2e-buyer-<tester's id>`), who has no ratings yet. After each test, `clearSeededDeals()` calls `DELETE /api/e2e/deals`, which removes that deal, its ratings, the seed request and the seed buyer's score. The tester's real deals are never touched, and every test starts from the same deal.
+- **The `E2E_SEED` setting.** The seed routes exist only when the back-end runs with `E2E_SEED=true` in `backend/.env`; otherwise they return 404 and `RateDealTest` fails in `@Before` with a message saying so. The team turns it on, in the deployed server's `backend/.env` and in your local one for step 1 below, so the TAs do not need access to the server. **Trade-off:** while it is on, any signed-in user can create and remove test deals. They can only do so between themselves and their own seed buyer, so they cannot create, change or remove a deal with another real user, rate another real user, or change another real user's score. Leave it unset on any server the E2E tests do not run against.
 
 **How to run them.**
 
-1. Complete the Frontend Setup and the `backend/.env` part of the Backend Setup in the [README](../README.md). Docker must be running, and `java` must be on your `PATH`. Android Studio's bundled JDK works:
+1. Complete the Frontend Setup and the `backend/.env` part of the Backend Setup in the [README](../README.md), and set `E2E_SEED=true` in `backend/.env` for `RateDealTest`. Docker must be running, and `java` must be on your `PATH`. Android Studio's bundled JDK works:
    ```bash
    export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"   # macOS
    export PATH="$JAVA_HOME/bin:$PATH"
@@ -249,4 +253,43 @@ Shared test steps are in `support/PostRobot.kt`, and the differences between the
       closesAndReopensPost[LISTING]                    PASSED   8.48 s
 
     Finished 42 tests on Pixel_9(AVD) - 16: 42 passed, 0 failed, 0 skipped (550.4 s)
+    ```
+
+- **Use Case 2: Rate a Deal** ([`RateDealTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/RateDealTest.kt))
+
+  Before each test, `seedDeal()` creates one deal in which the tester sold "E2E desk" to "E2E Buyer", who has no ratings yet. It is the newest deal, so it is the first card on the Deals tab.
+
+  - **Expected Behaviors:**
+
+    | **Scenario Steps** | **Test Case Steps** |
+    | ------------------ | ------------------- |
+    | 1. The user opens the Deals tab. | Tap "Deals" in the bottom bar. |
+    | 2. The app shows the user's deals, newest first, with "Rate" on each deal they have not rated yet. | Check that a "Rate" button is shown. |
+    | 2a. The deals cannot be loaded. | (`showsErrorWhenDealsCannotLoad`) Turn on airplane mode, then tap "Deals". |
+    | 2a1. The app shows an error message and a way to retry. | Check that "Could not reach the server" and a "Retry" button are shown.<br>Turn off airplane mode, tap "Retry", and check that a "Rate" button is shown. |
+    | 3. The user taps "Rate" on a deal. | Tap "Rate" on the first deal. |
+    | 4. The app shows the stars and an optional comment field. | Check that the five star buttons and the comment field are present. |
+    | 5. The user picks 1 to 5 stars, optionally writes a comment, and taps "Submit". | Tap the fourth star.<br>Input "Smooth deal" in the comment field.<br>Tap "Submit". |
+    | 5a. The user has not picked any stars. | (`submitDisabledWithoutStars`) Tap "Rate" on the first deal without picking a star, then input "No stars yet" in the comment field. |
+    | 5a1. "Submit" is disabled. | Check that "Submit" is disabled, both before and after typing the comment.<br>Tap the third star and check that "Submit" is enabled. |
+    | 6. The system saves the rating and updates the other user's score. | (`ratesDeal`) Check on the back-end, through `GET /api/deals`, that the tester's rating of the deal is 4 stars. |
+    | 6a. The user already rated this deal on another device. | (`rejectsSecondRatingFromAnotherDevice`) Tap "Rate" on the first deal and tap the fifth star. Rate the same deal 2 stars through `POST /api/deals/:id/ratings`, as the tester's other device. Tap "Submit". |
+    | 6a1. The app shows "You already rated this deal" and the first rating is unchanged. | Check that "You already rated this deal" is shown.<br>Check on the back-end that the rating is still 2 stars.<br>Tap "Cancel", leave and reopen the Deals tab, and check that "★★☆☆☆" is shown. |
+    | 6b. The network or server is unavailable. | (`keepsRatingUnsavedWhenServerIsUnreachable`) Tap "Rate" on the first deal and tap the third star. Turn on airplane mode and tap "Submit". |
+    | 6b1. The app shows an error message and the rating is not saved. | Check that "Could not reach the server" is shown.<br>Turn off airplane mode and check on the back-end that the deal has no rating from the tester.<br>Tap "Cancel", leave and reopen the Deals tab, and check that the deal still shows "Rate". |
+    | 7. The app shows the rating and the other user's new score on the deal. | (`ratesDeal`) Check that "★★★★☆", the comment "Smooth deal" and the score "★ 4.0 (1)" are shown. |
+
+  - **Test Logs:**
+    ```
+    Pixel_9(AVD) - 16 (Android 16, API 36), 2026-11-09, adb shell am instrument -e class ...e2e.RateDealTest
+    Branch test/e2e-rate-deal, against a local back-end with E2E_SEED=true
+
+    com.example.cpen321application.e2e.RateDealTest
+      keepsRatingUnsavedWhenServerIsUnreachable        PASSED  10.65 s
+      ratesDeal                                        PASSED   6.09 s
+      submitDisabledWithoutStars                       PASSED   5.36 s
+      showsErrorWhenDealsCannotLoad                    PASSED   8.72 s
+      rejectsSecondRatingFromAnotherDevice             PASSED   6.40 s
+
+    Finished 5 tests on Pixel_9(AVD) - 16: 5 passed, 0 failed, 0 skipped (37.3 s)
     ```

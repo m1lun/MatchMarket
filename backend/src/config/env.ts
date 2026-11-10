@@ -53,6 +53,10 @@ if (jwtSecret.length < 32) {
 // returned without travel times, as when the service is down.
 const orsApiKey = process.env.ORS_API_KEY?.trim();
 
+// Turns on the E2E seed routes (src/routes/e2eSeed.ts), which the front-end E2E tests use to
+// create and remove a deal for the signed-in user. Off unless set to true.
+const e2eSeed = process.env.E2E_SEED?.trim().toLowerCase() === 'true';
+
 export const env = {
   port,
   mongoUri: required('MONGODB_URI', process.env.MONGODB_URI),
@@ -61,4 +65,5 @@ export const env = {
   googleClientId,
   jwtSecret,
   orsApiKey: orsApiKey === undefined || orsApiKey === '' ? undefined : orsApiKey,
+  e2eSeed,
 } as const;

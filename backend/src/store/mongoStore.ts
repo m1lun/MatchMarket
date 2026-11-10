@@ -309,6 +309,12 @@ class MongoDealCollection implements DealCollection {
     const found = await this.collection.find(query).sort({ _id: -1 }).limit(limit).toArray();
     return toDocs<Deal>(found as unknown[]);
   }
+
+  async removeBetween(sellerId: string, buyerId: string): Promise<Deal[]> {
+    const found = toDocs<Deal>((await this.collection.find({ sellerId, buyerId }).toArray()) as unknown[]);
+    await this.collection.deleteMany({ sellerId, buyerId });
+    return found;
+  }
 }
 
 class MongoRatingCollection implements RatingCollection {
@@ -340,6 +346,10 @@ class MongoRatingCollection implements RatingCollection {
       .find({ dealId: { $in: dealIds } }, { projection: { dealId: 1, raterId: 1, stars: 1, comment: 1, createdAt: 1 } })
       .toArray();
     return toDocs<Rating>(found as unknown[]);
+  }
+
+  async removeByDeals(dealIds: string[]): Promise<void> {
+    await this.collection.deleteMany({ dealId: { $in: dealIds } });
   }
 }
 
@@ -384,6 +394,10 @@ class MongoReputationCollection implements ReputationCollection {
       { returnDocument: 'after', ...WITHOUT_ID },
     );
     return updated as Reputation | null;
+  }
+
+  async remove(userId: string): Promise<void> {
+    await this.collection.deleteOne({ userId });
   }
 }
 

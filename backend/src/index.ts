@@ -14,7 +14,7 @@ import type { Store } from './store/types';
 // the backend directory, the working directory for `npm start` and the
 // Docker image's WORKDIR.
 function start(store: Store): void {
-  const app = createApp({ sessions: store.sessions, store });
+  const app = createApp({ sessions: store.sessions, store, e2eSeed: env.e2eSeed });
   const server = env.httpsEnabled
     ? createHttpsServer(
         {
