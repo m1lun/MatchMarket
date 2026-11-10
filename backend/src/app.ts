@@ -7,7 +7,7 @@ import { isText } from './routes/checks';
 import { createConversationsRouter } from './routes/conversations';
 import { createCustomFieldsRouter } from './routes/customFields';
 import { createDealsRouter } from './routes/deals';
-import { createE2eSeedRouter } from './routes/e2eSeed';
+import { createE2eRouter } from './routes/e2e';
 import { createFeedRouter } from './routes/feed';
 import { createListingsRouter } from './routes/listings';
 import { createPhotosRouter } from './routes/photos';
@@ -22,11 +22,11 @@ import type { SessionRepo, Store } from './store/types';
 export interface AppDeps {
   sessions: SessionRepo;
   store?: Store;
-  // Mounts the E2E seed routes; set from E2E_SEED.
-  e2eSeed?: boolean;
+  // Mounts the test-only /api/e2e routes; set from ENABLE_E2E_ROUTES.
+  e2eRoutes?: boolean;
 }
 
-export function createApp({ sessions, store, e2eSeed = false }: AppDeps): Express {
+export function createApp({ sessions, store, e2eRoutes = false }: AppDeps): Express {
   const app = express();
 
   // The auth routes have tiny bodies; the limit rejects oversized ones early.
@@ -118,8 +118,8 @@ export function createApp({ sessions, store, e2eSeed = false }: AppDeps): Expres
       createProposalsRouter(store, events),
       ratingBodyTooLarge,
     );
-    if (e2eSeed) {
-      app.use('/api/e2e', requireAuth, createE2eSeedRouter(store));
+    if (e2eRoutes) {
+      app.use('/api/e2e', requireAuth, createE2eRouter(store));
     }
   }
 

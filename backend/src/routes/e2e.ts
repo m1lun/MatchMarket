@@ -5,9 +5,12 @@ import { currentUser } from '../sessions';
 import type { Store } from '../store/types';
 import { handle } from './handle';
 
-// Test-only routes for the front-end E2E tests, mounted only when E2E_SEED=true. A deal needs a second
-// user to accept a price, which a test signed in as one user cannot do, so these routes make the deal.
-// Each caller gets their own seed buyer, so the routes never touch a deal with another real user.
+// Test-only routes that set up and clean up data for the front-end E2E tests, mounted under /api/e2e
+// only when ENABLE_E2E_ROUTES=true. Group new routes by feature.
+
+// Deals: a deal needs a second user to accept a price, which a test signed in as one user cannot do,
+// so these routes make the deal. Each caller gets their own seed buyer, so the routes never touch a
+// deal with another real user.
 
 export const E2E_DEAL_PRICE = 45;
 export const E2E_REQUEST_NAME = 'E2E desk';
@@ -31,7 +34,7 @@ async function clearSeededDeals(store: Store, me: string): Promise<void> {
   ]);
 }
 
-export function createE2eSeedRouter(store: Store): Router {
+export function createE2eRouter(store: Store): Router {
   const router = Router();
 
   // POST /api/e2e/deals — replaces the caller's seeded deals with one new deal: the caller sold to

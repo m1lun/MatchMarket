@@ -12,7 +12,7 @@
 | 2026-10-31 | 2 | Removed the note that no route creates a deal, since accepting a proposal now records one. |
 | 2026-11-01 | 4 | Use Case 1 is now Create Post, after the use cases were split in the Requirements and Design. The table maps the tests to its steps 1–7 and failures 2a, 5a–5d and 6a; the edit, close, reopen and delete tests now cover the Edit, Close, Reopen and Delete post use cases instead of formal steps. |
 | 2026-11-01 | 3 | Added the location and verification of the NFR 2 test, and noted that the NFR 1 test has not been added yet. |
-| 2026-11-09 | 4 | Added the front-end tests for Use Case 2: Rate a Deal (`RateDealTest.kt`), covering steps 1–7 and failures 2a, 5a, 6a and 6b, with the logs of a run (5/5 passed). Explained how each test gets its deal from the back-end's E2E seed route, and why the back-end must run with `E2E_SEED=true`. |
+| 2026-11-09 | 4 | Added the front-end tests for Use Case 2: Rate a Deal (`RateDealTest.kt`), covering steps 1–7 and failures 2a, 5a, 6a and 6b, with the logs of a run (5/5 passed). Explained how each test gets its deal from the back-end's test-only E2E routes, and why the back-end must run with `ENABLE_E2E_ROUTES=true`. |
 
 ---
 
@@ -155,12 +155,12 @@ Shared test steps are in `support/PostRobot.kt`, and the differences between the
 - **No mocking.** The tests talk to the real back-end. For failure scenarios 2a and 6a ("the network or server is unavailable"), the test switches on the emulator's airplane mode, and switches it off again in `@After` even if the test fails.
 - **Results checked on the server.** When a scenario says nothing is saved, the test asks the back-end with `testPosts()` and checks the list is empty, instead of trusting the screen.
 - **System UI.** The Android photo picker is not part of the app, so it is driven with UI Automator. `TestPhotos` adds small JPEGs to the emulator's gallery before each test and deletes them afterwards.
-- **A seeded deal for Rate a Deal.** A deal is only recorded when a second user accepts a price, which a test signed in as one user cannot do through the app. So before each `RateDealTest` test, `seedDeal()` calls `POST /api/e2e/deals`, a test-only back-end route ([`backend/src/routes/e2eSeed.ts`](../backend/src/routes/e2eSeed.ts)). It removes any deal seeded earlier and creates one new deal: the signed-in tester sold "E2E desk" for $45 to their own seed buyer, "E2E Buyer" (user id `e2e-buyer-<tester's id>`), who has no ratings yet. After each test, `clearSeededDeals()` calls `DELETE /api/e2e/deals`, which removes that deal, its ratings, the seed request and the seed buyer's score. The tester's real deals are never touched, and every test starts from the same deal.
-- **The `E2E_SEED` setting.** The seed routes exist only when the back-end runs with `E2E_SEED=true` in `backend/.env`; otherwise they return 404 and `RateDealTest` fails in `@Before` with a message saying so. The team turns it on, in the deployed server's `backend/.env` and in your local one for step 1 below, so the TAs do not need access to the server. **Trade-off:** while it is on, any signed-in user can create and remove test deals. They can only do so between themselves and their own seed buyer, so they cannot create, change or remove a deal with another real user, rate another real user, or change another real user's score. Leave it unset on any server the E2E tests do not run against.
+- **A seeded deal for Rate a Deal.** A deal is only recorded when a second user accepts a price, which a test signed in as one user cannot do through the app. So before each `RateDealTest` test, `seedDeal()` calls `POST /api/e2e/deals`, a test-only back-end route ([`backend/src/routes/e2e.ts`](../backend/src/routes/e2e.ts)). It removes any deal seeded earlier and creates one new deal: the signed-in tester sold "E2E desk" for $45 to their own seed buyer, "E2E Buyer" (user id `e2e-buyer-<tester's id>`), who has no ratings yet. After each test, `clearSeededDeals()` calls `DELETE /api/e2e/deals`, which removes that deal, its ratings, the seed request and the seed buyer's score. The tester's real deals are never touched, and every test starts from the same deal.
+- **The `ENABLE_E2E_ROUTES` setting.** The test-only `/api/e2e` routes, which set up E2E test data such as this deal, exist only when the back-end runs with `ENABLE_E2E_ROUTES=true` in `backend/.env`; otherwise they return 404 and `RateDealTest` fails in `@Before` with a message saying so. The team turns it on, in the deployed server's `backend/.env` and in your local one for step 1 below, so the TAs do not need access to the server. **Trade-off:** while it is on, any signed-in user can create and remove test data, but only their own. For deals, they can only do so between themselves and their own seed buyer, so they cannot create, change or remove a deal with another real user, rate another real user, or change another real user's score. Leave it unset on any server the E2E tests do not run against.
 
 **How to run them.**
 
-1. Complete the Frontend Setup and the `backend/.env` part of the Backend Setup in the [README](../README.md), and set `E2E_SEED=true` in `backend/.env` for `RateDealTest`. Docker must be running, and `java` must be on your `PATH`. Android Studio's bundled JDK works:
+1. Complete the Frontend Setup and the `backend/.env` part of the Backend Setup in the [README](../README.md), and set `ENABLE_E2E_ROUTES=true` in `backend/.env` for `RateDealTest`. Docker must be running, and `java` must be on your `PATH`. Android Studio's bundled JDK works:
    ```bash
    export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"   # macOS
    export PATH="$JAVA_HOME/bin:$PATH"
@@ -282,7 +282,7 @@ Shared test steps are in `support/PostRobot.kt`, and the differences between the
   - **Test Logs:**
     ```
     Pixel_9(AVD) - 16 (Android 16, API 36), 2026-11-09, adb shell am instrument -e class ...e2e.RateDealTest
-    Branch test/e2e-rate-deal, against a local back-end with E2E_SEED=true
+    Branch test/e2e-rate-deal, against a local back-end with ENABLE_E2E_ROUTES=true
 
     com.example.cpen321application.e2e.RateDealTest
       keepsRatingUnsavedWhenServerIsUnreachable        PASSED  10.65 s

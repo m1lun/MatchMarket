@@ -2,7 +2,7 @@ import type { Server } from 'node:http';
 
 import request from 'supertest';
 
-import { E2E_DEAL_PRICE, E2E_REQUEST_NAME, e2eBuyerId } from '../../src/routes/e2eSeed';
+import { E2E_DEAL_PRICE, E2E_REQUEST_NAME, e2eBuyerId } from '../../src/routes/e2e';
 import { ME, OTHER, bearer, clearDealData, makeDeal, makeRating, makeRequest } from '../helpers/dealFixtures';
 import { startTestApp, stopTestApp } from '../helpers/testApp';
 import { createTestStore, type TestStore } from '../helpers/testStore';
@@ -80,11 +80,11 @@ describe('Unmocked: POST /api/e2e/deals', () => {
     expect(await mongo.store.reputations.find(BUYER)).toBeNull();
   });
 
-  // Input: POST /api/e2e/deals on a server started without E2E_SEED
+  // Input: POST /api/e2e/deals on a server started without ENABLE_E2E_ROUTES
   // Expected status code: 404
   // Expected behavior: the route does not exist, so nothing is saved
   // Expected output: { error: 'Not Found' }
-  test('Off Without E2E_SEED: 404', async () => {
+  test('Off Without ENABLE_E2E_ROUTES: 404', async () => {
     const response = await seed(ME, appWithoutSeed);
 
     expect(response.status).toBe(404);

@@ -15,9 +15,9 @@ import kotlinx.coroutines.runBlocking
 import org.json.JSONObject
 import java.io.IOException
 
-// The deal the backend's E2E seed route makes (backend/src/routes/e2eSeed.ts): the signed-in user sold
+// The deal the backend's E2E deal route makes (backend/src/routes/e2e.ts): the signed-in user sold
 // to their own seed buyer, "E2E Buyer", through the buyer's closed request "E2E desk". The backend must
-// run with E2E_SEED=true.
+// run with ENABLE_E2E_ROUTES=true.
 private const val SEED_PATH = "/api/e2e/deals"
 private const val ONLINE_WAIT_MS = 60_000L
 private const val RETRY_DELAY_MS = 1_000L
@@ -39,7 +39,7 @@ private fun send(method: String, path: String, body: JSONObject? = null): HttpRe
 }
 
 private fun HttpResult.orFail(action: String): HttpResult {
-    check(isSuccess) { "$action failed with HTTP $code: $errorMessage. Is the backend running with E2E_SEED=true?" }
+    check(isSuccess) { "$action failed with HTTP $code: $errorMessage. Is the backend running with ENABLE_E2E_ROUTES=true?" }
     return this
 }
 
