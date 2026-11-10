@@ -13,7 +13,7 @@ import com.example.cpen321application.support.mainRule
 import com.example.cpen321application.support.myStars
 import com.example.cpen321application.support.openDeals
 import com.example.cpen321application.support.pickStars
-import com.example.cpen321application.support.rateFromAnotherDevice
+import com.example.cpen321application.support.rateThroughApi
 import com.example.cpen321application.support.reopenDeals
 import com.example.cpen321application.support.seedDeal
 import com.example.cpen321application.support.setAirplaneMode
@@ -103,7 +103,8 @@ class RateDealTest {
         rule.tapRateOnSeededDeal()
         rule.pickStars(5)
 
-        rateFromAnotherDevice(dealId, stars = 2)
+        // The tester's other device rates the deal first.
+        rateThroughApi(dealId, stars = 2)
         rule.onNodeWithTag(RateTags.SUBMIT).performClick()
 
         rule.waitForText("You already rated this deal")

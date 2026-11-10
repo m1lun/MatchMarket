@@ -51,23 +51,32 @@ fun clearSeededDeals() {
     send("DELETE", SEED_PATH).orFail("Removing the seeded deals")
 }
 
-// Rates the deal through the real ratings API, as the same user would from another device.
-fun rateFromAnotherDevice(dealId: String, stars: Int) {
-    send("POST", "/api/deals/$dealId/ratings", JSONObject().put("stars", stars).put("comment", ""))
-        .orFail("Rating the deal from another device")
+// Rates the deal through the real ratings API, as the signed-in user, e.g. from another device.
+fun rateThroughApi(dealId: String, stars: Int, comment: String = "") {
+    send("POST", "/api/deals/$dealId/ratings", JSONObject().put("stars", stars).put("comment", comment))
+        .orFail("Rating the deal through the API")
 }
 
-// The stars the signed-in user gave the deal, read from GET /api/deals, or null if they have not rated it.
-fun myStars(dealId: String): Int? {
-    val deals = JSONObject(send("GET", "/api/deals?limit=50").orFail("Loading the deals").body).getJSONArray("deals")
+data class SavedRating(val stars: Int, val comment: String)
+
+private fun dealsJson(limit: Int) =
+    JSONObject(send("GET", "/api/deals?limit=$limit").orFail("Loading the deals").body).getJSONArray("deals")
+
+// The rating the signed-in user gave the deal, read from GET /api/deals, or null if they have not rated it.
+fun myRating(dealId: String): SavedRating? {
+    val deals = dealsJson(limit = 50)
     for (index in 0 until deals.length()) {
         val deal = deals.getJSONObject(index)
         if (deal.getString("id") == dealId) {
-            return if (deal.isNull("myRating")) null else deal.getJSONObject("myRating").getInt("stars")
+            if (deal.isNull("myRating")) return null
+            val rating = deal.getJSONObject("myRating")
+            return SavedRating(rating.getInt("stars"), rating.getString("comment"))
         }
     }
     error("Deal $dealId is not in the deals list")
 }
+
+fun myStars(dealId: String): Int? = myRating(dealId)?.stars
 
 // A bottom-bar tab; the Deals screen's own "Deals" title is not clickable, so it does not match.
 private fun MainRule.tab(label: String) = onNode(hasText(label) and hasClickAction())
@@ -91,6 +100,13 @@ fun MainRule.waitForRateButton() {
 fun MainRule.tapRateOnSeededDeal() {
     waitForRateButton()
     onAllNodesWithTag(DealsTags.RATE).onFirst().performClick()
+    waitUntil(LOAD_WAIT_MS) { onAllNodesWithTag(RateTags.SUBMIT).fetchSemanticsNodes().isNotEmpty() }
+}
+
+// The seeded deal is the newest, so its "Edit" is the first one.
+fun MainRule.tapEditOnSeededDeal() {
+    waitUntil(LOAD_WAIT_MS) { onAllNodesWithTag(DealsTags.EDIT).fetchSemanticsNodes().isNotEmpty() }
+    onAllNodesWithTag(DealsTags.EDIT).onFirst().performClick()
     waitUntil(LOAD_WAIT_MS) { onAllNodesWithTag(RateTags.SUBMIT).fetchSemanticsNodes().isNotEmpty() }
 }
 
