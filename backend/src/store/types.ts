@@ -92,7 +92,7 @@ export interface DealCollection {
   findById(id: string): Promise<Deal | null>;
   listByUser(userId: string, limit: number, before?: string): Promise<Deal[]>;
   // Deletes every deal between this seller and buyer and returns them. Only the E2E routes use it.
-  removeBetween(sellerId: string, buyerId: string): Promise<Deal[]>;
+  removeBySellerAndBuyer(sellerId: string, buyerId: string): Promise<Deal[]>;
 }
 
 export interface RatingUpdate {
@@ -105,7 +105,7 @@ export interface RatingCollection {
   update(dealId: string, raterId: string, stars: number, comment: string, now: Date): Promise<RatingUpdate | null>;
   listByDeals(dealIds: string[]): Promise<Rating[]>;
   // Deletes the ratings of these deals. Only the E2E routes use it.
-  removeByDeals(dealIds: string[]): Promise<void>;
+  removeByDealIds(dealIds: string[]): Promise<void>;
 }
 
 export interface ReputationCollection {

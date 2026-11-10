@@ -25,10 +25,10 @@ export function e2eBuyerId(userId: string): string {
 // and the seed buyer's reputation.
 async function clearSeededDeals(store: Store, me: string): Promise<void> {
   const buyer = e2eBuyerId(me);
-  const deals = await store.deals.removeBetween(me, buyer);
+  const deals = await store.deals.removeBySellerAndBuyer(me, buyer);
   const requestIds = deals.map((deal) => deal.requestId).filter((id): id is string => id !== null);
   await Promise.all([
-    store.ratings.removeByDeals(deals.map((deal) => deal.id)),
+    store.ratings.removeByDealIds(deals.map((deal) => deal.id)),
     ...requestIds.map((id) => store.requests.remove(id)),
     store.reputations.remove(buyer),
   ]);

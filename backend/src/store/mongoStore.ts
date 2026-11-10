@@ -310,7 +310,7 @@ class MongoDealCollection implements DealCollection {
     return toDocs<Deal>(found as unknown[]);
   }
 
-  async removeBetween(sellerId: string, buyerId: string): Promise<Deal[]> {
+  async removeBySellerAndBuyer(sellerId: string, buyerId: string): Promise<Deal[]> {
     const found = toDocs<Deal>((await this.collection.find({ sellerId, buyerId }).toArray()) as unknown[]);
     await this.collection.deleteMany({ sellerId, buyerId });
     return found;
@@ -348,7 +348,7 @@ class MongoRatingCollection implements RatingCollection {
     return toDocs<Rating>(found as unknown[]);
   }
 
-  async removeByDeals(dealIds: string[]): Promise<void> {
+  async removeByDealIds(dealIds: string[]): Promise<void> {
     await this.collection.deleteMany({ dealId: { $in: dealIds } });
   }
 }
