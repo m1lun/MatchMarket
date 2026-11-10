@@ -78,9 +78,8 @@
     <string name="editor_width">W</string>
     <string name="editor_height">H</string>
     <string name="editor_depth">D</string>
-    <string name="editor_hard">Hard</string>
-    <string name="editor_soft">Soft</string>
-    <string name="editor_importance">Importance: %1$s/%2$s</string>
+    <string name="editor_how_much">How much:</string>
+    <string name="editor_importance_dot">Importance %1$d of %2$d</string>
     <string name="editor_new_value">New value \"%1$s\" will be added</string>
     <string name="editor_add_field_title">Add field</string>
     <string name="editor_saved_fields">Your saved fields</string>
@@ -105,7 +104,15 @@
     <string name="value_dimensions">%1$s × %2$s × %3$s cm</string>
     <string name="summary_request_title">%1$s · ≤ $%2$s</string>
     <string name="summary_listing_title">%1$s · $%2$s</string>
-    <string name="summary_hard_soft">%1$s hard · %2$s soft</string>
+    <string name="summary_hard_soft">%1$s · %2$s</string>
+    <plurals name="summary_must_haves">
+        <item quantity="one">%d must-have</item>
+        <item quantity="other">%d must-haves</item>
+    </plurals>
+    <plurals name="summary_nice_to_haves">
+        <item quantity="one">%d nice-to-have</item>
+        <item quantity="other">%d nice-to-haves</item>
+    </plurals>
     <string name="summary_category">%1$s · %2$s</string>
 
     <!-- Messages shown when a post can't be saved or loaded -->

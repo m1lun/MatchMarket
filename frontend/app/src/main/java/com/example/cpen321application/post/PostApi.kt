@@ -119,7 +119,12 @@ class PostApi(
             val title = rows.lastOrNull { it.getString("key") == "price" }
                 ?.let { resources.getString(R.string.summary_request_title, detail.name, it.get("value")) }
                 ?: detail.name
-            val hardSoft = resources.getString(R.string.summary_hard_soft, hard.toString(), (rows.size - hard).toString())
+            val soft = rows.size - hard
+            val hardSoft = resources.getString(
+                R.string.summary_hard_soft,
+                resources.getQuantityString(R.plurals.summary_must_haves, hard, hard),
+                resources.getQuantityString(R.plurals.summary_nice_to_haves, soft, soft),
+            )
             PostSummary(
                 post.getString("id"),
                 title,

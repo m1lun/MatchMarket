@@ -84,7 +84,7 @@ class CreatePostTest(private val form: PostForm) {
             rule.click("Any")
             rule.click("Fair")
             rule.valueField(1).performTextInput("5")
-            rule.onAllNodesWithText("Hard")[3].scrolled().performClick()
+            rule.onAllNodesWithText("Must have")[3].scrolled().performClick()
         } else {
             rule.click("Good")
             rule.click("Like New")

@@ -4,6 +4,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.annotation.StringRes
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,6 +17,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
@@ -49,7 +52,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -60,6 +65,8 @@ import com.example.cpen321application.R
 private const val MAX_SUGGESTIONS = 8
 // Characters of a new photo's file name shown on its remove button.
 private const val PHOTO_NAME_CHARS = 8
+private val DOT_SIZE = 12.dp
+private val DOT_TARGET = 32.dp
 
 @Composable
 fun PostEditorScreen(viewModel: PostViewModel, padding: PaddingValues) {
@@ -419,12 +426,9 @@ private fun OptionValueInput(row: RowState, viewModel: PostViewModel, onChange: 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun RequestControls(row: RowState, onChange: (RowState) -> Unit) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        SingleChoiceSegmentedButtonRow(modifier = Modifier.weight(1f)) {
-            listOf(true to R.string.editor_hard, false to R.string.editor_soft).forEachIndexed { i, (hard, name) ->
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        SingleChoiceSegmentedButtonRow(modifier = Modifier.fillMaxWidth()) {
+            listOf(true to R.string.field_must_have, false to R.string.field_nice_to_have).forEachIndexed { i, (hard, name) ->
                 SegmentedButton(
                     selected = row.hard == hard,
                     onClick = { onChange(row.copy(hard = hard)) },
@@ -432,17 +436,39 @@ private fun RequestControls(row: RowState, onChange: (RowState) -> Unit) {
                 ) { Text(stringResource(name)) }
             }
         }
-        // Only a soft field has an importance; the empty space keeps the toggle the same width.
-        if (row.hard) {
-            Spacer(Modifier.weight(1f))
-        } else {
-            ChoiceDropdown(
-                selected = row.importance.toString(),
-                options = (MIN_IMPORTANCE..MAX_IMPORTANCE).map { it.toString() to it.toString() },
-                onSelect = { onChange(row.copy(importance = it.toInt())) },
-                modifier = Modifier.weight(1f),
-                buttonText = stringResource(R.string.editor_importance, row.importance, MAX_IMPORTANCE),
-            )
+        // Only a nice-to-have has an importance.
+        if (!row.hard) ImportancePicker(row.importance) { onChange(row.copy(importance = it)) }
+    }
+}
+
+// Tap the nth dot to set the importance to n, like the dots on the detail screen.
+@Composable
+private fun ImportancePicker(level: Int, onSelect: (Int) -> Unit) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            stringResource(R.string.editor_how_much),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        (MIN_IMPORTANCE..MAX_IMPORTANCE).forEach { value ->
+            val description = stringResource(R.string.editor_importance_dot, value, MAX_IMPORTANCE)
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(DOT_TARGET)
+                    .selectable(selected = value == level, role = Role.RadioButton) { onSelect(value) }
+                    .semantics { contentDescription = description },
+            ) {
+                Box(
+                    Modifier
+                        .size(DOT_SIZE)
+                        .clip(CircleShape)
+                        .background(
+                            if (value <= level) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.outlineVariant,
+                        ),
+                )
+            }
         }
     }
 }
