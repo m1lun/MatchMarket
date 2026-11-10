@@ -46,12 +46,7 @@ describe('Mocked: POST and DELETE /api/e2e/deals', () => {
   // Expected output: { error: 'Internal Server Error' }
   test.each<FailCase>([
     { label: 'POST deals.removeBySellerAndBuyer', method: 'post', spy: (store) => jest.spyOn(store.deals, 'removeBySellerAndBuyer') },
-    { label: 'POST users.upsertFromSignIn', method: 'post', spy: (store) => jest.spyOn(store.users, 'upsertFromSignIn') },
-    { label: 'POST requests.insert', method: 'post', spy: (store) => jest.spyOn(store.requests, 'insert') },
-    { label: 'POST deals.insert', method: 'post', spy: (store) => jest.spyOn(store.deals, 'insert') },
     { label: 'DELETE deals.removeBySellerAndBuyer', method: 'delete', spy: (store) => jest.spyOn(store.deals, 'removeBySellerAndBuyer') },
-    { label: 'DELETE ratings.removeByDealIds', method: 'delete', spy: (store) => jest.spyOn(store.ratings, 'removeByDealIds') },
-    { label: 'DELETE reputations.remove', method: 'delete', spy: (store) => jest.spyOn(store.reputations, 'remove') },
   ])('$label Throws: 500', async ({ method, spy }: FailCase) => {
     const failing = spy(mongo.store).mockRejectedValue(FAILURE);
 

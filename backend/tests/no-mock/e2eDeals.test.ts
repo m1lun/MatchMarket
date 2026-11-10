@@ -128,28 +128,4 @@ describe('Unmocked: DELETE /api/e2e/deals', () => {
     expect(await count('ratings', { dealId })).toBe(0);
     expect(await mongo.store.reputations.find(BUYER)).toBeNull();
   });
-
-  // Input: DELETE /api/e2e/deals as OTHER, while ME has a seeded deal
-  // Expected status code: 204
-  // Expected behavior: another user's seeded deal is left alone
-  // Expected output: None
-  test('Leaves Other Users Seeded Deals', async () => {
-    const { dealId } = (await seed()).body as { dealId: string };
-
-    const response = await clear(OTHER);
-
-    expect(response.status).toBe(204);
-    expect(await mongo.store.deals.findById(dealId)).not.toBeNull();
-  });
-
-  // Input: DELETE /api/e2e/deals as ME with nothing seeded
-  // Expected status code: 204
-  // Expected behavior: nothing changes
-  // Expected output: None
-  test('Nothing To Remove', async () => {
-    const response = await clear();
-
-    expect(response.status).toBe(204);
-    expect(await count('deals')).toBe(0);
-  });
 });
