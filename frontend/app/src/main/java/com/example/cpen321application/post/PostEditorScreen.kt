@@ -441,7 +441,7 @@ private fun RequestControls(row: RowState, onChange: (RowState) -> Unit) {
     }
 }
 
-// Tap the nth dot to set the importance to n, like the dots on the detail screen.
+// Tap a dot to set the importance.
 @Composable
 private fun ImportancePicker(level: Int, onSelect: (Int) -> Unit) {
     Row(verticalAlignment = Alignment.CenterVertically) {
