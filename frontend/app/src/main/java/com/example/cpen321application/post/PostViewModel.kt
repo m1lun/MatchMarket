@@ -278,8 +278,9 @@ class PostViewModel(app: Application) : AndroidViewModel(app) {
                 val id = editingId
                 if (id == null) api.createPost(mode, body) else api.updatePost(mode, id, body)
                 optionCache.clear()
-                editing = false
+                // Reload before closing the form, so My Posts never shows the list from before the save.
                 load()
+                editing = false
                 selected = selected?.let { s -> posts.find { it.id == s.id } }
             } catch (e: ApiException) {
                 message = e.message
