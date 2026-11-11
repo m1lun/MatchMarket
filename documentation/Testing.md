@@ -12,12 +12,13 @@
 | 2026-10-31 | 2 | Removed the note that no route creates a deal, since accepting a proposal now records one. |
 | 2026-11-01 | 4 | Use Case 1 is now Create Post, after the use cases were split in the Requirements and Design. The table maps the tests to its steps 1–7 and failures 2a, 5a–5d and 6a; the edit, close, reopen and delete tests now cover the Edit, Close, Reopen and Delete post use cases instead of formal steps. |
 | 2026-11-01 | 3 | Added the location and verification of the NFR 2 test, and noted that the NFR 1 test has not been added yet. |
+| 2026-11-11 | 2 | Added the Messaging component's interface tests: conversations, messages, proposals and live updates, with how they are designed and the known limitation for the last message. The coverage reports and the commit hash will be updated when the tests run on main. |
 
 ---
 
 ## 2. Back-end Test Specification: APIs
 
-This section covers the Deals component only ([Section 4.1](Requirements_and_Design.md#41-main-components)). Tests for the other components will be added here as they are written.
+This section covers the Deals and Messaging components ([Section 4.1](Requirements_and_Design.md#41-main-components)). Tests for the other components will be added here as they are written. The Messaging links point to the current files; they will be replaced with links at the commit in Section 2.1.2 when it is updated.
 
 ### 2.1. Locations of Back-end Tests and Instructions to Run Them
 
@@ -30,8 +31,23 @@ This section covers the Deals component only ([Section 4.1](Requirements_and_Des
 | **PUT /api/deals/:id/ratings** | [`tests/no-mock/ratings.test.ts#L334`](https://github.com/m1lun/m1skeletonProject/blob/953fbeb42f6481a2b5335e85e557c7c7bbbd5a6f/backend/tests/no-mock/ratings.test.ts#L334) | [`tests/mock/ratings.test.ts#L116`](https://github.com/m1lun/m1skeletonProject/blob/953fbeb42f6481a2b5335e85e557c7c7bbbd5a6f/backend/tests/mock/ratings.test.ts#L116) | Deals DB, Ratings DB, Reputations DB |
 | **GET /api/feed/listings/:id** | [`tests/no-mock/dealPost.test.ts#L97`](https://github.com/m1lun/m1skeletonProject/blob/953fbeb42f6481a2b5335e85e557c7c7bbbd5a6f/backend/tests/no-mock/dealPost.test.ts#L97) | [`tests/mock/dealPost.test.ts#L34`](https://github.com/m1lun/m1skeletonProject/blob/953fbeb42f6481a2b5335e85e557c7c7bbbd5a6f/backend/tests/mock/dealPost.test.ts#L34) | Listings DB |
 | **GET /api/feed/requests/:id** | [`tests/no-mock/dealPost.test.ts#L102`](https://github.com/m1lun/m1skeletonProject/blob/953fbeb42f6481a2b5335e85e557c7c7bbbd5a6f/backend/tests/no-mock/dealPost.test.ts#L102) | [`tests/mock/dealPost.test.ts#L54`](https://github.com/m1lun/m1skeletonProject/blob/953fbeb42f6481a2b5335e85e557c7c7bbbd5a6f/backend/tests/mock/dealPost.test.ts#L54) | Requests DB |
+| **POST /api/conversations** | [`tests/no-mock/conversations.test.ts#L52`](../backend/tests/no-mock/conversations.test.ts#L52) | [`tests/mock/conversations.test.ts#L40`](../backend/tests/mock/conversations.test.ts#L40) | Listings DB, Requests DB, Conversations DB |
+| **GET /api/conversations** | [`tests/no-mock/conversations.test.ts#L256`](../backend/tests/no-mock/conversations.test.ts#L256) | [`tests/mock/conversations.test.ts#L64`](../backend/tests/mock/conversations.test.ts#L64) | Conversations DB, Users DB, Listings DB |
+| **GET /api/conversations/:id/messages** | [`tests/no-mock/conversations.test.ts#L345`](../backend/tests/no-mock/conversations.test.ts#L345) | [`tests/mock/conversations.test.ts#L85`](../backend/tests/mock/conversations.test.ts#L85) | Conversations DB, Messages DB |
+| **POST /api/conversations/:id/messages** | [`tests/no-mock/conversations.test.ts#L440`](../backend/tests/no-mock/conversations.test.ts#L440) | [`tests/mock/conversations.test.ts#L105`](../backend/tests/mock/conversations.test.ts#L105) | Conversations DB, Messages DB |
+| **POST /api/conversations/:id/proposal** | [`tests/no-mock/proposals.test.ts#L106`](../backend/tests/no-mock/proposals.test.ts#L106) | [`tests/mock/proposals.test.ts#L65`](../backend/tests/mock/proposals.test.ts#L65) | Conversations DB |
+| **POST /api/conversations/:id/proposal/accept** | [`tests/no-mock/proposals.test.ts#L269`](../backend/tests/no-mock/proposals.test.ts#L269) | [`tests/mock/proposals.test.ts#L88`](../backend/tests/mock/proposals.test.ts#L88) | Conversations DB, Listings DB, Requests DB, Deals DB |
+| **POST /api/conversations/:id/proposal/decline** | [`tests/no-mock/proposals.test.ts#L454`](../backend/tests/no-mock/proposals.test.ts#L454) | [`tests/mock/proposals.test.ts#L141`](../backend/tests/mock/proposals.test.ts#L141) | Conversations DB |
+| **GET /api/events** | [`tests/no-mock/events.test.ts#L53`](../backend/tests/no-mock/events.test.ts#L53) | [`tests/mock/events.test.ts#L53`](../backend/tests/mock/events.test.ts#L53) | Timers (the 25-second heartbeat) |
 
 The mocked tests use `jest.spyOn` on one store method at a time, so each database failure is forced on its own. Both groups otherwise run against a real MongoDB.
+
+How the Messaging tests are designed:
+
+- **Unmocked groups** cover every success and every failure the tests can cause through the API: invalid bodies, malformed JSON, bodies over 16 KB, missing or invalid tokens, users outside the conversation, unknown ids, proposals that are not pending, and posts that are closed, deleted or already in another deal. A missing post, a post already in a deal and an earlier accept that failed partway are set up directly in the database.
+- **Mocked groups** make one store method reject at a time. For `POST /api/conversations/:id/proposal/accept`, each of its eight store calls fails once, and the test then accepts again without the mock and checks that the retry finishes the deal: exactly one deal, both posts closed and the proposal accepted. MongoDB rejecting a deal because another accept on the same post saved its deal first is also mocked, since the API cannot time two accepts that precisely.
+- **Live updates.** `tests/helpers/eventStream.ts` opens `GET /api/events` as a real HTTP client and records what the server writes. The unmocked group checks that each new message and each proposal change reaches the other user's open streams, and not the sender or users outside the conversation. The mocked group fakes `setInterval` with Jest so 25 seconds pass at once, to check the heartbeat and that closing a stream clears its timer.
+- **Known limitation.** If saving a message works but updating the conversation's last message fails, the conversations list shows the previous message until the next one is sent. Fixing it needs a MongoDB transaction, which needs a replica set. The mocked test `recordMessage Throws, Next Message Repairs The Last Message` checks that the next message corrects it.
 
 Rules that the HTTP interfaces cannot reach or prove are tested directly in [`no-mock/dealStore.test.ts`](https://github.com/m1lun/m1skeletonProject/blob/953fbeb42f6481a2b5335e85e557c7c7bbbd5a6f/backend/tests/no-mock/dealStore.test.ts): the database validators, the unique indexes, and the store methods behind the routes. `deals.insert`, which records a new deal, is tested there.
 
