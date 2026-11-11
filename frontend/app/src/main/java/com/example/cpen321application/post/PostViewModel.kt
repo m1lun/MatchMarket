@@ -19,7 +19,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 // Shorter queries match too many places to be useful.
-private const val MIN_ADDRESS_QUERY_LENGTH = 3
+const val MIN_ADDRESS_QUERY_LENGTH = 3
 
 class PostViewModel(app: Application) : AndroidViewModel(app) {
     private val api = PostApi(
@@ -223,9 +223,10 @@ class PostViewModel(app: Application) : AndroidViewModel(app) {
             searchingAddress = false
             return
         }
+        // Shown during the pause too, so the field reacts as soon as the search is due.
+        searchingAddress = true
         suggestJob = viewModelScope.launch {
             delay(SUGGEST_DELAY_MS)
-            searchingAddress = true
             addressSuggestions = addressSearch.suggest(text.trim())
             searchingAddress = false
         }

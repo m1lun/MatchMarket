@@ -58,7 +58,7 @@
     <string name="editor_address_error">Choose your address from the suggestions list</string>
     <string name="editor_address_confirmed">✓ Address confirmed</string>
     <string name="editor_address_pick">Pick your address from the list below</string>
-    <string name="editor_address_hint">Start typing your address, then pick it from the list</string>
+    <string name="editor_address_hint">Type at least %1$d characters to see suggestions, then pick your address</string>
     <string name="editor_photos">Photos %1$s/%2$s</string>
     <string name="editor_photos_required">Photos %1$s/%2$s *</string>
     <string name="editor_add_photo">+ Add</string>

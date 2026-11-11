@@ -210,7 +210,7 @@ private fun AddressField(viewModel: PostViewModel) {
         } else {
             null
         },
-        supportingText = { Text(stringResource(addressHint(viewModel))) },
+        supportingText = { Text(stringResource(addressHint(viewModel), MIN_ADDRESS_QUERY_LENGTH)) },
         modifier = Modifier.fillMaxWidth(),
     )
     if (viewModel.addressSuggestions.isNotEmpty()) {
