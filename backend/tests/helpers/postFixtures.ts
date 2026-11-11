@@ -11,17 +11,14 @@ type Body = Record<string, unknown>;
 
 export const LOCATION = { longitude: -123.25, latitude: 49.26 };
 
-// What differs between listings and requests, so one set of cases can test both routers.
 export interface PostKind {
   label: 'Listing' | 'Request';
   path: '/api/listings' | '/api/requests';
   collection: string;
   fieldsKey: 'listingFields' | 'requestFields';
-  // The fields every valid body of this kind starts with.
   baseFields: Body[];
-  // Added to each extra field: request fields must say whether they are hard, as the app always does.
+  // The schema requires `hard` on request fields.
   fieldDefaults: Body;
-  // How the size field's label appears in its error, e.g. "size must be at least 0".
   sizeError: string;
   body: (overrides?: Body) => Body;
   make: (store: Store, ownerId: string, overrides?: Partial<PostDoc>) => Promise<PostDoc>;
@@ -71,7 +68,7 @@ export const REQUEST: PostKind = {
     requestFields: [MAX_PRICE],
     ...overrides,
   }),
-  // The max price as the API stores it, so an edit through the API leaves it unchanged.
+  // Labelled as the API stores it, so edits leave it unchanged.
   make: (store, ownerId, overrides = {}) =>
     makeRequest(store, ownerId, {
       requestFields: [{ key: 'price', label: 'Max price', kind: 'builtin', type: 'number', value: 50, hard: true }],
@@ -80,17 +77,14 @@ export const REQUEST: PostKind = {
   collectionOf: (store) => store.requests as unknown as PostCollection<PostDoc>,
 };
 
-// The fields array of a valid body of this kind, with extra fields after the ones it needs.
 export function fieldsWith(kind: PostKind, fields: Body[]): Body[] {
   return [...kind.baseFields, ...fields.map((field) => ({ ...kind.fieldDefaults, ...field }))];
 }
 
-// A valid body of this kind with extra fields.
 export function withFields(kind: PostKind, fields: Body[]): Body {
   return kind.body({ [kind.fieldsKey]: fieldsWith(kind, fields) });
 }
 
-// A post as the API returns it: the stored document with its dates as JSON strings.
 export function asJson(post: PostDoc | null): unknown {
   return JSON.parse(JSON.stringify(post)) as unknown;
 }
