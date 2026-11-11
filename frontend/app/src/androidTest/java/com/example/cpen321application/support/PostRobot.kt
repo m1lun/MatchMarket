@@ -160,6 +160,8 @@ fun MainRule.createPost(form: PostForm) {
     fillForm(form)
     click(form.createButton)
     waitForText(form.listHeader, substring = true)
+    // The header alone does not mean the list has loaded; wait for the new post itself.
+    waitUntil(WAIT_MS) { postCards().size == 1 }
 }
 
 fun MainRule.pickPhotos(count: Int, total: Int? = count) {
