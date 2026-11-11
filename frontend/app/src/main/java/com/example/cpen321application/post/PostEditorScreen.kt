@@ -458,7 +458,7 @@ private fun ImportancePicker(level: Int, onSelect: (Int) -> Unit) {
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        (MIN_IMPORTANCE..MAX_IMPORTANCE).forEach { value ->
+        for (value in MIN_IMPORTANCE..MAX_IMPORTANCE) {
             val description = stringResource(R.string.editor_importance_dot, value, MAX_IMPORTANCE)
             Box(
                 contentAlignment = Alignment.Center,
