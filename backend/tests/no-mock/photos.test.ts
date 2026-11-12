@@ -38,6 +38,11 @@ interface StoredPhoto { metadata: { mimeType: string; ownerId: string } }
 const JPEG = Buffer.from('jpeg bytes');
 const BAD_PHOTOS = 'Attach images (jpeg, png, webp or gif) in the "photos" field';
 
+const TOKEN_CASES: TokenCase[] = [
+  { label: 'No Token', header: undefined, error: 'Missing Authorization: Bearer <session token> header' },
+  { label: 'Garbage Token', header: 'Bearer not-a-token', error: 'Invalid or expired session token' },
+];
+
 function photo(bytes = JPEG, contentType = 'image/jpeg'): Attachment {
   return { field: 'photos', bytes, contentType };
 }
@@ -73,10 +78,7 @@ describe('Unmocked: POST /api/photos', () => {
   // Expected status code: 401
   // Expected behavior: the request is rejected and nothing is saved
   // Expected output: { error } naming the auth problem
-  test.each<TokenCase>([
-    { label: 'No Token', header: undefined, error: 'Missing Authorization: Bearer <session token> header' },
-    { label: 'Garbage Token', header: 'Bearer not-a-token', error: 'Invalid or expired session token' },
-  ])('$label: 401', async ({ header, error }: TokenCase) => {
+  test.each(TOKEN_CASES)('$label: 401', async ({ header, error }: TokenCase) => {
     const response = await uploadWith(header, [photo()]);
 
     expect(response.status).toBe(401);
@@ -164,6 +166,21 @@ describe('Unmocked: POST /api/photos', () => {
 
 // Interface GET /api/photos/:id
 describe('Unmocked: GET /api/photos/:id', () => {
+  // Input: GET /api/photos/:id of an uploaded photo with no Authorization header, or with a token that is not a valid JWT (see table)
+  // Expected status code: 401
+  // Expected behavior: the photo is only sent to signed-in users, so nothing is streamed
+  // Expected output: { error } naming the auth problem
+  test.each(TOKEN_CASES)('$label: 401', async ({ header, error }: TokenCase) => {
+    const uploaded = await upload([photo()]);
+    const [id] = (uploaded.body as { ids: string[] }).ids;
+    const call = request(app).get(`/api/photos/${String(id)}`);
+
+    const response = await (header === undefined ? call : call.set('Authorization', header));
+
+    expect(response.status).toBe(401);
+    expect(response.body).toStrictEqual({ error });
+  });
+
   // Input: GET /api/photos/:id of an uploaded PNG, as a signed-in user
   // Expected status code: 200
   // Expected behavior: the photo is sent, and only the user's own device may cache it
