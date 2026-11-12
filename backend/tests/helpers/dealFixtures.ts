@@ -1,6 +1,7 @@
 import jwt from 'jsonwebtoken';
 import type { Db } from 'mongodb';
 
+import type { Conversation } from '../../src/models/conversation';
 import type { Deal } from '../../src/models/deal';
 import type { Listing } from '../../src/models/listing';
 import type { Rating } from '../../src/models/rating';
@@ -85,6 +86,25 @@ export function makeRating(
   rating: Pick<Rating, 'dealId' | 'raterId' | 'ratedUserId' | 'stars'> & Partial<Rating>
 ): Promise<Rating> {
   return store.ratings.insert({ comment: '', createdAt: new Date(), ...rating });
+}
+
+// ME's listing and OTHER's request, in a conversation with OTHER's pending $45 proposal.
+export async function makePendingProposal(store: Store): Promise<Conversation> {
+  const now = new Date();
+  const listing = await makeListing(store, ME);
+  const buyerRequest = await makeRequest(store, OTHER);
+  const { conversation } = await store.conversations.open({
+    listingId: listing.id,
+    requestId: buyerRequest.id,
+    sellerId: ME,
+    buyerId: OTHER,
+    postKind: 'listing',
+    lastMessage: null,
+    createdAt: now,
+    updatedAt: now,
+  });
+  await store.conversations.propose(conversation.id, { proposerId: OTHER, price: 45, note: '', status: 'pending', createdAt: now });
+  return conversation;
 }
 
 // A user as first sign-in saves them, so their name can be shown on deals.
