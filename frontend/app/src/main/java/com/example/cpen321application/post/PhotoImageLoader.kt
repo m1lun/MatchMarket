@@ -13,7 +13,6 @@ import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.Response
 
-// Sends the session token with backend image requests only, never to other hosts such as Google.
 fun photoImageLoader(context: Context): ImageLoader {
     val client = OkHttpClient.Builder()
         .addInterceptor(BackendTokenInterceptor(SessionManager.get(context), BuildConfig.API_BASE_URL.toHttpUrl()))
