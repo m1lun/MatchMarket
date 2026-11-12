@@ -13,8 +13,7 @@ import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.Response
 
-// The backend only shows photos to signed-in users, so images loaded from it carry the session token.
-// Images from anywhere else, such as Google profile pictures, are loaded without it.
+// Sends the session token with backend image requests only, never to other hosts such as Google.
 fun photoImageLoader(context: Context): ImageLoader {
     val client = OkHttpClient.Builder()
         .addInterceptor(BackendTokenInterceptor(SessionManager.get(context), BuildConfig.API_BASE_URL.toHttpUrl()))
@@ -32,13 +31,11 @@ private class BackendTokenInterceptor(
         val request = chain.request()
         val url = request.url
         val toBackend = url.scheme == backend.scheme && url.host == backend.host && url.port == backend.port
-        // OkHttp runs this on a background thread, so waiting for a renewed token here does not block the UI.
         val token = if (toBackend) runBlocking { currentToken() } else null
         val withToken = token?.let { request.newBuilder().header("Authorization", "Bearer $it").build() }
         return chain.proceed(withToken ?: request)
     }
 
-    // Null when the user has to sign in again; the photo then fails to load like any other.
     private suspend fun currentToken(): String? = try {
         sessions.sessionToken()
     } catch (_: SessionExpiredException) {

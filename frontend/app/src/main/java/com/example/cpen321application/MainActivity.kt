@@ -79,7 +79,6 @@ class MainActivity : ComponentActivity() {
             finish()
             return
         }
-        // Backend photos need the session token; setSafe keeps the loader if the activity is recreated.
         SingletonImageLoader.setSafe { photoImageLoader(applicationContext) }
         enableEdgeToEdge()
         setContent {
