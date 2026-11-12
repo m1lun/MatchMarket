@@ -31,7 +31,13 @@ export function createCustomFieldsRouter(store: Store): Router {
     if (errors.length > 0 || type === undefined) {
       throw new BadRequestError(errors);
     }
-    res.status(201).json(await store.customFields.upsert({ ownerId: currentUser(res).id, key, label, type }));
+    const ownerId = currentUser(res).id;
+    const existing = (await store.customFields.list(ownerId)).find((field) => field.key === key);
+    if (existing !== undefined) {
+      res.status(409).json({ error: `You already have a custom field called "${existing.label}"` });
+      return;
+    }
+    res.status(201).json(await store.customFields.upsert({ ownerId, key, label, type }));
   }));
 
   router.delete('/:key', handle(async (req, res) => {

@@ -56,13 +56,13 @@ describe('Mocked: GET /api/custom-fields', () => {
 
 // Interface POST /api/custom-fields
 describe('Mocked: POST /api/custom-fields', () => {
-  // Mocked behavior: customFields.upsert rejects with Error('MongoDB is unreachable')
+  // Mocked behavior: customFields.list or customFields.upsert rejects with Error('MongoDB is unreachable') (see table)
   // Input: { label: 'Material', type: 'text' }
   // Expected status code: 500
-  // Expected behavior: the error is handled, upsert is called once, and nothing is saved
+  // Expected behavior: the error is handled, the method is called once, and nothing is saved
   // Expected output: { error: 'Internal Server Error' }
-  test('customFields.upsert Throws: 500', async () => {
-    const spy = jest.spyOn(mongo.store.customFields, 'upsert').mockRejectedValue(FAILURE);
+  test.each(['list', 'upsert'] as const)('customFields.%s Throws: 500', async (method) => {
+    const spy = jest.spyOn(mongo.store.customFields, method).mockRejectedValue(FAILURE);
 
     const response = await as(request(app).post('/api/custom-fields')).send({ label: 'Material', type: 'text' });
 

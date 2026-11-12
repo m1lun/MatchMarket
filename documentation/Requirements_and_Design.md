@@ -34,6 +34,7 @@
 | 2026-11-01 | 3.5, 4.1, 5 | Matched the ranking and categories to the code: soft preferences count by their importance, missing a soft maximum price or soft minimum condition lowers the score, and categories are saved in the singular. |
 | 2026-11-02 | 3.4, 3.6, 4.1, 4.2, 4.5, 5 | Matched the profile to the code: the users collection and `GET`/`PATCH /api/users/me` are built, `GET /api/users/:id/reputation` is documented, and Sign out is a use case. Removed the screen mock-ups, which are optional. Added the Deals interface that Messaging calls to record a deal, and made the frontend's link to Messaging one-way, since the live updates arrive on a request the app makes. |
 | 2026-11-12 | 4.1 | Photos are no longer public: `GET /api/photos/:id` needs a session token and may only be cached on the user's device. |
+| 2026-11-12 | 4.1 | `POST /api/custom-fields` returns 409 if the user already has a custom field with the same name, instead of replacing it. |
 
 ---
 
@@ -306,7 +307,7 @@ Each use case covers one goal. The five marked with a link have a formal specifi
         7. `GET /api/photos/:id`
             - **Purpose**: Retrieve a photo from GridFS for any signed-in user; 401 without a valid session token, 404 if the photo does not exist. Only the user's own device may cache it.
         8. Options and custom fields
-            - **Purpose**: `/api/options` supports retrieving and adding option values. `/api/custom-fields` supports retrieving and saving the user's reusable field definitions; `/api/custom-fields/:key` supports deleting a definition.
+            - **Purpose**: `/api/options` supports retrieving and adding option values. `/api/custom-fields` supports retrieving and saving the user's reusable field definitions, returning 409 if the user already has a field with the same name, in any case; `/api/custom-fields/:key` supports deleting a definition.
 
 2. **Matching**
     - **Purpose**: Hard-requirement filtering and weighted ranking in both directions, plus travel time.

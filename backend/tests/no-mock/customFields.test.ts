@@ -117,18 +117,33 @@ describe('Unmocked: POST /api/custom-fields', () => {
   });
 
   // Input: { label: 'MATERIAL', type: 'number' } after the caller saved "Material" as text
-  // Expected status code: 201
-  // Expected behavior: the field with the same key is replaced, not duplicated
-  // Expected output: the field with its new label and type
-  test('Same Key Replaces Field: 201', async () => {
+  // Expected status code: 409
+  // Expected behavior: a field with the same name, in any case, is not added again, and the saved one is kept as it was
+  // Expected output: { error } naming the field the caller already has
+  test('Field Already Exists: 409', async () => {
     await addField({ label: 'Material', type: 'text' });
 
     const response = await addField({ label: 'MATERIAL', type: 'number' });
 
-    expect(response.status).toBe(201);
+    expect(response.status).toBe(409);
+    expect(response.body).toStrictEqual({ error: 'You already have a custom field called "Material"' });
     expect(await mongo.store.customFields.list(ME)).toStrictEqual([
-      { ownerId: ME, key: 'material', label: 'MATERIAL', type: 'number' },
+      { ownerId: ME, key: 'material', label: 'Material', type: 'text' },
     ]);
+  });
+
+  // Input: { label: 'Material', type: 'text' } from ME, when only OTHER has a "Material" field
+  // Expected status code: 201
+  // Expected behavior: custom fields belong to each user, so another user's field with the same name does not block it
+  // Expected output: ME's new field
+  test("Same Name As Another User's Field: 201", async () => {
+    await addField({ label: 'Material', type: 'bool' }, OTHER);
+
+    const response = await addField({ label: 'Material', type: 'text' });
+
+    expect(response.status).toBe(201);
+    expect(response.body).toStrictEqual({ ownerId: ME, key: 'material', label: 'Material', type: 'text' });
+    expect(await countIn(mongo.db, 'customFields')).toBe(2);
   });
 
   // Input: a body that breaks one or more rules (see table)
