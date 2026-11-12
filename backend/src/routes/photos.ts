@@ -55,16 +55,16 @@ function readPhotos(req: Request, res: Response, next: NextFunction): void {
 export function createPhotosRouter(photos: PhotoStorage): Router {
   const router = Router();
 
-  // Public, so the app's image loader can fetch a photo without a token.
   router.get(
     '/:id',
+    requireAuth,
     handle(async (req: Request, res: Response) => {
       const photo = await photos.open(String(req.params.id));
       if (photo === null) {
         res.status(404).json({ error: 'Photo not found' });
         return;
       }
-      res.set({ 'Content-Type': photo.mimeType, 'Cache-Control': 'public, max-age=31536000, immutable' });
+      res.set({ 'Content-Type': photo.mimeType, 'Cache-Control': 'private, max-age=31536000, immutable' });
       await pipeline(photo.stream, res);
     }),
   );

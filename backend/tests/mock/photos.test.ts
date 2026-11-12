@@ -70,7 +70,7 @@ describe('Mocked: GET /api/photos/:id', () => {
   test('photos.open Throws: 500', async () => {
     const spy = jest.spyOn(mongo.store.photos, 'open').mockRejectedValue(FAILURE);
 
-    const response = await request(app).get(`/api/photos/${PHOTO_ID}`);
+    const response = await request(app).get(`/api/photos/${PHOTO_ID}`).set('Authorization', bearer(ME));
 
     expect(response.status).toBe(500);
     expect(response.body).toStrictEqual(SERVER_ERROR);
@@ -90,7 +90,7 @@ describe('Mocked: GET /api/photos/:id', () => {
     });
     const spy = jest.spyOn(mongo.store.photos, 'open').mockResolvedValue({ mimeType: 'image/jpeg', stream });
 
-    await expect(request(app).get(`/api/photos/${PHOTO_ID}`)).rejects.toThrow('socket hang up');
+    await expect(request(app).get(`/api/photos/${PHOTO_ID}`).set('Authorization', bearer(ME))).rejects.toThrow('socket hang up');
     expect(spy).toHaveBeenCalledTimes(1);
   });
 });

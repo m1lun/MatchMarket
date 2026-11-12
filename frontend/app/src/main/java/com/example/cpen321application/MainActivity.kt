@@ -32,6 +32,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.lifecycle.lifecycleScope
+import coil3.SingletonImageLoader
 import kotlinx.coroutines.launch
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.example.cpen321application.auth.SessionManager
@@ -54,6 +55,7 @@ import com.example.cpen321application.post.PostEditorScreen
 import com.example.cpen321application.post.PostScreen
 import com.example.cpen321application.post.PostSummary
 import com.example.cpen321application.post.PostViewModel
+import com.example.cpen321application.post.photoImageLoader
 import com.example.cpen321application.profile.ProfileTab
 import com.example.cpen321application.profile.ProfileViewModel
 import com.example.cpen321application.ui.theme.CPEN321ApplicationTheme
@@ -77,6 +79,8 @@ class MainActivity : ComponentActivity() {
             finish()
             return
         }
+        // Backend photos need the session token; setSafe keeps the loader if the activity is recreated.
+        SingletonImageLoader.setSafe { photoImageLoader(applicationContext) }
         enableEdgeToEdge()
         setContent {
             CPEN321ApplicationTheme {
