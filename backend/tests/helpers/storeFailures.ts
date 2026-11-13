@@ -12,8 +12,9 @@ export function rejecting(target: unknown, method: string): jest.SpyInstance {
   return spy.mockRejectedValue(FAILURE);
 }
 
-export function expectServerError(response: { status: number; body: unknown }, spy: jest.SpyInstance): void {
-  expect(response.status).toBe(500);
-  expect(response.body).toStrictEqual({ error: 'Internal Server Error' });
+// Takes the response as unknown, since Codacy's ESLint cannot see supertest's types.
+export function expectServerError(response: unknown, spy: jest.SpyInstance): void {
+  expect(response).toHaveProperty('status', 500);
+  expect(response).toHaveProperty('body', { error: 'Internal Server Error' });
   expect(spy).toHaveBeenCalledTimes(1);
 }
