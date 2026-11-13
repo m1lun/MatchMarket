@@ -18,6 +18,7 @@ import com.example.cpen321application.support.partnerProposes
 import com.example.cpen321application.support.savedProposal
 import com.example.cpen321application.support.seedConversation
 import com.example.cpen321application.support.setAirplaneMode
+import com.example.cpen321application.support.waitForTag
 import com.example.cpen321application.support.waitForText
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -26,9 +27,9 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 
-// Use case 21: Accept a proposal, which includes use case 16: Create deal. Each test starts with a seeded conversation
-// in which the E2E Seller proposed $25 for their listing.
-class AcceptProposalTest {
+// Use case: Respond to a proposal, by accepting it, which creates the deal, or declining it. Each test starts with a
+// seeded conversation in which the E2E Seller proposed $25 for their listing.
+class RespondToProposalTest {
     @get:Rule
     val rule = mainRule()
 
@@ -46,12 +47,10 @@ class AcceptProposalTest {
         clearSeededConversations()
     }
 
-    // Success: the deal is recorded at the proposed price, the listing closes, and the deal is in the Deals tab.
+    // Accept: the deal is recorded at the proposed price, the listing closes, and the deal is in the Deals tab.
     @Test
     fun acceptsProposalAndCreatesDeal() {
-        rule.openConversation(seeded.conversationId)
-        rule.waitForText("They proposed $25.00")
-        rule.waitForText(NOTE)
+        openProposal()
 
         rule.onNodeWithTag(ProposalTags.ACCEPT).performClick()
 
@@ -67,11 +66,23 @@ class AcceptProposalTest {
         rule.waitForText("You bought from $PARTNER_NAME", substring = true)
     }
 
+    // Decline: the proposal shows as declined, no deal is recorded, and either user can propose again.
+    @Test
+    fun declinesProposal() {
+        openProposal()
+
+        rule.onNodeWithTag(ProposalTags.DECLINE).performClick()
+
+        rule.waitForText("Declined")
+        rule.waitForTag(ProposalTags.PROPOSE)
+        assertEquals("declined", savedProposal(seeded.conversationId)?.status)
+        assertNull(dealFor(seeded.listingId))
+    }
+
     // Already answered on another device: the server's reason is shown and no second deal is recorded.
     @Test
     fun showsErrorWhenAlreadyAnsweredOnAnotherDevice() {
-        rule.openConversation(seeded.conversationId)
-        rule.waitForText("They proposed $25.00")
+        openProposal()
 
         acceptThroughApi(seeded.conversationId)
         rule.onNodeWithTag(ProposalTags.ACCEPT).performClick()
@@ -80,11 +91,10 @@ class AcceptProposalTest {
         assertEquals(PRICE, dealFor(seeded.listingId)?.agreedPrice)
     }
 
-    // Offline: an error is shown, the proposal stays pending, and no deal is recorded.
+    // Offline accept: an error is shown, the proposal stays pending, and no deal is recorded.
     @Test
-    fun keepsProposalPendingWhenServerIsUnreachable() {
-        rule.openConversation(seeded.conversationId)
-        rule.waitForText("They proposed $25.00")
+    fun keepsProposalPendingWhenAcceptFails() {
+        openProposal()
 
         setAirplaneMode(true)
         rule.onNodeWithTag(ProposalTags.ACCEPT).performClick()
@@ -93,6 +103,25 @@ class AcceptProposalTest {
         setAirplaneMode(false)
         assertEquals("pending", savedProposal(seeded.conversationId)?.status)
         assertNull(dealFor(seeded.listingId))
+    }
+
+    // Offline decline: an error is shown and the proposal stays pending.
+    @Test
+    fun keepsProposalPendingWhenDeclineFails() {
+        openProposal()
+
+        setAirplaneMode(true)
+        rule.onNodeWithTag(ProposalTags.DECLINE).performClick()
+
+        rule.waitForText("Could not reach the server", substring = true)
+        setAirplaneMode(false)
+        assertEquals("pending", savedProposal(seeded.conversationId)?.status)
+    }
+
+    private fun openProposal() {
+        rule.openConversation(seeded.conversationId)
+        rule.waitForText("They proposed $25.00")
+        rule.waitForText(NOTE)
     }
 
     private companion object {
