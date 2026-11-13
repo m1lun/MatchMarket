@@ -21,7 +21,11 @@ afterAll(async () => {
 });
 
 beforeEach(async () => {
-  await Promise.all(['listings', 'users', 'conversations', 'messages'].map((name) => mongo.db.collection(name).deleteMany({})));
+  await Promise.all(
+    ['listings', 'users', 'conversations', 'messages'].map(async (name) => {
+      await mongo.db.collection(name).deleteMany({});
+    })
+  );
   jest.spyOn(console, 'error').mockImplementation(() => undefined);
 });
 

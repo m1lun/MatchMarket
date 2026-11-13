@@ -460,9 +460,9 @@ class MongoConversationCollection implements ConversationCollection {
 
   async removeByUser(userId: string): Promise<string[]> {
     const filter = { $or: [{ sellerId: userId }, { buyerId: userId }] };
-    const found = await this.collection.find(filter, { projection: { _id: 1 } }).toArray();
+    const found = toDocs<{ id: string }>((await this.collection.find(filter, { projection: { _id: 1 } }).toArray()) as unknown[]);
     await this.collection.deleteMany(filter);
-    return found.map((doc) => String(doc._id));
+    return found.map((conversation) => conversation.id);
   }
 }
 

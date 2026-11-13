@@ -26,7 +26,11 @@ afterAll(async () => {
 const COLLECTIONS = ['listings', 'requests', 'users', 'conversations', 'messages', 'deals', 'ratings', 'reputations'];
 
 beforeEach(async () => {
-  await Promise.all(COLLECTIONS.map((name) => mongo.db.collection(name).deleteMany({})));
+  await Promise.all(
+    COLLECTIONS.map(async (name) => {
+      await mongo.db.collection(name).deleteMany({});
+    })
+  );
 });
 
 const PARTNER = e2ePartnerId(ME);
@@ -55,8 +59,9 @@ async function seedConversation(messages = 0): Promise<Seeded> {
   return (await call('post', `/api/e2e/conversations?messages=${messages}`)).body as Seeded;
 }
 
-function count(collection: string, filter: Record<string, unknown> = {}): Promise<number> {
-  return mongo.db.collection(collection).countDocuments(filter);
+async function count(collection: string, filter: Record<string, unknown> = {}): Promise<number> {
+  const found: number = await mongo.db.collection(collection).countDocuments(filter);
+  return found;
 }
 
 // Interface POST /api/e2e/listings
@@ -127,9 +132,10 @@ describe('Unmocked: POST /api/e2e/conversations', () => {
 
     expect(response.status).toBe(201);
     const { conversationId } = response.body as Seeded;
-    const messages = await mongo.db.collection('messages').find({ conversationId }).sort({ _id: 1 }).toArray();
-    expect(messages.map((message) => message.text)).toStrictEqual(Array.from({ length: MAX_SEEDED_MESSAGES }, (_, i) => `Message ${i + 1}`));
-    expect(messages.every((message) => message.senderId === PARTNER)).toBe(true);
+    const newestFirst = await mongo.store.messages.listByConversation(conversationId, MAX_SEEDED_MESSAGES + 1);
+    const texts = newestFirst.map((message) => message.text).reverse();
+    expect(texts).toStrictEqual(Array.from({ length: MAX_SEEDED_MESSAGES }, (_, i) => `Message ${i + 1}`));
+    expect(newestFirst.every((message) => message.senderId === PARTNER)).toBe(true);
     expect((await mongo.store.conversations.findById(conversationId))?.lastMessage).toMatchObject({ senderId: PARTNER, text: 'Message 40' });
   });
 
