@@ -7,7 +7,7 @@ import { isText } from './routes/checks';
 import { createConversationsRouter } from './routes/conversations';
 import { createCustomFieldsRouter } from './routes/customFields';
 import { createDealsRouter } from './routes/deals';
-import { createE2eRouter } from './routes/e2e';
+import { actAsE2ePartner, createE2eRouter } from './routes/e2e';
 import { createFeedRouter } from './routes/feed';
 import { createListingsRouter } from './routes/listings';
 import { createPhotosRouter } from './routes/photos';
@@ -109,16 +109,12 @@ export function createApp({ sessions, store, e2eRoutes = false }: AppDeps): Expr
     app.get('/api/events', requireAuth, (_req, res) => {
       events.open(currentUser(res).id, res);
     });
-    app.use(
-      '/api/conversations',
-      express.json({ limit: '16kb' }),
-      requireAuth,
-      createConversationsRouter(store, events),
-      createProposalsRouter(store, events),
-      ratingBodyTooLarge,
-    );
+    const conversationAuth = [express.json({ limit: '16kb' }), requireAuth];
+    const conversationRoutes = [createConversationsRouter(store, events), createProposalsRouter(store, events), ratingBodyTooLarge];
+    app.use('/api/conversations', ...conversationAuth, ...conversationRoutes);
     if (e2eRoutes) {
       app.use('/api/e2e', requireAuth, createE2eRouter(store));
+      app.use('/api/e2e/partner/conversations', ...conversationAuth, actAsE2ePartner, ...conversationRoutes);
     }
   }
 

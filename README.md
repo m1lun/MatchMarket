@@ -139,6 +139,14 @@ Live updates use Server-Sent Events, so they need no extra library.
 
 - `GET /api/events`: needs the session token like any other route, and the response stays open. The server writes `event: <type>` and `data: <JSON>` lines whenever something changes for you, plus a `: ping` comment every 25 seconds so idle connections are not dropped. Events: `message.created` (the new message, when the other participant sends one) and `proposal.updated` (`{ "conversationId", "proposal" }`, when the other participant proposes, accepts or declines). On reconnecting, reload what is on screen, since events sent while disconnected are not replayed.
 
+The end-to-end tests seed their own data through test-only routes. They exist only when `ENABLE_E2E_ROUTES=true` (`404` otherwise), need the session token, and only touch made-up users tied to the caller: an "E2E Buyer" for deals and an "E2E Seller" partner for conversations, never another real user.
+
+- `POST /api/e2e/deals`: replaces your seeded deal, in which you sold the E2E Buyer's request "E2E desk" for $45. `201` with `{ "dealId" }`. `DELETE /api/e2e/deals` removes it: `204`.
+- `POST /api/e2e/listings`: replaces the E2E Seller's open listing "E2E lamp" ($30), for starting a conversation from the feed. `201` with `{ "listingId" }`.
+- `POST /api/e2e/conversations?messages=<0-40>`: the same listing plus your conversation about it, with that many messages from the E2E Seller ("Message 1" is the oldest). `201` with `{ "listingId", "conversationId" }`; `400` for any other `messages` value.
+- `DELETE /api/e2e/conversations`: removes the E2E Seller's listings and conversations, and any deal and rating made from them. `204`.
+- `/api/e2e/partner/conversations/...`: the conversation and proposal routes above, run as the E2E Seller (for example `POST /api/e2e/partner/conversations/:id/messages`), so a test can reply, propose, accept or decline the way a second phone would, live updates included.
+
 
 ### Option 1: Run locally
 
@@ -227,7 +235,7 @@ Run these from the project root.
 
 Backend tests use Jest. Frontend tests use the Jetpack Compose testing APIs and UI Automator.
 
-See [documentation/Testing.md](documentation/Testing.md) for the end-to-end tests: how to run them and how they map to the use cases.
+The end-to-end tests create their data through the test-only `/api/e2e` routes, so set `ENABLE_E2E_ROUTES=true` in `backend/.env` before running them. See [documentation/Testing.md](documentation/Testing.md) for the end-to-end tests: how to run them and how they map to the use cases.
 
 ## Continuous integration
 
