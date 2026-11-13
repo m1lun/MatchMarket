@@ -50,9 +50,10 @@ describe('Mocked: POST /api/conversations', () => {
   ])('$label Throws: 500', async ({ fail }: FailureCase) => {
     const listing = await makeListing(mongo.store, OTHER);
     const myRequest = await makeRequest(mongo.store, ME);
+    const body = { postId: listing.id, postKind: 'listing', myPostId: myRequest.id };
     const spy = fail(mongo.store);
 
-    const response = await post(app, '/api/conversations', { postId: listing.id, postKind: 'listing', myPostId: myRequest.id });
+    const response = await post(app, '/api/conversations', body);
 
     expectServerError(response, spy);
     jest.restoreAllMocks();
