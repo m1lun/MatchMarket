@@ -32,20 +32,20 @@
 ## 1. Manual Code Review: 8/10
 
 ### Strengths
-- **Clear structure:** the backend and frontend are split by domain (`user`, `game`, `friend`, `chat`, `review`). Files and functions are short (the largest file is `game/db/games.ts`, 636 lines).
-- **Well documented:** almost every function explains what it does and why (e.g. `lockGame`, `games.ts:282`).
+- **Clear structure:** the backend and frontend are both split by domain (`user`, `game`, `friend`, `chat`, `review`). The largest backend file is `game/db/games.ts` at 636 lines.
+- **Well documented:** key functions explain what they do and why (e.g. `lockGame`, `leaveGame` and `completeGame` in `games.ts`).
 - **Named constants instead of magic numbers** (e.g. `MAX_DISCOVER_DISTANCE_M`, `GAMES_IN_SCORE`, `HEARTBEAT_MS`).
-- **Strong error handling:** typed `{ ok: false; problem }` results are mapped to HTTP statuses, there is one shared `500` handler, `SELECT … FOR UPDATE` transactions prevent race conditions, and all SQL is parameterised.
-- **Careful security:** JWTs are pinned to HS256, the sign-up email must match the Google token, and the public profile never returns email or birth year.
+- **Strong error handling:** problems are mapped to HTTP responses through tables (e.g. `SEND_ERRORS`, `INVITE_ERRORS`), `asyncRoute` sends unexpected errors to one shared handler, and changes lock rows with `SELECT … FOR UPDATE` (`lockGame`).
+- **Careful security:** JWTs are pinned to HS256, the sign-up email must match the Google account, and the public profile doesn't return email or birth year.
 
 ### Issues found
 
 | # | Location | Issue | Suggestion |
 |---|---|---|---|
-| C1 | `AppState.kt:95` (`signOut`), `core/notifications/deviceTokens.ts` | Signing out doesn't unregister the device's FCM token, so a signed-out phone keeps showing that user's notifications, including message previews (`chatSocket.ts:60`). | Delete the token on the server and call `FirebaseMessaging.deleteToken()` on sign-out. |
-| C2 | `friend/db/friends.ts:68-91` (`searchUsers`) | Search loads every user and fuzzy-matches them in Node on every keystroke, which won't scale. | Pre-filter in SQL (`LIKE` or a `FULLTEXT` index), cap the results, and debounce on the client. |
-| C3 | `review/reputation.ts:35-50` | The score hides bad behaviour: (a) missing ratings count as 5 stars, so in a 10-player game one 1-star rating only lowers that game to 4.56; (b) new accounts start at a perfect 5.0; (c) the score only averages the last 5 games (`GAMES_IN_SCORE`), so a new player's no-show only drops their score to 4.2, and it leaves the score after 5 more games. | Average only the ratings given, with a Bayesian prior. Show "new player" instead of 5.0. Count no-shows over a longer window (e.g. the last 20 games), or show them separately (e.g. "2 no-shows in 30 games"). |
-| C4 | `game/location/DeviceLocation.kt:20` vs. NFR 1 | Discover can wait up to 10 s for a location fix, but NFR 1 promises results in under 5 s. | Cap the wait at about 3 s and fall back to the last known location. |
+| C1 | `AppState.kt:95` (`signOut`), `core/notifications/deviceTokens.ts` | Signing out doesn't unregister the device's FCM token, and no route deletes it, so the server keeps sending that user's notifications to the signed-out phone, including message previews (`chatSocket.ts:60`). | Delete the token on the server and call `FirebaseMessaging.deleteToken()` on sign-out. |
+| C2 | `friend/db/friends.ts:68-91` (`searchUsers`) | Each search reads every user from the database and compares all their names in Node, so the work per search grows with the number of users. | Pre-filter in SQL (e.g. `LIKE` or a `FULLTEXT` index) and only compare those rows. |
+| C3 | `review/reputation.ts:35-50` | The score hides bad behaviour: (a) missing ratings count as 5 stars, so in a 10-player game one 1-star rating only lowers that game to 4.56; (b) new accounts start at a perfect 5.0; (c) the score only averages the last 5 games (`GAMES_IN_SCORE`), so a new player's no-show only drops their score to 4.2, and it leaves the score after 5 more games. | Average only the ratings given, with a Bayesian prior. Show "new player" instead of 5.0. Count no-shows over a longer window, or show them separately. |
+| C4 | `game/location/DeviceLocation.kt:20` vs. NFR 1 | When the phone has no location fix from the last 2 minutes, Discover waits up to 10 s for a new one before loading, but NFR 1 promises results in under 5 s. | Shorten the wait so Discover fits within NFR 1. The fallback to the last known fix already exists. |
 | C5 | `Requirements_and_Design.md` §4.1 | The design doesn't match the code: `POST /api/games/{id}/complete`, `POST /api/games/{id}/leave` and `DELETE /api/users/me` are built but not listed, and `DELETE /players/{userId}` is marked *(planned)* but is built. | Update §4.1 to match the code. |
 
 ---
@@ -55,27 +55,27 @@
 ### 2.1 Completeness: 5/10
 CP2 asks for all interfaces of one component and one end-to-end feature. SportsNow met the first half and missed the second.
 
-- ✅ **Game component (about 8/10 on its own):** 75 Jest tests cover all 13 endpoints unmocked and 12 of 13 mocked. Many edge cases are tested, and the assertions check both the HTTP response and the database.
+- ✅ **Game component (about 8/10 on its own):** 75 Jest tests cover all 13 endpoints unmocked and 12 of 13 mocked. Besides the HTTP response, 36 of the 80 Game test files also check what was saved in the database.
   - Missing edge cases: sign-in failure tests (bad, expired or missing token), `createGame` has 1 of the 6 planned validation tests, `removePlayer` has no error tests, and `completeGame` doesn't test `not_started`, `completed` or a database failure.
 - ❌ **End-to-end (0/10 on its own):** `androidTest/e2e/` only has Android Studio's generated example test. The planned `DiscoverGameTest.kt` doesn't exist.
 
 ### 2.2 Test code maintainability: 8/10
-- Every test has the required Input / Expected comments, and shared helpers keep tests short and safe to run in parallel.
-- Deductions: 75 of the 84 test files hold a single test, so the same imports, mocks and sign-in setup are repeated in each, which likely adds to Codacy's 14% duplication.
+- 83 of the 84 test files have the required Input / Expected comments. The shared helpers build unique users so test files can run at the same time on one database.
+- Deductions: 75 of the 84 test files hold a single test, so the helper import and `cleanUpAfterTests()` setup are repeated in 82 files.
 
 ### 2.3 Tests vs. requirements and design: 4/10
-- Testing.md wasn't updated for CP2. The line links, commit hash, test-database setup, GitHub Actions location, coverage screenshots and E2E log all still say *"To be added at CP2"*.
-- The Game tests match their plan closely, and the Discover Game E2E plan is detailed but not implemented.
+- Testing.md wasn't updated for CP2. The line links, commit hash, test-database setup, GitHub Actions location, coverage screenshots and E2E log are all still marked as coming at CP2.
+- The Discover Game E2E plan is detailed but not implemented.
 
 ### 2.4 Non-functional requirements: 0/10
 Not yet due (CP3), and no NFR tests exist yet. For CP3: time `GET /api/games/discover` in Jest for NFR 1, and use `BatteryManager` or `dumpsys batterystats` for NFR 2.
 
 ### 2.5 Coverage: 2/10
-We judged only the Game component. Coverage can't be verified: there are no coverage screenshots or justification for anything under 100%, and Codacy shows 0%. `jest.config.js` is set up correctly, so the team only needs to run it and add the screenshots.
+We judged only the Game component. Coverage can't be verified: there are no coverage screenshots or justification for anything under 100%, and Codacy shows 0%. Credit: `jest.config.js` collects coverage from all of `src/`.
 
 ### 2.6 Back-end tests run automatically: 2/10
 - There is no GitHub Actions workflow, and the project description counts tests that CI doesn't run as incomplete.
-- Nothing explains how to start the test MySQL database, so a TA can't run the unmocked tests.
+- Testing.md's step for starting the test database still says *"We will add these steps at CP2"*.
 - Credit: the test script correctly runs the mock, no-mock and combined suites, each with its own coverage report.
 
 ---
@@ -83,7 +83,7 @@ We judged only the Game component. Coverage can't be verified: there are no cove
 ## 3. Automated Code Review
 
 ### 3.1 Codacy setup: 7/10
-- ✅ Three tools are enabled and use the repo's config files, and the commit is recorded.
+- ✅ 3 tools are enabled, detekt uses the repo's config file, and the commit is recorded.
 - ❌ An inline suppression breaks the rules: `@Suppress("DEPRECATION")` at `game/location/Geocoding.kt:51`.
 - ⚠️ The screenshot shows the *Code patterns* page instead of the *Issues* page, so we couldn't confirm Trivy is enabled.
 
@@ -112,7 +112,7 @@ That only works if the player leaves after the game is completed. A player who l
 As a result, a player who never came can tap **Leave Game** from home after the start time and avoid both the no-show penalty and ratings.
 
 **Steps to reproduce (accounts A and B)**
-1. **A** creates a game starting in about 3 minutes. **B** sends a join request, and **A** approves it.
+1. **A** creates a game that starts soon. **B** sends a join request, and **A** approves it.
 2. After the start time, **B** taps **Leave Game** on the in-progress game.
 3. **A** taps **Mark as Completed**. ➜ B isn't in the list, so A can't mark B as a no-show.
 4. B's score stays **5.0**. For comparison, if B stays in the game and A marks them as a no-show, B's score would drop to 4.2 (from the code).
@@ -124,7 +124,7 @@ As a result, a player who never came can tap **Leave Game** from home after the 
 | | |
 |---|---|
 | ![B sees Leave Game on an in-progress game](CP3_screenshots/1_B_leave_button_in_progress.png) | ![Leave prompt says "while it's in progress"](CP3_screenshots/2_B_leave_confirm_in_progress.png) |
-| **1.** The app offers **Leave Game** during the game. | **2.** It warns *"while it's in progress"*, then lets B leave with no penalty. |
+| **1.** The app offers **Leave Game** during the game. | **2.** It asks B to confirm leaving *"while it's in progress"* and lets B leave. |
 | ![Complete dialog has no no-show list](CP3_screenshots/3_A_complete_dialog_no_noshow_option.png) | ![B's rating still 5.0](CP3_screenshots/5_B_rating_still_5.png) |
 | **3.** A's completion dialog has no one to mark as a no-show. | **4.** B's rating is still **5.0/5**. |
 
@@ -132,7 +132,7 @@ Also see `CP3_screenshots/4_A_game_completed_1_player.png`: the completed game s
 
 ### Other faults found (secondary)
 - A signed-out phone still gets that user's message notifications (C1).
-- New accounts start with a perfect 5.0, so repeat no-shows can just make a new account (C3b).
+- A new account starts with a perfect 5.0 (C3b).
 
 ---
 
