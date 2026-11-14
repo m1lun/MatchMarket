@@ -28,7 +28,7 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 
-// Use case 17: Start a conversation. Each test starts with the E2E Seller's open listing "E2E lamp" at $30, and no
+// Use case 14: Start a conversation. Each test starts with the E2E Seller's open listing "E2E lamp" at $30, and no
 // conversation about it yet.
 class StartConversationTest {
     @get:Rule

@@ -39,6 +39,7 @@
 | 2026-11-13 | 3.4, 3.5 | Following TA feedback that some use cases were too fine, merged Accept a proposal and Decline a proposal into Respond to a proposal, which includes Create deal when accepting. In Use Case 4, failure 7a1 now says how long reconnecting takes, as measured by the end-to-end tests. |
 | 2026-11-14 | 4.1 | Accepting a proposal again after a failed accept now finishes the same deal, using the new Deals interface `findByPosts`, and the proposal is marked accepted last. Listed what proposing returns, that the note is trimmed, and that either user can propose again after a decline. |
 | 2026-11-14 | 4.1 | `GET /api/events`: listed what each event carries, that it reaches every open stream of the other user and nobody else, and the 401, as tested by its interface tests. |
+| 2026-11-14 | 3.2, 3.4 | Following TA feedback to simplify the use case diagram, removed every include and extend relationship and connected each use case directly to the user, showed Respond to a proposal as one use case, and merged Close post and Reopen post into Edit post. Removed Create deal as a separate use case, since the user never starts it: Respond to a proposal now describes recording the deal when a proposal is accepted. |
 
 ---
 
@@ -67,7 +68,7 @@ Authentication is a baseline requirement of the app rather than a feature: users
 
 ### **3.2. Use Case Diagram**
 
-![Use case diagram](images/UseCaseCP2.drawio.png)
+![Use case diagram](images/UseCaseCP3.drawio.png)
 
 ### **3.3. Actors Description**
 
@@ -80,7 +81,7 @@ The use case diagram shows a single **User (Buyer or Seller)** actor because eve
 
 ### **3.4. Use Case Description**
 
-Each use case covers one goal. The five marked with a link have a formal specification in Section 3.5, and the use case diagram shows which use cases extend or include others.
+Each use case covers one goal, and the user starts each of them directly, so the use case diagram connects every use case to the user. The five marked with a link have a formal specification in Section 3.5.
 
 **Authentication** (baseline requirement, not counted as a feature)
 
@@ -91,32 +92,29 @@ Each use case covers one goal. The five marked with a link have a formal specifi
 
 3. **Create post** ([Use Case 1](#uc1)): A user creates a buyer request or a seller listing.
 4. **View my posts**: A user opens My Posts and sees their own open and closed requests or listings.
-5. **Edit post**: A user changes the fields of one of their posts and saves it. Closed posts can also be edited.
-6. **Close post**: A user closes one of their open posts, which removes it from the feeds and recommendations but keeps it in My Posts.
-7. **Reopen post**: A user reopens one of their closed posts, which shows it in the feeds and recommendations again.
-8. **Delete post**: A user deletes one of their posts permanently, after confirming.
+5. **Edit post**: A user changes the fields of one of their posts and saves it, or closes or reopens it. Closing an open post removes it from the feeds and recommendations but keeps it in My Posts, and reopening shows it there again. Closed posts can also be edited.
+6. **Delete post**: A user deletes one of their posts permanently, after confirming.
 
 **Feature 2: Two-Sided Matching and Recommended Feeds**
 
-9. **View recommendations for a post** ([Use Case 3](#uc3)): A user sees the posts that fit one of their open posts, ranked by how well they fit, with the distance to each and the travel time for the first page.
-10. **Browse feed**: A user scrolls through other users' open posts, newest first.
-11. **Filter feed** ([Use Case 5](#uc5)): A user narrows the feed by category, price or distance.
-12. **View a post**: A user opens another user's post from the feed or the recommendations to see its details and photos.
+7. **View recommendations for a post** ([Use Case 3](#uc3)): A user sees the posts that fit one of their open posts, ranked by how well they fit, with the distance to each and the travel time for the first page.
+8. **Browse feed**: A user scrolls through other users' open posts, newest first.
+9. **Filter feed** ([Use Case 5](#uc5)): A user narrows the feed by category, price or distance.
+10. **View a post**: A user opens another user's post from the feed or the recommendations to see its details and photos.
 
 **Feature 3: Deals, Ratings and Reputation**
 
-13. **View deals**: A user opens the Deals tab and sees their deals, newest first, as buyer or seller. Each deal shows its title, agreed price, date, the listing and request it came from, the other user's score, and both ratings. Tapping the listing or request opens it, even if it has since closed. A user with no deals sees "No deals yet".
-14. **Rate a deal** ([Use Case 2](#uc2)): A user rates the other side of a deal from 1 to 5 stars with an optional comment. The other user's score updates on the card.
-15. **Edit a rating**: A user changes the stars or comment of a rating they gave earlier, and the other user's score updates.
-16. **Create deal**: When a user accepts a proposal, the system records the deal between the two users at the proposed price and closes the listing and request. It is part of Respond to a proposal, when the proposal is accepted, and is never started on its own.
+11. **View deals**: A user opens the Deals tab and sees their deals, newest first, as buyer or seller. Each deal shows its title, agreed price, date, the listing and request it came from, the other user's score, and both ratings. Tapping the listing or request opens it, even if it has since closed. A user with no deals sees "No deals yet".
+12. **Rate a deal** ([Use Case 2](#uc2)): A user rates the other side of a deal from 1 to 5 stars with an optional comment. The other user's score updates on the card.
+13. **Edit a rating**: A user changes the stars or comment of a rating they gave earlier, and the other user's score updates.
 
 **Feature 4: Messaging**
 
-17. **Start a conversation**: On another user's open post, a user taps "Message" and sends a proposal (a price with an optional note), and the conversation with the post's owner opens. A post opened from the recommendations for one of the user's posts also links that post to the conversation.
-18. **View conversations**: A user opens the Messages tab and sees their conversations, newest activity first, each with the other user, the listing and request, and the last message.
-19. **Send a message** ([Use Case 4](#uc4)): A user sends a message in a conversation, and it appears in the other user's open conversation without refreshing.
-20. **Send a proposal**: A user proposes a price, with an optional note, in a conversation that has no pending or accepted proposal. The proposal appears in the other user's open conversation without refreshing.
-21. **Respond to a proposal**: A user accepts or declines the other user's pending proposal. Accepting includes Create deal: the deal is recorded at that price, both posts are closed, and the deal appears in both users' Deals tabs. After a decline, either user can propose again.
+14. **Start a conversation**: On another user's open post, a user taps "Message" and sends a proposal (a price with an optional note), and the conversation with the post's owner opens. A post opened from the recommendations for one of the user's posts also links that post to the conversation.
+15. **View conversations**: A user opens the Messages tab and sees their conversations, newest activity first, each with the other user, the listing and request, and the last message.
+16. **Send a message** ([Use Case 4](#uc4)): A user sends a message in a conversation, and it appears in the other user's open conversation without refreshing.
+17. **Send a proposal**: A user proposes a price, with an optional note, in a conversation that has no pending or accepted proposal. The proposal appears in the other user's open conversation without refreshing.
+18. **Respond to a proposal**: A user accepts or declines the other user's pending proposal. Accepting records the deal between the two users at that price, closes both posts, and shows the deal in both users' Deals tabs. After a decline, either user can propose again.
 
 ### **3.5. Formal Use Case Specifications (5 Most Major Use Cases)**
 

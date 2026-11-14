@@ -27,7 +27,7 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 
-// Use case 20: Send a proposal. Each test starts with a seeded conversation about the E2E Seller's listing, with no
+// Use case 17: Send a proposal. Each test starts with a seeded conversation about the E2E Seller's listing, with no
 // proposal yet.
 class SendProposalTest {
     @get:Rule
