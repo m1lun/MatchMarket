@@ -61,7 +61,7 @@ CP2 asks for all interfaces of one component and one end-to-end feature. SportsN
 
 ### 2.2 Test code maintainability: 8/10
 - Every test has the required Input / Expected comments, and shared helpers keep tests short and safe to run in parallel.
-- Deductions: one test per file (about 95 files) repeats setup code, which explains Codacy's 14% duplication, and one validation test is in the mocked folder although it needs no mock.
+- Deductions: 75 of the 84 test files hold a single test, so the same imports, mocks and sign-in setup are repeated in each, which likely adds to Codacy's 14% duplication.
 
 ### 2.3 Tests vs. requirements and design: 4/10
 - Testing.md wasn't updated for CP2. The line links, commit hash, test-database setup, GitHub Actions location, coverage screenshots and E2E log all still say *"To be added at CP2"*.
