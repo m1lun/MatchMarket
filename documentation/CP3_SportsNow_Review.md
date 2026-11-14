@@ -131,10 +131,6 @@ As a result, a player who never came can tap **Leave Game** from home after the 
 
 Also see `CP3_screenshots/4_A_game_completed_1_player.png`: the completed game shows only 1/10 players.
 
-### Other faults found (secondary)
-- A signed-out phone still gets that user's message notifications (C1).
-- A new account starts with a perfect 5.0 (C3b).
-
 ---
 
 ## 5. Recommendations (priority order)
@@ -150,8 +146,3 @@ Also see `CP3_screenshots/4_A_game_completed_1_player.png`: the completed game s
 
 5. Fix the leave-mid-game bug, and unregister FCM tokens on sign-out.
 6. Update Requirements_and_Design §4.1 to match the code.
-
-**Later (CP3 and M3)**
-
-7. Write the two NFR tests.
-8. Test the other components, and add E2E tests for two more features.
