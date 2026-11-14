@@ -33,7 +33,7 @@
 
 ### Strengths
 - **Clear structure:** the backend and frontend are split by domain (`user`, `game`, `friend`, `chat`, `review`). Files and functions are short (the largest file is `game/db/games.ts`, 636 lines).
-- **Well documented:** almost every function explains what it does and why (e.g. `lockGame`, `games.ts:278`).
+- **Well documented:** almost every function explains what it does and why (e.g. `lockGame`, `games.ts:282`).
 - **Named constants instead of magic numbers** (e.g. `MAX_DISCOVER_DISTANCE_M`, `GAMES_IN_SCORE`, `HEARTBEAT_MS`).
 - **Strong error handling:** typed `{ ok: false; problem }` results are mapped to HTTP statuses, there is one shared `500` handler, `SELECT … FOR UPDATE` transactions prevent race conditions, and all SQL is parameterised.
 - **Careful security:** JWTs are pinned to HS256, the sign-up email must match the Google token, and the public profile never returns email or birth year.
@@ -44,9 +44,9 @@
 |---|---|---|---|
 | C1 | `AppState.kt:95` (`signOut`), `core/notifications/deviceTokens.ts` | Signing out doesn't unregister the device's FCM token, so a signed-out phone keeps showing that user's notifications, including message previews (`chatSocket.ts:60`). | Delete the token on the server and call `FirebaseMessaging.deleteToken()` on sign-out. |
 | C2 | `friend/db/friends.ts:68-91` (`searchUsers`) | Search loads every user and fuzzy-matches them in Node on every keystroke, which won't scale. | Pre-filter in SQL (`LIKE` or a `FULLTEXT` index), cap the results, and debounce on the client. |
-| C3 | `review/reputation.ts:35-50` | The score hides bad behaviour: (a) missing ratings count as 5 stars, so a 1-star rating only lowers a game to 4.56; (b) new accounts start at a perfect 5.0; (c) the score only averages the last 5 games (`GAMES_IN_SCORE`), so a no-show only drops it to 4.2, and it's back to 5.0 after 5 more games. | Average only the ratings given, with a Bayesian prior. Show "new player" instead of 5.0. Count no-shows over a longer window (e.g. the last 20 games), or show them separately (e.g. "2 no-shows in 30 games"). |
+| C3 | `review/reputation.ts:35-50` | The score hides bad behaviour: (a) missing ratings count as 5 stars, so in a 10-player game one 1-star rating only lowers that game to 4.56; (b) new accounts start at a perfect 5.0; (c) the score only averages the last 5 games (`GAMES_IN_SCORE`), so a new player's no-show only drops their score to 4.2, and it leaves the score after 5 more games. | Average only the ratings given, with a Bayesian prior. Show "new player" instead of 5.0. Count no-shows over a longer window (e.g. the last 20 games), or show them separately (e.g. "2 no-shows in 30 games"). |
 | C4 | `game/location/DeviceLocation.kt:20` vs. NFR 1 | Discover can wait up to 10 s for a location fix, but NFR 1 promises results in under 5 s. | Cap the wait at about 3 s and fall back to the last known location. |
-| C5 | `Requirements_and_Design.md` §4.1 | The design doesn't match the code: four built endpoints are missing from it, and `DELETE /players/{userId}` is marked *(planned)* but is built. | Update §4.1 to match the code. |
+| C5 | `Requirements_and_Design.md` §4.1 | The design doesn't match the code: `POST /api/games/{id}/complete`, `POST /api/games/{id}/leave` and `DELETE /api/users/me` are built but not listed, and `DELETE /players/{userId}` is marked *(planned)* but is built. | Update §4.1 to match the code. |
 
 ---
 
@@ -55,8 +55,8 @@
 ### 2.1 Completeness: 5/10
 CP2 asks for all interfaces of one component and one end-to-end feature. SportsNow met the first half and missed the second.
 
-- ✅ **Game component (about 8/10 on its own):** 95 Jest tests cover all 13 endpoints unmocked and 12 of 13 mocked. Many edge cases are tested, and the assertions check both the HTTP response and the database.
-  - Missing edge cases: sign-in failure tests (bad, expired or missing token), `createGame` has 1 of 7 planned validation tests, `removePlayer` has no error tests, and `completeGame` doesn't test `not_started`, `completed` or a database failure.
+- ✅ **Game component (about 8/10 on its own):** 75 Jest tests cover all 13 endpoints unmocked and 12 of 13 mocked. Many edge cases are tested, and the assertions check both the HTTP response and the database.
+  - Missing edge cases: sign-in failure tests (bad, expired or missing token), `createGame` has 1 of the 6 planned validation tests, `removePlayer` has no error tests, and `completeGame` doesn't test `not_started`, `completed` or a database failure.
 - ❌ **End-to-end (0/10 on its own):** `androidTest/e2e/` only has Android Studio's generated example test. The planned `DiscoverGameTest.kt` doesn't exist.
 
 ### 2.2 Test code maintainability: 8/10
@@ -115,11 +115,11 @@ As a result, a player who never came can tap **Leave Game** from home after the 
 1. **A** creates a game starting in about 3 minutes. **B** sends a join request, and **A** approves it.
 2. After the start time, **B** taps **Leave Game** on the in-progress game.
 3. **A** taps **Mark as Completed**. ➜ B isn't in the list, so A can't mark B as a no-show.
-4. B's score stays **5.0**. For comparison, if B stays in the game and A marks them as a no-show, B's score drops to 4.2.
+4. B's score stays **5.0**. For comparison, if B stays in the game and A marks them as a no-show, B's score would drop to 4.2 (from the code).
 
 **Suggested fix:** Write the attendance rows from approved join requests instead of current players, or block leaving a started game.
 
-**Reproduced on `CP2_SportsNow.apk`** (Pixel 9 emulator, API 36, the team's deployed backend, Nov 13, 2026).
+**Reproduced on `CP2_SportsNow.apk`** (the team's deployed backend, Nov 13, 2026).
 
 | | |
 |---|---|
