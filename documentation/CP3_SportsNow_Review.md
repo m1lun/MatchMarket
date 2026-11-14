@@ -97,20 +97,25 @@ Codacy reports 0 issues. Small deduction: the 14% duplication is dismissed witho
 
 ### Leaving a game mid-game erases it from the player's score
 
+**The bug.** A player can still tap **Leave Game** after a game has started. When the organiser later marks the game completed, `completeGame` (`games.ts:429`) only records attendance for players who are still in the game. The player who left gets no attendance record, so:
+- the organiser can't mark them as a no-show,
+- no one can rate them (`createRating` returns `player_not_found`), and
+- the game has no effect on their reputation score,
+
+yet the game still counts towards "games played" on their profile. A player who never came can therefore tap **Leave Game** from home after the start time and avoid both the no-show penalty and ratings.
+
 **Severity: Medium-High.** Reputation is the core of the app, and catching no-shows is its main job. It isn't High because it needs a deliberate action by the player, and it doesn't crash the app or leak data.
 
-**This is a bug, not a design choice.** Leaving mid-game is allowed on purpose, but the code breaks its own stated goal:
+**Why this is a bug, not a design choice.** Leaving mid-game is allowed on purpose, but the code breaks its own stated goal:
 - `leaveGame` (`games.ts:480`): the request stays approved *"as a record that they played"*.
 - `completeGame` (`games.ts:424`): attendance is kept apart *"so leaving the game doesn't erase it from a player's score"*.
 
-That only works if the player leaves after the game is completed. A player who leaves mid-game gets no attendance row, so the game is erased from their score. It also contradicts use case 11, which says players leave *"before it starts"*.
+That goal only holds if the player leaves after the game is completed. It also contradicts use case 11, which says players leave *"before it starts"*. As a result, the app disagrees with itself about a player who left mid-game:
 
 | Part of the app | Counts them as having played? |
 |---|---|
 | `leaveGame` comment and profile "games played" | ✅ yes |
 | Reputation score, no-show checklist, ratings (`game_attendance`) | ❌ no |
-
-As a result, a player who never came can tap **Leave Game** from home after the start time and avoid both the no-show penalty and ratings.
 
 **Steps to reproduce (accounts A and B)**
 1. **A** creates a game that starts soon. **B** sends a join request, and **A** approves it.
