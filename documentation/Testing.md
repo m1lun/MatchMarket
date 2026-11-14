@@ -13,6 +13,7 @@
 | 2026-11-01 | 4 | Use Case 1 is now Create Post, after the use cases were split in the Requirements and Design. The table maps the tests to its steps 1–7 and failures 2a, 5a–5d and 6a; the edit, close, reopen and delete tests now cover the Edit, Close, Reopen and Delete post use cases instead of formal steps. |
 | 2026-11-01 | 3 | Added the location and verification of the NFR 2 test, and noted that the NFR 1 test has not been added yet. |
 | 2026-11-13 | 2 | Added the interface tests of the Messaging conversation routes: where they are, what is mocked, how the tables of errors are organized, and the known limitation for a conversation's last message. |
+| 2026-11-13 | 2, 4 | Added the test-only `/api/e2e` routes the end-to-end tests seed their data with, and the Messaging end-to-end tests: Use Case 4: Send a Message step by step, and the Start a conversation, Send a proposal and Respond to a proposal use cases. Added how to run the end-to-end tests without Docker on Windows. |
 | 2026-11-14 | 2 | Added the interface tests of the Messaging proposal routes, including the tests that a failed accept can be retried. |
 
 ---
@@ -48,6 +49,19 @@ How the Messaging conversation tests are organized:
 - **Mocked groups** make each store method the route calls reject in turn, through the helpers in `tests/helpers/storeFailures.ts`, and check for a handled 500.
 - **Accepting a proposal** writes in steps: it records the deal, closes the posts, then marks the proposal accepted. In the mocked group, each of its eight store calls fails once, and the test then accepts again without the mock and checks that the retry finishes the deal: exactly one deal, both posts closed and the proposal accepted. The unmocked group sets up an accept that stopped partway directly in the database and checks that accepting again finishes it, and that a deal on the same posts with someone else, or at another price, still returns 409. MongoDB rejecting a deal because another accept saved one first is mocked, since the API cannot time two accepts that precisely.
 - **Known limitation.** If saving a message works but updating the conversation's last message fails, the conversations list shows the previous message until the next one is sent. Fixing it needs a MongoDB transaction, which needs a replica set. The mocked test `recordMessage Throws, Next Message Repairs The Last Message` checks that the next message corrects it.
+
+**Test-only routes for the end-to-end tests.** The front-end tests in Section 4 create their data through these routes. They exist only when the backend runs with `ENABLE_E2E_ROUTES=true`, and only touch made-up users tied to the caller: an "E2E Buyer" for deals and an "E2E Seller" for conversations. The `/api/e2e/partner/conversations` routes are the real conversation and proposal routes run as the E2E Seller, so the tests can play the second user through the same code; their full behaviour is tested with the Messaging routes.
+
+| **Interface** | **Describe Group Location, No Mocks** | **Describe Group Location, With Mocks** | **Mocked Components** |
+| ------------- | ------------------------------------- | --------------------------------------- | --------------------- |
+| **POST /api/e2e/deals** | [`tests/no-mock/e2eDeals.test.ts#L46`](../backend/tests/no-mock/e2eDeals.test.ts#L46) | [`tests/mock/e2eDeals.test.ts#L41`](../backend/tests/mock/e2eDeals.test.ts#L41) | Deals DB |
+| **DELETE /api/e2e/deals** | [`tests/no-mock/e2eDeals.test.ts#L109`](../backend/tests/no-mock/e2eDeals.test.ts#L109) | [`tests/mock/e2eDeals.test.ts#L41`](../backend/tests/mock/e2eDeals.test.ts#L41) | Deals DB |
+| **POST /api/e2e/listings** | [`tests/no-mock/e2eConversations.test.ts#L68`](../backend/tests/no-mock/e2eConversations.test.ts#L68) | [`tests/mock/e2eConversations.test.ts#L46`](../backend/tests/mock/e2eConversations.test.ts#L46) | Listings DB |
+| **POST /api/e2e/conversations** | [`tests/no-mock/e2eConversations.test.ts#L111`](../backend/tests/no-mock/e2eConversations.test.ts#L111) | [`tests/mock/e2eConversations.test.ts#L46`](../backend/tests/mock/e2eConversations.test.ts#L46) | Conversations DB, Messages DB |
+| **DELETE /api/e2e/conversations** | [`tests/no-mock/e2eConversations.test.ts#L168`](../backend/tests/no-mock/e2eConversations.test.ts#L168) | [`tests/mock/e2eConversations.test.ts#L46`](../backend/tests/mock/e2eConversations.test.ts#L46) | Conversations DB |
+| **POST /api/e2e/partner/conversations/:id/messages** | [`tests/no-mock/e2eConversations.test.ts#L212`](../backend/tests/no-mock/e2eConversations.test.ts#L212) | [`tests/mock/e2eConversations.test.ts#L70`](../backend/tests/mock/e2eConversations.test.ts#L70) | Conversations DB |
+| **POST /api/e2e/partner/conversations/:id/proposal** | [`tests/no-mock/e2eConversations.test.ts#L260`](../backend/tests/no-mock/e2eConversations.test.ts#L260) | [`tests/mock/e2eConversations.test.ts#L70`](../backend/tests/mock/e2eConversations.test.ts#L70) | Conversations DB |
+| **POST /api/e2e/partner/conversations/:id/proposal/decline** | [`tests/no-mock/e2eConversations.test.ts#L282`](../backend/tests/no-mock/e2eConversations.test.ts#L282) | [`tests/mock/e2eConversations.test.ts#L70`](../backend/tests/mock/e2eConversations.test.ts#L70) | Conversations DB |
 
 Rules that the HTTP interfaces cannot reach or prove are tested directly in [`no-mock/dealStore.test.ts`](https://github.com/m1lun/m1skeletonProject/blob/953fbeb42f6481a2b5335e85e557c7c7bbbd5a6f/backend/tests/no-mock/dealStore.test.ts): the database validators, the unique indexes, and the store methods behind the routes. `deals.insert`, which records a new deal, is tested there.
 
@@ -159,8 +173,12 @@ Tests:       1 passed, 1 total
 | -------------- | ------------- |
 | [`CreatePostTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/CreatePostTest.kt) | [Use Case 1: Create Post](Requirements_and_Design.md#uc1), steps 1–7 |
 | [`ManagePostsTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/ManagePostsTest.kt) | [Use Case 1: Create Post](Requirements_and_Design.md#uc1), steps 1–2 and failure 2a. Its other tests cover the Edit post, Close post, Reopen post and Delete post use cases ([Section 3.4](Requirements_and_Design.md#34-use-case-description)), which have no formal specification. |
+| [`SendMessageTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/SendMessageTest.kt) | [Use Case 4: Send a Message](Requirements_and_Design.md#uc4), steps 1–7 and failures 2a, 4a, 5a, 6a and 7a. Steps 1–2 and 2a are also the View conversations use case. |
+| [`StartConversationTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/StartConversationTest.kt) | Start a conversation ([Section 3.4](Requirements_and_Design.md#34-use-case-description)) |
+| [`SendProposalTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/SendProposalTest.kt) | Send a proposal ([Section 3.4](Requirements_and_Design.md#34-use-case-description)) |
+| [`RespondToProposalTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/RespondToProposalTest.kt) | Respond to a proposal, including Create deal when it is accepted ([Section 3.4](Requirements_and_Design.md#34-use-case-description)) |
 
-Shared test steps are in `support/PostRobot.kt`, and the differences between the request and listing forms are in `support/PostForm.kt`.
+Shared test steps are in `support/PostRobot.kt`, and the differences between the request and listing forms are in `support/PostForm.kt`. The Messaging tests' steps are in `support/MessagingSeed.kt`, and `support/E2eApi.kt` holds the backend calls shared by the Deals and Messaging tests.
 
 **How the tests are set up.** Following the course rules, each test starts from the app's main screen with the user already signed in, and assumes no existing data:
 
@@ -169,10 +187,12 @@ Shared test steps are in `support/PostRobot.kt`, and the differences between the
 - **No mocking.** The tests talk to the real back-end. For failure scenarios 2a and 6a ("the network or server is unavailable"), the test switches on the emulator's airplane mode, and switches it off again in `@After` even if the test fails.
 - **Results checked on the server.** When a scenario says nothing is saved, the test asks the back-end with `testPosts()` and checks the list is empty, instead of trusting the screen.
 - **System UI.** The Android photo picker is not part of the app, so it is driven with UI Automator. `TestPhotos` adds small JPEGs to the emulator's gallery before each test and deletes them afterwards.
+- **A second user for Messaging.** Every conversation needs another user. Before each Messaging test, `POST /api/e2e/listings` or `POST /api/e2e/conversations` (Section 2) gives the signed-in tester a made-up partner, "E2E Seller", with an open listing "E2E lamp" and, if needed, a conversation with up to 40 messages. During a test, the E2E Seller replies, proposes and declines through the real conversation routes, so live updates reach the app exactly as they would from a second phone, and no manual tester is needed. `DELETE /api/e2e/conversations` removes everything afterwards, including a deal made by accepting a proposal. The tester's real conversations and deals are never touched.
+- **Back online after airplane mode.** The emulator needs several seconds to reconnect after airplane mode is turned off, so the tests call `waitUntilOnline()` before a step that needs the network again.
 
 **How to run them.**
 
-1. Complete the Frontend Setup and the `backend/.env` part of the Backend Setup in the [README](../README.md). Docker must be running, and `java` must be on your `PATH`. Android Studio's bundled JDK works:
+1. Complete the Frontend Setup and the `backend/.env` part of the Backend Setup in the [README](../README.md), and add `ENABLE_E2E_ROUTES=true` to `backend/.env`: the Deals and Messaging tests seed their data through the test-only routes. Docker must be running, and `java` must be on your `PATH`. Android Studio's bundled JDK works:
    ```bash
    export JAVA_HOME="/Applications/Android Studio.app/Contents/jbr/Contents/Home"   # macOS
    export PATH="$JAVA_HOME/bin:$PATH"
@@ -184,6 +204,14 @@ Shared test steps are in `support/PostRobot.kt`, and the differences between the
    ```
    The script starts the back-end and the `Pixel_9` emulator (set `AVD_NAME=<name>` for another AVD), then builds and installs the app. When prompted, sign in inside the app on the emulator, wait for the main screen, and press Enter. The full suite takes about 10 minutes.
 4. The report is at `frontend/app/build/reports/androidTests/connected/debug/index.html`.
+
+**Without Docker on Windows** (for example, with Docker installed only in WSL), the script cannot start the backend. Start MongoDB and run `npm run dev` in `backend/` instead, start the `Pixel_9` emulator and sign in inside the app, then run the tests from `frontend/`:
+
+```powershell
+.\gradlew.bat connectedDebugAndroidTest "-Pandroid.testInstrumentationRunnerArguments.class=com.example.cpen321application.e2e.SendMessageTest,com.example.cpen321application.e2e.StartConversationTest,com.example.cpen321application.e2e.SendProposalTest,com.example.cpen321application.e2e.RespondToProposalTest"
+```
+
+Leave out the class list to run every test in `e2e/`.
 
 ### 4.2. Tests
 
@@ -265,4 +293,115 @@ Shared test steps are in `support/PostRobot.kt`, and the differences between the
       closesAndReopensPost[LISTING]                    PASSED   8.48 s
 
     Finished 42 tests on Pixel_9(AVD) - 16: 42 passed, 0 failed, 0 skipped (550.4 s)
+    ```
+
+- **Use Case 4: Send a Message** ([`SendMessageTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/SendMessageTest.kt)). Each test starts with a conversation with the E2E Seller about "E2E lamp", holding one message from them, "Message 1". Steps 7 and 7a are about the user who receives the message, so in those tests the signed-in tester receives it and the E2E Seller sends it.
+
+  - **Expected Behaviors:**
+
+    | **Scenario Steps** | **Test Case Steps** |
+    | ------------------ | ------------------- |
+    | 1. The user opens the Messages tab. | (`sendsMessage`) Tap "Messages" in the bottom bar. |
+    | 2. The app shows the user's conversations, newest activity first, each with the other user, the listing and request, and the last message. | Check that the seeded conversation's card is shown, with "E2E Seller", "Listing: E2E lamp" and "Message 1". |
+    | 2a. The network or server is unavailable when the conversations are loaded. | (`showsErrorWhenConversationsCannotLoad`) Turn on airplane mode and tap "Messages". |
+    | 2a1. The app shows "Could not reach the server. Check your connection." and a "Retry" button. | Check that "Could not reach the server" and the "Retry" button are shown.<br>Turn off airplane mode, wait until the backend can be reached, tap "Retry", and check that the conversation's card is shown. |
+    | 3. The user taps a conversation. | Tap the conversation's card. |
+    | 4. The app shows its messages with the newest at the bottom, 30 at a time, with "Load earlier messages" when there are older ones. | Check that "Message 1" is shown.<br>(`loadsEarlierMessages`) Seed the conversation with 40 messages and open it. Check that "Message 40" is shown, scroll to "Load earlier messages" and tap it, then check that the button is gone and that "Message 1" is shown after scrolling up. |
+    | 4a. The network or server is unavailable when the messages are loaded. | (`showsErrorWhenMessagesCannotLoad`) Open the Messages tab, turn on airplane mode, and tap the conversation. |
+    | 4a1. The app shows "Could not reach the server. Check your connection." and a "Retry" button. | Check that "Could not reach the server" is shown.<br>Turn off airplane mode, wait until the backend can be reached, tap "Retry", and check that "Message 1" is shown. |
+    | 5. The user types a message of up to 1000 characters and taps "Send". | Input "Is it still available?" in the message box and tap "Send". |
+    | 5a. The message is empty or only spaces. | (`sendDisabledForBlankMessage`) Open the conversation with an empty message box, then input "   ". |
+    | 5a1. "Send" is disabled. | Check that "Send" is disabled both times.<br>Input "hi" and check that "Send" is enabled. |
+    | 6. The system saves the message, and the app shows it on the right and clears the message box. | Check that the message box is empty and that "Is it still available?" is shown.<br>Check on the backend that the conversation's messages are "Message 1" and "Is it still available?". |
+    | 6a. The network or server is unavailable when the message is sent. | (`keepsMessageWhenSendFails`) Input "Is it still available?", turn on airplane mode, and tap "Send". |
+    | 6a1. The app shows "Could not send the message. Try again." and the message stays in the message box. | Check that "Could not send the message. Try again." is shown and that the message box still contains "Is it still available?".<br>Turn off airplane mode and check on the backend that the only message is "Message 1". |
+    | 7. The message appears in the other user's open conversation without refreshing. | (`showsOtherUsersMessageLive`) Open the conversation and wait two seconds for its live connection. The E2E Seller sends "Yes, still available".<br>Check that "Yes, still available" is shown without refreshing. |
+    | 7a. The other user's connection to the server was lost. | (`catchesUpAfterReconnecting`) Open the conversation, turn airplane mode on and off, and wait until the backend can be reached. The E2E Seller sends "Sent while you were offline". |
+    | 7a1. Their app reconnects and reloads the conversation, which then shows the message, within about a minute. | Check that "Sent while you were offline" is shown within 90 seconds. |
+
+  - **Test Logs:**
+    ```
+    Pixel_9(AVD) - 16 (Android 16, API 36), 2026-11-13, .\gradlew.bat connectedDebugAndroidTest (SendMessageTest, StartConversationTest, SendProposalTest, RespondToProposalTest)
+    Commit d92cfaf (branch test/e2e-messaging)
+
+    com.example.cpen321application.e2e.SendMessageTest
+      showsErrorWhenMessagesCannotLoad               PASSED  22.18 s
+      showsOtherUsersMessageLive                     PASSED   9.34 s
+      loadsEarlierMessages                           PASSED   7.25 s
+      keepsMessageWhenSendFails                      PASSED  13.48 s
+      catchesUpAfterReconnecting                     PASSED  48.69 s
+      showsErrorWhenConversationsCannotLoad          PASSED  10.37 s
+      sendsMessage                                   PASSED   6.21 s
+      sendDisabledForBlankMessage                    PASSED   5.83 s
+
+    8 tests: 8 passed, 0 failed, 0 skipped (123.4 s)
+    ```
+
+- **Start a conversation** ([`StartConversationTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/StartConversationTest.kt)). This use case has no formal specification. Each test starts with the E2E Seller's open listing "E2E lamp" at $30 and no conversation about it.
+
+  | **Test** | **Test Case Steps** |
+  | -------- | ------------------- |
+  | `startsConversationWithProposal` | Tap "Feed", find "E2E lamp" and tap it, then tap "Message". Check that the price is filled in with "30", input "Can I pick it up today?" as the note and tap "Propose".<br>Check that the conversation opens with "E2E Seller", "Listing: E2E lamp", "You proposed $30.00", the note and "Waiting for their answer". Check on the backend that the conversation exists with a pending proposal of 30 from the tester. |
+  | `proposeDisabledForInvalidPrice` | Open the listing and tap "Message". Check that "Propose" is disabled for the prices "abc" and "-5" and enabled for "25". Tap "Cancel" and check on the backend that no conversation was started. |
+  | `keepsProposalWhenServerIsUnreachable` | Open the listing and tap "Message", turn on airplane mode, and tap "Propose". Check that "Could not reach the server" is shown and the dialog still shows the price. Turn off airplane mode and check on the backend that no conversation was started. |
+
+  - **Test Logs:**
+    ```
+    Pixel_9(AVD) - 16 (Android 16, API 36), 2026-11-13, .\gradlew.bat connectedDebugAndroidTest (SendMessageTest, StartConversationTest, SendProposalTest, RespondToProposalTest)
+    Commit d92cfaf (branch test/e2e-messaging)
+
+    com.example.cpen321application.e2e.StartConversationTest
+      proposeDisabledForInvalidPrice                 PASSED   7.67 s
+      keepsProposalWhenServerIsUnreachable           PASSED  11.67 s
+      startsConversationWithProposal                 PASSED   8.22 s
+
+    3 tests: 3 passed, 0 failed, 0 skipped (27.6 s)
+    ```
+
+- **Send a proposal** ([`SendProposalTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/SendProposalTest.kt)). This use case has no formal specification. Each test starts with a conversation with the E2E Seller and no proposal yet.
+
+  | **Test** | **Test Case Steps** |
+  | -------- | ------------------- |
+  | `proposesPrice` | Open the conversation, tap "Propose a price", input "25" and the note "Pick up Friday?", and tap "Propose".<br>Check that "You proposed $25.00", the note and "Waiting for their answer" are shown, and that "Propose a price" is gone. Check on the backend that a pending proposal of 25 from the tester is saved. |
+  | `proposeDisabledForInvalidPrice` | Open the propose dialog. Check that "Propose" is disabled with no price and with "-1", and enabled with "0". |
+  | `keepsProposalWhenServerIsUnreachable` | Input "25", turn on airplane mode, and tap "Propose". Check that "Could not reach the server" is shown and the dialog stays open. Turn off airplane mode and check on the backend that no proposal is saved. |
+  | `showsDeclineLiveAndAllowsProposingAgain` | Propose 25 and wait for "Waiting for their answer". The E2E Seller declines it.<br>Check that "Declined" is shown without refreshing, that "Propose a price" is shown again, and that the backend has the proposal as declined. |
+
+  - **Test Logs:**
+    ```
+    Pixel_9(AVD) - 16 (Android 16, API 36), 2026-11-13, .\gradlew.bat connectedDebugAndroidTest (SendMessageTest, StartConversationTest, SendProposalTest, RespondToProposalTest)
+    Commit d92cfaf (branch test/e2e-messaging)
+
+    com.example.cpen321application.e2e.SendProposalTest
+      proposeDisabledForInvalidPrice                 PASSED   6.41 s
+      proposesPrice                                  PASSED   7.04 s
+      keepsProposalWhenServerIsUnreachable           PASSED  14.26 s
+      showsDeclineLiveAndAllowsProposingAgain        PASSED   7.91 s
+
+    4 tests: 4 passed, 0 failed, 0 skipped (35.6 s)
+    ```
+
+- **Respond to a proposal**, including Create deal ([`RespondToProposalTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/RespondToProposalTest.kt)). This use case has no formal specification. Each test starts with a conversation in which the E2E Seller proposed $25 with the note "Final price", and opens it to check that "They proposed $25.00" and the note are shown.
+
+  | **Test** | **Test Case Steps** |
+  | -------- | ------------------- |
+  | `acceptsProposalAndCreatesDeal` | Tap "Accept" and check that "Accepted: the deal is in your Deals tab" is shown.<br>Check on the backend that the tester has a deal for the listing as the buyer, at 25, with "E2E Seller"; that the listing is closed; and that the proposal is accepted.<br>Tap "Deals" and check that the deal is shown with "E2E lamp", "$25.00" and "You bought from E2E Seller". |
+  | `declinesProposal` | Tap "Decline". Check that "Declined" and "Propose a price" are shown, that the backend has the proposal as declined, and that no deal was made. |
+  | `showsErrorWhenAlreadyAnsweredOnAnotherDevice` | Accept the proposal through the API, as if from another device, then tap "Accept". Check that "There is no pending proposal" is shown and that the backend has only the one deal, at 25. |
+  | `keepsProposalPendingWhenAcceptFails` | Turn on airplane mode and tap "Accept". Check that "Could not reach the server" is shown. Turn off airplane mode and check on the backend that the proposal is still pending and no deal was made. |
+  | `keepsProposalPendingWhenDeclineFails` | Turn on airplane mode and tap "Decline". Check that "Could not reach the server" is shown. Turn off airplane mode and check on the backend that the proposal is still pending. |
+
+  - **Test Logs:**
+    ```
+    Pixel_9(AVD) - 16 (Android 16, API 36), 2026-11-13, .\gradlew.bat connectedDebugAndroidTest (SendMessageTest, StartConversationTest, SendProposalTest, RespondToProposalTest)
+    Commit d92cfaf (branch test/e2e-messaging)
+
+    com.example.cpen321application.e2e.RespondToProposalTest
+      keepsProposalPendingWhenDeclineFails           PASSED  11.18 s
+      keepsProposalPendingWhenAcceptFails            PASSED  11.50 s
+      acceptsProposalAndCreatesDeal                  PASSED   6.14 s
+      showsErrorWhenAlreadyAnsweredOnAnotherDevice   PASSED   5.04 s
+      declinesProposal                               PASSED   4.51 s
+
+    5 tests: 5 passed, 0 failed, 0 skipped (38.4 s)
     ```
