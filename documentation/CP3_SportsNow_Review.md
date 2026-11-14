@@ -106,16 +106,13 @@ yet the game still counts towards "games played" on their profile. A player who 
 
 **Severity: Medium-High.** Reputation is the core of the app, and catching no-shows is its main job. It isn't High because it needs a deliberate action by the player, and it doesn't crash the app or leak data.
 
-**Why this is a bug, not a design choice.** Leaving mid-game is allowed on purpose, but the code breaks its own stated goal:
-- `leaveGame` (`games.ts:480`): the request stays approved *"as a record that they played"*.
-- `completeGame` (`games.ts:424`): attendance is kept apart *"so leaving the game doesn't erase it from a player's score"*.
+**Why this is a bug, not a design choice.** SportsNow lets players leave mid-game on purpose: someone who plays for a while and then leaves still played. Their code comments also say leaving should never wipe a game from a player's score:
+- `leaveGame` (`games.ts:480`): after the start, the join request stays approved *"as a record that they played"*.
+- `completeGame` (`games.ts:424`): attendance is stored separately *"so leaving the game doesn't erase it from a player's score"*.
 
-That goal only holds if the player leaves after the game is completed. It also contradicts use case 11, which says players leave *"before it starts"*. As a result, the app disagrees with itself about a player who left mid-game:
+But attendance is only stored when the organiser completes the game, and only for players still in it at that moment. So the protection only works for a player who leaves *after* the game is completed. A player who leaves *during* the game, the exact case the comments describe, is erased from their score. The code doesn't do what its own comments say it should, which makes it a bug.
 
-| Part of the app | Counts them as having played? |
-|---|---|
-| `leaveGame` comment and profile "games played" | ✅ yes |
-| Reputation score, no-show checklist, ratings (`game_attendance`) | ❌ no |
+The result is also inconsistent: the profile counts the game as played, but the score, the no-show list and ratings treat the player as if they were never in it. And it contradicts the team's use case 11, which says a player leaves a game *"before it starts"*.
 
 **Steps to reproduce (accounts A and B)**
 1. **A** creates a game that starts soon. **B** sends a join request, and **A** approves it.
