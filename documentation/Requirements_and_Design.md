@@ -38,6 +38,7 @@
 | 2026-11-13 | 4.1 | Messaging: listed the errors every conversation route shares, as tested by the conversation interface tests: 401 without a session, 404 for a malformed id, 400 for an unsupported field or malformed JSON, and 413 for a body over 16 KB. |
 | 2026-11-13 | 3.4, 3.5 | Following TA feedback that some use cases were too fine, merged Accept a proposal and Decline a proposal into Respond to a proposal, which includes Create deal when accepting. In Use Case 4, failure 7a1 now says how long reconnecting takes, as measured by the end-to-end tests. |
 | 2026-11-14 | 4.1 | Accepting a proposal again after a failed accept now finishes the same deal, using the new Deals interface `findByPosts`, and the proposal is marked accepted last. Listed what proposing returns, that the note is trimmed, and that either user can propose again after a decline. |
+| 2026-11-14 | 4.1 | `GET /api/events`: listed what each event carries, that it reaches every open stream of the other user and nobody else, and the 401, as tested by its interface tests. |
 
 ---
 
@@ -385,7 +386,7 @@ Each use case covers one goal. The five marked with a link have a formal specifi
         7. `POST /api/conversations/:id/proposal/decline`
             - **Purpose**: Decline the other user's pending proposal, after which either user can propose again. Returns 200 with the proposal and sends `proposal.updated`. 403 for the caller's own proposal; 409 if no proposal is pending.
         8. `GET /api/events`
-            - **Purpose**: The caller's live updates as Server-Sent Events. The response stays open, and the backend writes a `message.created` or `proposal.updated` event whenever the other user acts, plus a heartbeat every 25 seconds. Events sent while the app is disconnected are not replayed, so the app reloads the open conversation after it reconnects.
+            - **Purpose**: The caller's live updates as Server-Sent Events (`Content-Type: text/event-stream`). The response stays open, and the backend writes an event to every open stream of the other user whenever a user acts: `message.created` with the message, or `proposal.updated` with `{ conversationId, proposal }`. The user who acted, and users outside the conversation, get nothing. A comment line every 25 seconds keeps a quiet stream from being dropped. Events sent while the app is disconnected are not replayed, so the app reloads the open conversation after it reconnects. 401 without a valid session token.
 
 ### **4.2. Databases**
 
