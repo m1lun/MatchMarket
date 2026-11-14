@@ -4,7 +4,7 @@
 |---|---|
 | **Peer group reviewed** | SportsNow (`pawanpaddaeng/SportsNow_Project`) |
 | **Reviewing group** | MatchMarket |
-| **Commit reviewed** | _[commit SHA of the `main` snapshot you downloaded; the zip has no `.git` folder]_ |
+| **Commit reviewed** | [`eccf7d9343f9ef4d088c1da59cb5ecf89106b622`](https://github.com/pawanpaddaeng/SportsNow_Project/commit/eccf7d9343f9ef4d088c1da59cb5ecf89106b622) |
 | **Artifacts reviewed** | `SportsNow_Project-main` source (backend, frontend, docs, scripts), `CP2_SportsNow.apk` |
 | **Date** | Nov 13, 2026 |
 | **Scope** | Scored against the CP2 scope: one end-to-end feature and all interfaces of one component. Work not due until CP3 or M3 is listed as a recommendation, not a fault. |
