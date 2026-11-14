@@ -18,7 +18,7 @@
 | Manual test review | Test code is maintainable and well-structured | **8/10** |
 | Manual test review | Test implementation matches the requirements and design | **4/10** |
 | Manual test review | Non-functional requirements are tested well | **0/10**\* |
-| Manual test review | Tests achieve high coverage and cases of < 100% coverage are well-justified | **2/10** |
+| Manual test review | Tests achieve high coverage and cases of < 100% coverage are well-justified | **5/10** |
 | Manual test review | All back-end tests can be run automatically | **2/10** |
 | Automated code review | Codacy runs with the required setup | **7/10** |
 | Automated code review | All remaining Codacy issues are well-justified | **9/10** |
@@ -70,7 +70,7 @@ CP2 asks for all interfaces of one component and one end-to-end feature. SportsN
 ### 2.4 Non-functional requirements: 0/10
 Not yet due (CP3), and no NFR tests exist yet. For CP3: time `GET /api/games/discover` in Jest for NFR 1, and use `BatteryManager` or `dumpsys batterystats` for NFR 2.
 
-### 2.5 Coverage: 2/10
+### 2.5 Coverage: 5/10
 - **Interfaces:** all 13 Game routes have unmocked tests, and 12 of 13 have mocked tests (`removePlayer` has none).
 - **End-to-end:** none; the Discover Game test isn't written.
 
