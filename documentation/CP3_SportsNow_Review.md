@@ -16,10 +16,10 @@
 | Manual code review | Code is maintainable, efficient, handles error cases well | **8/10** |
 | Manual test review | Tests are complete for one end-to-end feature and all interfaces of one component, errors and edge cases are thoroughly tested, correct assertions are used | **5/10** |
 | Manual test review | Test code is maintainable and well-structured | **8/10** |
-| Manual test review | Test implementation matches the requirements and design | **4/10** |
+| Manual test review | Test implementation matches the requirements and design | **5/10** |
 | Manual test review | Non-functional requirements are tested well | **0/10**\* |
 | Manual test review | Tests achieve high coverage and cases of < 100% coverage are well-justified | **5/10** |
-| Manual test review | All back-end tests can be run automatically | **2/10** |
+| Manual test review | All back-end tests can be run automatically | **5/10** |
 | Automated code review | Codacy runs with the required setup | **7/10** |
 | Automated code review | All remaining Codacy issues are well-justified | **8/10** |
 
@@ -63,9 +63,10 @@ CP2 asks for all interfaces of one component and one end-to-end feature. SportsN
 - 83 of the 84 test files have the required Input / Expected comments. The shared helpers build unique users so test files can run at the same time on one database.
 - Deductions: 75 of the 84 test files hold a single test, so the helper import and `cleanUpAfterTests()` setup are repeated in 82 files.
 
-### 2.3 Tests vs. requirements and design: 4/10
+### 2.3 Tests vs. requirements and design: 5/10
+- Credit: all 13 built Game routes have tests, and the Discover Game E2E plan maps each scenario step to a test step.
 - Testing.md wasn't updated for CP2. The line links, commit hash, test-database setup, GitHub Actions location and E2E log are all still marked as coming at CP2.
-- The Discover Game E2E plan is detailed but not implemented.
+- Planned but not written: the Discover Game E2E test, the sign-in failure tests, and 5 of the 6 `createGame` validation tests.
 
 ### 2.4 Non-functional requirements: 0/10
 Not yet due (CP3), and no NFR tests exist yet. For CP3: time `GET /api/games/discover` in Jest for NFR 1, and use `BatteryManager` or `dumpsys batterystats` for NFR 2.
@@ -74,10 +75,10 @@ Not yet due (CP3), and no NFR tests exist yet. For CP3: time `GET /api/games/dis
 - **Interfaces:** all 13 Game routes have unmocked tests, and 12 of 13 have mocked tests (`removePlayer` has none).
 - **End-to-end:** none; the Discover Game test isn't written.
 
-### 2.6 Back-end tests run automatically: 2/10
-- There is no GitHub Actions workflow, and the project description counts tests that CI doesn't run as incomplete.
+### 2.6 Back-end tests run automatically: 5/10
+- Credit: one script (`run-backend-interface-tests.sh`) runs the mock, no-mock and combined suites, one after the other.
+- There is no GitHub Actions workflow. The CP2 guidelines don't list it, but the project description requires one, and SportsNow's own Testing.md planned it for CP2.
 - Testing.md's step for starting the test database still says *"We will add these steps at CP2"*.
-- Credit: the test script correctly runs the mock, no-mock and combined suites, one after the other.
 
 ---
 
