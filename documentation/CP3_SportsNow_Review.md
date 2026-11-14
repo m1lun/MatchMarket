@@ -71,7 +71,9 @@ CP2 asks for all interfaces of one component and one end-to-end feature. SportsN
 Not yet due (CP3), and no NFR tests exist yet. For CP3: time `GET /api/games/discover` in Jest for NFR 1, and use `BatteryManager` or `dumpsys batterystats` for NFR 2.
 
 ### 2.5 Coverage: 2/10
-We judged only the Game component. Coverage can't be verified: there are no coverage screenshots or justification for anything under 100%, and Codacy shows 0%. Credit: `jest.config.js` collects coverage from all of `src/`.
+- **Interfaces:** all 13 Game routes have unmocked tests, and 12 of 13 have mocked tests (`removePlayer` has none).
+- **End-to-end:** none; the Discover Game test isn't written.
+- **Line coverage can't be verified:** there are no coverage screenshots or justification for anything under 100%, and Codacy shows 0%. `jest.config.js` does collect coverage from all of `src/`.
 
 ### 2.6 Back-end tests run automatically: 2/10
 - There is no GitHub Actions workflow, and the project description counts tests that CI doesn't run as incomplete.
