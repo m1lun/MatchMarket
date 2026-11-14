@@ -7,7 +7,7 @@
 | **Commit reviewed** | _[commit SHA of the `main` snapshot you downloaded; the zip has no `.git` folder]_ |
 | **Artifacts reviewed** | `SportsNow_Project-main` source (backend, frontend, docs, scripts), `CP2_SportsNow.apk` |
 | **Date** | Nov 13, 2026 |
-| **Scope** | We reviewed the code SportsNow handed over at CP2, so every score uses the CP2 scope in `Submission_Guidelines.pdf`: *"described tests implemented"* and *"Update Testing.md (one end-to-end feature and all interfaces of one component)"*. Work that isn't due until CP3 or M3 (NFR tests, a complete Testing.md, end-to-end tests for three features, tests for the other components) is not counted against them. Where we mention it, it is marked as a recommendation. |
+| **Scope** | Scored against the CP2 scope: one end-to-end feature and all interfaces of one component. Work not due until CP3 or M3 is listed as a recommendation, not a fault. |
 
 ## Score Summary
 
@@ -25,7 +25,7 @@
 
 \* NFR tests aren't part of the CP2 scope (they are due with the complete Testing.md at CP3). The 0 records that no NFR test exists yet. It is not a CP2 failure (see [2.4](#24-non-functional-requirements-010-not-yet-due)).
 
-**Major fault:** A player who doesn't show up can leave the game after it starts and so avoid the no-show penalty. They are still credited with the game (see [Section 4](#4-major-fault)). **Severity: High.**
+**Major fault:** Leaving a game after it starts erases it from the player's score, which breaks the code's own stated goal and the Leave Game use case (*"before it starts"*). The organiser can't mark them as a no-show or rate them, but the game still counts as played (see [Section 4](#4-major-fault)). **Severity: Medium-High.**
 
 ---
 
@@ -119,11 +119,25 @@ We only judged the Game component, since that is the CP2 scope.
 
 ## 4. Major Fault
 
-### No-shows can avoid the reputation penalty by leaving after the game starts (and still get credit for the game)
+### Leaving a game mid-game erases it from the player's score, so no-shows can't be recorded
 
-**Severity: High.** It undermines the main purpose of the app. The project description says reputation exists so that *"organisers see each requester's score … so games are filled with reliable players"*, and a no-show is the most serious thing the score is meant to catch.
+**Severity: Medium-High.** It undermines the main purpose of the app. The project description says reputation exists so that *"organisers see each requester's score … so games are filled with reliable players"*, and a no-show is the most serious thing the score is meant to catch. It isn't High because it takes a deliberate action by the player, and it doesn't crash the app or leak data.
 
-**What happens**
+**This is a bug, not a design choice.** Letting players leave mid-game is deliberate, and so is counting that as having played. The problem is that the code breaks its own stated goal:
+- `leaveGame` (`games.ts:480`): *"once the game started the request stays approved **as a record that they played**"*
+- `completeGame` (`games.ts:424`): attendance is *"kept apart from game_players **so leaving the game doesn't erase it from a player's score**"*
+
+That goal only holds when a player leaves **after** the game is completed. When they leave **mid-game**, before completion, they get no attendance row, so the game is erased from their score. It also contradicts the team's requirements: use case 11 says *"Leave Game: A player who has joined a game withdraws from it **before it starts**"*, and §4.1 says the same. As a result, the app disagrees with itself about a player who left mid-game:
+
+| Part of the app | Counts them as having played? |
+|---|---|
+| `leaveGame` (*"a record that they played"*) | ✅ yes |
+| Profile "games played" (`GAMES_PLAYED` counts approved requests) | ✅ yes |
+| Reputation score, no-show checklist, ratings (all read `game_attendance`) | ❌ no |
+
+The player's own tap decides attendance, not the organiser's checklist. A player who never came can tap **Leave Game** from home after the start time and avoid both the no-show penalty and any ratings.
+
+**What happens in the code**
 1. After a game's start time, players can still leave it. Both the backend (`backend/src/game/db/games.ts:457-498`, *"A player can leave at any time, even mid-game"*) and the app (`GameDetailsButtons.kt:70-75`, which shows **Leave Game** to players of an in-progress game) allow it.
 2. When the organiser marks the game completed, `completeGame` (`games.ts:425-436`) only writes `game_attendance` rows for users **still in** `game_players`. A player who left gets **no row at all**: they don't appear in the organiser's no-show checklist (`CompleteGameDialog`), so they can't be marked as a no-show.
 3. `getReputationScore` (`review/db/ratings.ts:107-131`) only reads `game_attendance`, so the game doesn't count against them, and no one can rate them (`createRating` → `player_not_found`).
@@ -153,7 +167,7 @@ We only judged the Game component, since that is the CP2 scope.
 
 Extra screenshot: `CP3_screenshots/4_A_game_completed_1_player.png` (the completed game shows only 1/10 players, so B isn't recorded as a participant).
 
-_Not shown in the app:_ the "games played" count from step 4 of "What happens" is only visible in the player-profile popup, which we couldn't open from the search results. That part is based on the code (`review/db/reputation.ts:15-22`).
+_Not shown in the app:_ the "games played" count from step 4 of "What happens in the code" is only visible in the player-profile popup, which we couldn't open from the search results. That part is based on the code (`review/db/reputation.ts:15-22`).
 
 ### Other faults found (secondary)
 - **Push notifications go to a signed-out device** (C1). Sign in as A, sign out, then have a friend message A: the signed-out phone shows the message preview.
