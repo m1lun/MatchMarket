@@ -21,7 +21,7 @@
 | Manual test review | Tests achieve high coverage and cases of < 100% coverage are well-justified | **5/10** |
 | Manual test review | All back-end tests can be run automatically | **2/10** |
 | Automated code review | Codacy runs with the required setup | **7/10** |
-| Automated code review | All remaining Codacy issues are well-justified | **9/10** |
+| Automated code review | All remaining Codacy issues are well-justified | **8/10** |
 
 \* Not yet due: NFR tests are part of CP3. The 0 only records that none exist yet.
 
@@ -88,7 +88,7 @@ Not yet due (CP3), and no NFR tests exist yet. For CP3: time `GET /api/games/dis
 - ❌ An inline suppression breaks the rules: `@Suppress("DEPRECATION")` at `game/location/Geocoding.kt:51`.
 - ⚠️ The screenshot shows the *Code patterns* page instead of the *Issues* page, so we couldn't confirm Trivy is enabled.
 
-### 3.2 Remaining issues justified: 9/10
+### 3.2 Remaining issues justified: 8/10
 Codacy reports 0 issues. Small deduction: the 14% duplication is dismissed without evidence, and the `@Suppress` hides an issue that should be fixed or justified.
 
 ---
@@ -140,15 +140,18 @@ Also see `CP3_screenshots/4_A_game_completed_1_player.png`: the completed game s
 ## 5. Recommendations (priority order)
 
 **Missing CP2 work**
+
 1. Write the Discover Game E2E test.
 2. Add a GitHub Actions workflow that starts MySQL and runs the backend tests.
 3. Update Testing.md for CP2: line links, commit hash and test-database setup.
 4. Add the missing Game edge-case tests, and remove the `@Suppress`.
 
 **App fixes**
+
 5. Fix the leave-mid-game bug, and unregister FCM tokens on sign-out.
 6. Update Requirements_and_Design §4.1 to match the code.
 
 **Later (CP3 and M3)**
+
 7. Write the two NFR tests.
 8. Test the other components, and add E2E tests for two more features.
