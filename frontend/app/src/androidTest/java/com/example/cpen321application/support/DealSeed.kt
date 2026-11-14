@@ -1,45 +1,16 @@
 package com.example.cpen321application.support
 
-import androidx.compose.ui.test.hasClickAction
-import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
-import androidx.test.platform.app.InstrumentationRegistry
-import com.example.cpen321application.auth.HttpResult
-import com.example.cpen321application.auth.SessionManager
 import com.example.cpen321application.deals.DealsTags
 import com.example.cpen321application.deals.RateTags
-import kotlinx.coroutines.runBlocking
 import org.json.JSONObject
-import java.io.IOException
 
 // Helpers for the backend's /api/e2e/deals routes (needs ENABLE_E2E_ROUTES=true).
 private const val SEED_PATH = "/api/e2e/deals"
-private const val ONLINE_WAIT_MS = 60_000L
-private const val RETRY_DELAY_MS = 1_000L
 private const val LOAD_WAIT_MS = 15_000L
-
-private val sessions by lazy { SessionManager.get(InstrumentationRegistry.getInstrumentation().targetContext) }
-
-// Retries while the emulator comes back online.
-private fun send(method: String, path: String, body: JSONObject? = null): HttpResult {
-    val deadline = System.currentTimeMillis() + ONLINE_WAIT_MS
-    while (true) {
-        try {
-            return runBlocking { sessions.authorizedRequest(method, path, body) }
-        } catch (e: IOException) {
-            if (System.currentTimeMillis() > deadline) throw e
-            Thread.sleep(RETRY_DELAY_MS)
-        }
-    }
-}
-
-private fun HttpResult.orFail(action: String): HttpResult {
-    check(isSuccess) { "$action failed with HTTP $code: $errorMessage. Is the backend running with ENABLE_E2E_ROUTES=true?" }
-    return this
-}
 
 // Seeds a fresh deal and returns its id.
 fun seedDeal(): String = JSONObject(send("POST", SEED_PATH).orFail("Seeding a deal").body).getString("dealId")
@@ -75,9 +46,6 @@ fun myRating(dealId: String): SavedRating? {
 }
 
 fun myStars(dealId: String): Int? = myRating(dealId)?.stars
-
-// A bottom-bar tab (the screen title isn't clickable).
-private fun MainRule.tab(label: String) = onNode(hasText(label) and hasClickAction())
 
 // Opens the Deals tab.
 fun MainRule.openDeals() {

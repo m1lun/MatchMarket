@@ -36,6 +36,7 @@
 | 2026-11-12 | 4.1 | Photos are no longer public: `GET /api/photos/:id` needs a session token and may only be cached on the user's device. |
 | 2026-11-12 | 4.1 | `POST /api/custom-fields` returns 409 if the user already has a custom field with the same name, instead of replacing it. |
 | 2026-11-13 | 4.1 | Messaging: listed the errors every conversation route shares, as tested by the conversation interface tests: 401 without a session, 404 for a malformed id, 400 for an unsupported field or malformed JSON, and 413 for a body over 16 KB. |
+| 2026-11-13 | 3.4, 3.5 | Following TA feedback that some use cases were too fine, merged Accept a proposal and Decline a proposal into Respond to a proposal, which includes Create deal when accepting. In Use Case 4, failure 7a1 now says how long reconnecting takes, as measured by the end-to-end tests. |
 
 ---
 
@@ -105,7 +106,7 @@ Each use case covers one goal. The five marked with a link have a formal specifi
 13. **View deals**: A user opens the Deals tab and sees their deals, newest first, as buyer or seller. Each deal shows its title, agreed price, date, the listing and request it came from, the other user's score, and both ratings. Tapping the listing or request opens it, even if it has since closed. A user with no deals sees "No deals yet".
 14. **Rate a deal** ([Use Case 2](#uc2)): A user rates the other side of a deal from 1 to 5 stars with an optional comment. The other user's score updates on the card.
 15. **Edit a rating**: A user changes the stars or comment of a rating they gave earlier, and the other user's score updates.
-16. **Create deal**: When a user accepts a proposal, the system records the deal between the two users at the proposed price and closes the listing and request. It is part of Accept a proposal and is never started on its own.
+16. **Create deal**: When a user accepts a proposal, the system records the deal between the two users at the proposed price and closes the listing and request. It is part of Respond to a proposal, when the proposal is accepted, and is never started on its own.
 
 **Feature 4: Messaging**
 
@@ -113,8 +114,7 @@ Each use case covers one goal. The five marked with a link have a formal specifi
 18. **View conversations**: A user opens the Messages tab and sees their conversations, newest activity first, each with the other user, the listing and request, and the last message.
 19. **Send a message** ([Use Case 4](#uc4)): A user sends a message in a conversation, and it appears in the other user's open conversation without refreshing.
 20. **Send a proposal**: A user proposes a price, with an optional note, in a conversation that has no pending or accepted proposal. The proposal appears in the other user's open conversation without refreshing.
-21. **Accept a proposal**: A user accepts the other user's pending proposal. This includes Create deal: the deal is recorded at that price, both posts are closed, and the deal appears in both users' Deals tabs.
-22. **Decline a proposal**: A user declines the other user's pending proposal, after which either user can propose again.
+21. **Respond to a proposal**: A user accepts or declines the other user's pending proposal. Accepting includes Create deal: the deal is recorded at that price, both posts are closed, and the deal appears in both users' Deals tabs. After a decline, either user can propose again.
 
 ### **3.5. Formal Use Case Specifications (5 Most Major Use Cases)**
 
@@ -235,7 +235,7 @@ Each use case covers one goal. The five marked with a link have a formal specifi
 - 6a. The network or server is unavailable when the message is sent.
     - 6a1. The app shows "Could not send the message. Try again." and the message stays in the message box.
 - 7a. The other user's connection to the server was lost.
-    - 7a1. Their app reconnects within a few seconds and reloads the conversation, which then shows the message.
+    - 7a1. Their app reconnects and reloads the conversation, which then shows the message. A connection that fails with an error is replaced within a few seconds; one that stops without an error is noticed by the app's 60-second read timeout, so the message can take up to about a minute to appear.
 
 <a name="uc5"></a>
 
