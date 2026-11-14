@@ -90,6 +90,7 @@ export interface SessionRepo {
 export interface DealCollection {
   insert(doc: Omit<Deal, 'id'>): Promise<Deal>;
   findById(id: string): Promise<Deal | null>;
+  findByPosts(posts: Pick<Deal, 'listingId' | 'requestId'>): Promise<Deal | null>;
   listByUser(userId: string, limit: number, before?: string): Promise<Deal[]>;
   removeBySellerAndBuyer(sellerId: string, buyerId: string): Promise<Deal[]>;
 }

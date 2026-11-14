@@ -301,6 +301,20 @@ class MongoDealCollection implements DealCollection {
     return found === null ? null : toDoc<Deal>(found as Stored<Deal>);
   }
 
+  async findByPosts(posts: Pick<Deal, 'listingId' | 'requestId'>): Promise<Deal | null> {
+    assertHasPost(posts);
+    // A null id would match every deal without that kind of post, so only the posts the caller has are matched.
+    const matches: Document[] = [];
+    if (posts.listingId !== null) {
+      matches.push({ listingId: posts.listingId });
+    }
+    if (posts.requestId !== null) {
+      matches.push({ requestId: posts.requestId });
+    }
+    const found = await this.collection.findOne({ $or: matches });
+    return found === null ? null : toDoc<Deal>(found as Stored<Deal>);
+  }
+
   async listByUser(userId: string, limit: number, before?: string): Promise<Deal[]> {
     const query: Document = { $or: [{ sellerId: userId }, { buyerId: userId }] };
     if (before !== undefined) {

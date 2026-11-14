@@ -14,12 +14,13 @@
 | 2026-11-01 | 3 | Added the location and verification of the NFR 2 test, and noted that the NFR 1 test has not been added yet. |
 | 2026-11-13 | 2 | Added the interface tests of the Messaging conversation routes: where they are, what is mocked, how the tables of errors are organized, and the known limitation for a conversation's last message. |
 | 2026-11-13 | 2, 4 | Added the test-only `/api/e2e` routes the end-to-end tests seed their data with, and the Messaging end-to-end tests: Use Case 4: Send a Message step by step, and the Start a conversation, Send a proposal and Respond to a proposal use cases. Added how to run the end-to-end tests without Docker on Windows. |
+| 2026-11-14 | 2 | Added the interface tests of the Messaging proposal routes, including the tests that a failed accept can be retried. |
 
 ---
 
 ## 2. Back-end Test Specification: APIs
 
-This section covers the Deals component and the Messaging conversation routes ([Section 4.1](Requirements_and_Design.md#41-main-components)). Tests for the other components will be added here as they are written.
+This section covers the Deals component and the Messaging conversation and proposal routes ([Section 4.1](Requirements_and_Design.md#41-main-components)). Tests for the other components will be added here as they are written.
 
 ### 2.1. Locations of Back-end Tests and Instructions to Run Them
 
@@ -36,6 +37,9 @@ This section covers the Deals component and the Messaging conversation routes ([
 | **GET /api/conversations** | [`tests/no-mock/conversations.test.ts#L245`](../backend/tests/no-mock/conversations.test.ts#L245) | [`tests/mock/conversations.test.ts#L64`](../backend/tests/mock/conversations.test.ts#L64) | Conversations DB, Users DB, Listings DB |
 | **GET /api/conversations/:id/messages** | [`tests/no-mock/conversations.test.ts#L334`](../backend/tests/no-mock/conversations.test.ts#L334) | [`tests/mock/conversations.test.ts#L85`](../backend/tests/mock/conversations.test.ts#L85) | Conversations DB, Messages DB |
 | **POST /api/conversations/:id/messages** | [`tests/no-mock/conversations.test.ts#L406`](../backend/tests/no-mock/conversations.test.ts#L406) | [`tests/mock/conversations.test.ts#L105`](../backend/tests/mock/conversations.test.ts#L105) | Conversations DB, Messages DB |
+| **POST /api/conversations/:id/proposal** | [`tests/no-mock/proposals.test.ts#L105`](../backend/tests/no-mock/proposals.test.ts#L105) | [`tests/mock/proposals.test.ts#L65`](../backend/tests/mock/proposals.test.ts#L65) | Conversations DB |
+| **POST /api/conversations/:id/proposal/accept** | [`tests/no-mock/proposals.test.ts#L215`](../backend/tests/no-mock/proposals.test.ts#L215) | [`tests/mock/proposals.test.ts#L88`](../backend/tests/mock/proposals.test.ts#L88) | Conversations DB, Listings DB, Requests DB, Deals DB |
+| **POST /api/conversations/:id/proposal/decline** | [`tests/no-mock/proposals.test.ts#L376`](../backend/tests/no-mock/proposals.test.ts#L376) | [`tests/mock/proposals.test.ts#L141`](../backend/tests/mock/proposals.test.ts#L141) | Conversations DB |
 
 The mocked tests use `jest.spyOn` on one store method at a time, so each database failure is forced on its own. Both groups otherwise run against a real MongoDB.
 
@@ -43,6 +47,7 @@ How the Messaging conversation tests are organized:
 
 - **Unmocked groups** cover every success and every failure the API can cause. Requests every conversation route must refuse share two tables in `tests/helpers/conversationFixtures.ts`: `ACCESS_CASES` (a user outside the conversation, an unknown or malformed id, no token or an invalid one) and `unreadableBodies` (malformed JSON and a body over 16 KB). Each route runs them alongside its own table of invalid bodies, so one comment block describes all the cases in a table.
 - **Mocked groups** make each store method the route calls reject in turn, through the helpers in `tests/helpers/storeFailures.ts`, and check for a handled 500.
+- **Accepting a proposal** writes in steps: it records the deal, closes the posts, then marks the proposal accepted. In the mocked group, each of its eight store calls fails once, and the test then accepts again without the mock and checks that the retry finishes the deal: exactly one deal, both posts closed and the proposal accepted. The unmocked group sets up an accept that stopped partway directly in the database and checks that accepting again finishes it, and that a deal on the same posts with someone else, or at another price, still returns 409. MongoDB rejecting a deal because another accept saved one first is mocked, since the API cannot time two accepts that precisely.
 - **Known limitation.** If saving a message works but updating the conversation's last message fails, the conversations list shows the previous message until the next one is sent. Fixing it needs a MongoDB transaction, which needs a replica set. The mocked test `recordMessage Throws, Next Message Repairs The Last Message` checks that the next message corrects it.
 
 **Test-only routes for the end-to-end tests.** The front-end tests in Section 4 create their data through these routes. They exist only when the backend runs with `ENABLE_E2E_ROUTES=true`, and only touch made-up users tied to the caller: an "E2E Buyer" for deals and an "E2E Seller" for conversations. The `/api/e2e/partner/conversations` routes are the real conversation and proposal routes run as the E2E Seller, so the tests can play the second user through the same code; their full behaviour is tested with the Messaging routes.

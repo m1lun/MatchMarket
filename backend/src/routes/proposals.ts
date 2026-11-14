@@ -68,7 +68,19 @@ function anyPostGone(conversation: Conversation, posts: DealPosts): boolean {
   );
 }
 
-// Null if one of the posts got a deal since the check above (deals are unique per post).
+// A deal already on these posts is either this proposal's, recorded by an earlier accept that failed
+// before closing the posts, which this accept finishes, or another sale, which makes the posts unavailable.
+function earlierAccept(deal: Deal, conversation: Conversation, proposal: Proposal): Deal | null {
+  const same =
+    deal.listingId === conversation.listingId &&
+    deal.requestId === conversation.requestId &&
+    deal.sellerId === conversation.sellerId &&
+    deal.buyerId === conversation.buyerId &&
+    deal.agreedPrice === proposal.price;
+  return same ? deal : null;
+}
+
+// Null if one of the posts got a deal since the check before it (deals are unique per post).
 async function insertDeal(store: Store, doc: Omit<Deal, 'id'>): Promise<Deal | null> {
   try {
     return await store.deals.insert(doc);
@@ -78,6 +90,14 @@ async function insertDeal(store: Store, doc: Omit<Deal, 'id'>): Promise<Deal | n
     }
     throw error;
   }
+}
+
+async function newDeal(store: Store, conversation: Conversation, proposal: Proposal, posts: DealPosts, now: Date): Promise<Deal | null> {
+  if (anyPostGone(conversation, posts)) {
+    return null;
+  }
+  const { listingId, requestId, sellerId, buyerId } = conversation;
+  return insertDeal(store, { listingId, requestId, sellerId, buyerId, agreedPrice: proposal.price, createdAt: now });
 }
 
 async function closePosts(store: Store, posts: DealPosts, now: Date): Promise<void> {
@@ -118,7 +138,7 @@ export function createProposalsRouter(store: Store, events: EventHub): Router {
   }));
 
   // POST /api/conversations/:id/proposal/accept — makes the deal from the conversation's posts and people
-  // at the proposed price, and closes the posts.
+  // at the proposed price, and closes the posts. Retrying after a failure finishes the same deal.
   router.post('/:id/proposal/accept', handle(async (req, res) => {
     const conversation = await findMyConversation(store, req, res);
     if (conversation === null) {
@@ -128,19 +148,18 @@ export function createProposalsRouter(store: Store, events: EventHub): Router {
     if (proposal === null) {
       return;
     }
-    const posts = await findDealPosts(store, conversation);
-    if (anyPostGone(conversation, posts)) {
-      sendPostGone(res);
-      return;
-    }
+    const [posts, earlier] = await Promise.all([findDealPosts(store, conversation), store.deals.findByPosts(conversation)]);
     const now = new Date();
-    const { listingId, requestId, sellerId, buyerId } = conversation;
-    const deal = await insertDeal(store, { listingId, requestId, sellerId, buyerId, agreedPrice: proposal.price, createdAt: now });
+    const deal = earlier === null
+      ? await newDeal(store, conversation, proposal, posts, now)
+      : earlierAccept(earlier, conversation, proposal);
     if (deal === null) {
       sendPostGone(res);
       return;
     }
-    await Promise.all([closePosts(store, posts, now), store.conversations.setProposalStatus(conversation.id, 'accepted')]);
+    await closePosts(store, posts, now);
+    // Last, so a proposal still pending means a retry can finish the accept.
+    await store.conversations.setProposalStatus(conversation.id, 'accepted');
     const accepted: Proposal = { ...proposal, status: 'accepted' };
     publishProposal(events, res, conversation, accepted);
     res.status(201).json({ deal, proposal: accepted });
