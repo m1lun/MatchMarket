@@ -22,7 +22,7 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 
-// Use case 15: Edit a rating. Each test starts with a seeded deal rated 4 stars.
+// Use case 13: Edit a rating. Each test starts with a seeded deal rated 4 stars.
 class EditRatingTest {
     @get:Rule
     val rule = mainRule()

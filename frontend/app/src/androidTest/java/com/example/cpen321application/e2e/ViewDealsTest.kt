@@ -16,7 +16,7 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 
-// Use case 13: View deals. Each test starts with a new seeded deal.
+// Use case 11: View deals. Each test starts with a new seeded deal.
 class ViewDealsTest {
     @get:Rule
     val rule = mainRule()

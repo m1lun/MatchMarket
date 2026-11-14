@@ -27,7 +27,7 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 
-// Use case: Respond to a proposal, by accepting it, which creates the deal, or declining it. Each test starts with a
+// Use case 18: Respond to a proposal, by accepting it, which creates the deal, or declining it. Each test starts with a
 // seeded conversation in which the E2E Seller proposed $25 for their listing.
 class RespondToProposalTest {
     @get:Rule

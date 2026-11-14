@@ -16,6 +16,7 @@
 | 2026-11-13 | 2, 4 | Added the test-only `/api/e2e` routes the end-to-end tests seed their data with, and the Messaging end-to-end tests: Use Case 4: Send a Message step by step, and the Start a conversation, Send a proposal and Respond to a proposal use cases. Added how to run the end-to-end tests without Docker on Windows. |
 | 2026-11-14 | 2 | Added the interface tests of the Messaging proposal routes, including the tests that a failed accept can be retried. |
 | 2026-11-14 | 2 | Added the interface tests of `GET /api/events`, the live updates, and how they read the event stream and fake the heartbeat timer. |
+| 2026-11-14 | 4 | Create deal is no longer a separate use case, so the Respond to a proposal tests are described as recording the deal when a proposal is accepted. Close post and Reopen post are now part of Edit post, so the ManagePostsTest row names the use cases it covers. |
 
 ---
 
@@ -175,11 +176,11 @@ Tests:       1 passed, 1 total
 | **Test class** | **Use cases** |
 | -------------- | ------------- |
 | [`CreatePostTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/CreatePostTest.kt) | [Use Case 1: Create Post](Requirements_and_Design.md#uc1), steps 1–7 |
-| [`ManagePostsTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/ManagePostsTest.kt) | [Use Case 1: Create Post](Requirements_and_Design.md#uc1), steps 1–2 and failure 2a. Its other tests cover the Edit post, Close post, Reopen post and Delete post use cases ([Section 3.4](Requirements_and_Design.md#34-use-case-description)), which have no formal specification. |
+| [`ManagePostsTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/ManagePostsTest.kt) | [Use Case 1: Create Post](Requirements_and_Design.md#uc1), steps 1–2 and failure 2a. Its other tests cover the Edit post use case, including closing and reopening a post, and the Delete post use case ([Section 3.4](Requirements_and_Design.md#34-use-case-description)), which have no formal specification. |
 | [`SendMessageTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/SendMessageTest.kt) | [Use Case 4: Send a Message](Requirements_and_Design.md#uc4), steps 1–7 and failures 2a, 4a, 5a, 6a and 7a. Steps 1–2 and 2a are also the View conversations use case. |
 | [`StartConversationTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/StartConversationTest.kt) | Start a conversation ([Section 3.4](Requirements_and_Design.md#34-use-case-description)) |
 | [`SendProposalTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/SendProposalTest.kt) | Send a proposal ([Section 3.4](Requirements_and_Design.md#34-use-case-description)) |
-| [`RespondToProposalTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/RespondToProposalTest.kt) | Respond to a proposal, including Create deal when it is accepted ([Section 3.4](Requirements_and_Design.md#34-use-case-description)) |
+| [`RespondToProposalTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/RespondToProposalTest.kt) | Respond to a proposal, including recording the deal when it is accepted ([Section 3.4](Requirements_and_Design.md#34-use-case-description)) |
 
 Shared test steps are in `support/PostRobot.kt`, and the differences between the request and listing forms are in `support/PostForm.kt`. The Messaging tests' steps are in `support/MessagingSeed.kt`, and `support/E2eApi.kt` holds the backend calls shared by the Deals and Messaging tests.
 
@@ -384,7 +385,7 @@ Leave out the class list to run every test in `e2e/`.
     4 tests: 4 passed, 0 failed, 0 skipped (35.6 s)
     ```
 
-- **Respond to a proposal**, including Create deal ([`RespondToProposalTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/RespondToProposalTest.kt)). This use case has no formal specification. Each test starts with a conversation in which the E2E Seller proposed $25 with the note "Final price", and opens it to check that "They proposed $25.00" and the note are shown.
+- **Respond to a proposal**, including recording the deal when it is accepted ([`RespondToProposalTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/RespondToProposalTest.kt)). This use case has no formal specification. Each test starts with a conversation in which the E2E Seller proposed $25 with the note "Final price", and opens it to check that "They proposed $25.00" and the note are shown.
 
   | **Test** | **Test Case Steps** |
   | -------- | ------------------- |
