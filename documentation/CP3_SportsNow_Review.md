@@ -64,7 +64,7 @@ CP2 asks for all interfaces of one component and one end-to-end feature. SportsN
 - Deductions: 75 of the 84 test files hold a single test, so the helper import and `cleanUpAfterTests()` setup are repeated in 82 files.
 
 ### 2.3 Tests vs. requirements and design: 4/10
-- Testing.md wasn't updated for CP2. The line links, commit hash, test-database setup, GitHub Actions location, coverage screenshots and E2E log are all still marked as coming at CP2.
+- Testing.md wasn't updated for CP2. The line links, commit hash, test-database setup, GitHub Actions location and E2E log are all still marked as coming at CP2.
 - The Discover Game E2E plan is detailed but not implemented.
 
 ### 2.4 Non-functional requirements: 0/10
@@ -73,12 +73,11 @@ Not yet due (CP3), and no NFR tests exist yet. For CP3: time `GET /api/games/dis
 ### 2.5 Coverage: 2/10
 - **Interfaces:** all 13 Game routes have unmocked tests, and 12 of 13 have mocked tests (`removePlayer` has none).
 - **End-to-end:** none; the Discover Game test isn't written.
-- **Line coverage can't be verified:** there are no coverage screenshots or justification for anything under 100%, and Codacy shows 0%. `jest.config.js` does collect coverage from all of `src/`.
 
 ### 2.6 Back-end tests run automatically: 2/10
 - There is no GitHub Actions workflow, and the project description counts tests that CI doesn't run as incomplete.
 - Testing.md's step for starting the test database still says *"We will add these steps at CP2"*.
-- Credit: the test script correctly runs the mock, no-mock and combined suites, each with its own coverage report.
+- Credit: the test script correctly runs the mock, no-mock and combined suites, one after the other.
 
 ---
 
@@ -143,7 +142,7 @@ Also see `CP3_screenshots/4_A_game_completed_1_player.png`: the completed game s
 **Missing CP2 work**
 1. Write the Discover Game E2E test.
 2. Add a GitHub Actions workflow that starts MySQL and runs the backend tests.
-3. Update Testing.md for CP2: line links, commit hash, test-database setup, and coverage screenshots with justification.
+3. Update Testing.md for CP2: line links, commit hash and test-database setup.
 4. Add the missing Game edge-case tests, and remove the `@Suppress`.
 
 **App fixes**
