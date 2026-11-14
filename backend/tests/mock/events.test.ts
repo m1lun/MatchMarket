@@ -42,11 +42,18 @@ function pings(text: string): number {
   return text.split(PING).length - 1;
 }
 
-// The server handles the closed connection asynchronously, so wait for it to clear the timer.
-async function timersCleared(): Promise<void> {
-  while (jest.getTimerCount() > 0) {
-    await new Promise((resolve) => setImmediate(resolve));
-  }
+// The server handles the closed connection asynchronously, so check again on each tick until it clears the timer.
+function timersCleared(): Promise<void> {
+  return new Promise((resolve) => {
+    const check = (): void => {
+      if (jest.getTimerCount() === 0) {
+        resolve();
+        return;
+      }
+      setImmediate(check);
+    };
+    check();
+  });
 }
 
 // Interface GET /api/events
