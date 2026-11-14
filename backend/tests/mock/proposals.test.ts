@@ -125,13 +125,14 @@ describe('Mocked: POST /api/conversations/:id/proposal/accept', () => {
   // Expected output: { error: 'This post is no longer available' }
   test('Deal Recorded Concurrently: 409', async () => {
     const { conversation } = await pendingDeal();
-    jest.spyOn(mongo.store.deals, 'insert').mockRejectedValue(Object.assign(new Error('E11000 duplicate key error'), { code: 11000 }));
+    const duplicate = Object.assign(new Error('E11000 duplicate key error'), { code: 11000 });
+    const insert = jest.spyOn(mongo.store.deals, 'insert').mockRejectedValue(duplicate);
 
     const response = await accept(conversation.id);
 
     expect(response.status).toBe(409);
     expect(response.body).toStrictEqual({ error: 'This post is no longer available' });
-    expect(mongo.store.deals.insert).toHaveBeenCalledTimes(1);
+    expect(insert).toHaveBeenCalledTimes(1);
     expect(await mongo.db.collection('deals').countDocuments()).toBe(0);
     expect((await mongo.store.conversations.findById(conversation.id))?.proposal?.status).toBe('pending');
   });
