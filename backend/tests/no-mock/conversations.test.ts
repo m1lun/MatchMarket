@@ -1,5 +1,7 @@
 import type { Server } from 'node:http';
 
+import { ObjectId } from 'mongodb';
+
 import { MAX_MESSAGE_LENGTH } from '../../src/models/conversation';
 import {
   ACCESS_CASES,
@@ -304,6 +306,23 @@ describe('Unmocked: GET /api/conversations', () => {
     expect(response.body.conversations).toMatchObject([{ id: conversation.id, listing: null }]);
   });
 
+  // Input: ME's conversation is about a listing saved before posts had names, so it has none
+  // Expected status code: 200
+  // Expected behavior: nothing changes
+  // Expected output: the conversation with the listing's category, 'chair', in place of its name
+  test('Post Saved Without A Name: 200', async () => {
+    const conversation = await makeListingConversation(mongo.store);
+    // Posts need a name now, so the old shape can only be made by skipping the validator.
+    await mongo.db
+      .collection('listings')
+      .updateOne({ _id: new ObjectId(String(conversation.listingId)) }, { $unset: { name: '' } }, { bypassDocumentValidation: true });
+
+    const response = await get(app, '/api/conversations');
+
+    expect(response.status).toBe(200);
+    expect(response.body.conversations).toMatchObject([{ id: conversation.id, listing: { name: 'chair' } }]);
+  });
+
   // Input: OTHER and STRANGER have a conversation that ME is not in
   // Expected status code: 200
   // Expected behavior: nothing changes
@@ -366,7 +385,8 @@ describe('Unmocked: GET /api/conversations/:id/messages', () => {
     expect(response.body).toStrictEqual({ messages: [], nextCursor: null });
   });
 
-  // Input: a limit out of range or not a number, a before that is not a message id, or an unknown parameter
+  // Input: a limit out of range, not a number or given twice, a before that is not a message id or given twice, or an
+  //   unknown parameter
   // Expected status code: 400
   // Expected behavior: nothing changes
   // Expected output: { error: 'Invalid request', details } naming the bad parameter
@@ -374,6 +394,7 @@ describe('Unmocked: GET /api/conversations/:id/messages', () => {
     { label: 'Limit 0', query: 'limit=0', details: ['limit must be a whole number from 1 to 50'] },
     { label: 'Limit 51', query: 'limit=51', details: ['limit must be a whole number from 1 to 50'] },
     { label: 'Limit Not A Number', query: 'limit=ten', details: ['limit must be a whole number from 1 to 50'] },
+    { label: 'Limit Repeated', query: 'limit=2&limit=3', details: ['limit must be a whole number from 1 to 50'] },
     { label: 'Before Not An Id', query: 'before=nope', details: ['before must be the nextCursor from a previous page'] },
     { label: 'Before Repeated', query: `before=${UNKNOWN_ID}&before=${UNKNOWN_ID}`, details: ['before must be the nextCursor from a previous page'] },
     { label: 'Unknown Parameter', query: 'page=2', details: ['unsupported parameter "page"'] },
