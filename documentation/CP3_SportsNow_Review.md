@@ -134,10 +134,10 @@ The result is also inconsistent: the profile counts the game as played, but the 
 |---|---|
 | ![B sees Leave Game on an in-progress game](CP3_screenshots/1_B_leave_button_in_progress.png) | ![Leave prompt says "while it's in progress"](CP3_screenshots/2_B_leave_confirm_in_progress.png) |
 | **1.** The app offers **Leave Game** during the game. | **2.** It asks B to confirm leaving *"while it's in progress"* and lets B leave. |
-| ![Complete dialog has no no-show list](CP3_screenshots/3_A_complete_dialog_no_noshow_option.png) | ![B's rating still 5.0](CP3_screenshots/5_B_rating_still_5.png) |
-| **3.** A's completion dialog has no one to mark as a no-show. | **4.** B's rating is still **5.0/5**. |
-
-Also see `CP3_screenshots/4_A_game_completed_1_player.png`: the completed game shows only 1/10 players.
+| ![Complete dialog has no no-show list](CP3_screenshots/3_A_complete_dialog_no_noshow_option.png) | ![Completed game lists only 1/10 players](CP3_screenshots/4_A_game_completed_1_player.png) |
+| **3.** A's completion dialog has no one to mark as a no-show. | **4.** After completion the game lists only A (**1/10**, down from 2/10 in image 1), so B isn't recorded as a player. |
+| ![B's rating still 5.0](CP3_screenshots/5_B_rating_still_5.png) | |
+| **5.** B's rating is still **5.0/5**. | |
 
 ---
 
