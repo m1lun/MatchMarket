@@ -1,7 +1,7 @@
 import type { Db } from 'mongodb';
 import request from 'supertest';
 
-import type { Conversation, Message } from '../../src/models/conversation';
+import type { Conversation, Message, Proposal } from '../../src/models/conversation';
 import type { Store } from '../../src/store/types';
 import { ME, OTHER, STRANGER, bearer, makeListing } from './dealFixtures';
 
@@ -97,7 +97,13 @@ export async function makeMessage(store: Store, conversationId: string, senderId
   return message;
 }
 
-const CONVERSATION_COLLECTIONS = ['conversations', 'messages', 'listings', 'requests', 'users'];
+export async function makeProposal(store: Store, conversationId: string, proposerId: string, price = 35): Promise<Proposal> {
+  const proposal: Proposal = { proposerId, price, note: '', status: 'pending', createdAt: new Date() };
+  await store.conversations.propose(conversationId, proposal);
+  return proposal;
+}
+
+const CONVERSATION_COLLECTIONS = ['conversations', 'messages', 'listings', 'requests', 'users', 'deals'];
 
 export async function clearConversationData(db: Db): Promise<void> {
   await Promise.all(
