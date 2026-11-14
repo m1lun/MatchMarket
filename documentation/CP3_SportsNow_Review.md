@@ -47,8 +47,6 @@
 | C3 | `review/reputation.ts:35-50` | The score hides bad behaviour: (a) missing ratings count as 5 stars, so a 1-star rating only lowers a game to 4.56; (b) new accounts start at a perfect 5.0; (c) the score only averages the last 5 games (`GAMES_IN_SCORE`), so a no-show only drops it to 4.2, and it's back to 5.0 after 5 more games. | Average only the ratings given, with a Bayesian prior. Show "new player" instead of 5.0. Count no-shows over a longer window (e.g. the last 20 games), or show them separately (e.g. "2 no-shows in 30 games"). |
 | C4 | `game/location/DeviceLocation.kt:20` vs. NFR 1 | Discover can wait up to 10 s for a location fix, but NFR 1 promises results in under 5 s. | Cap the wait at about 3 s and fall back to the last known location. |
 | C5 | `Requirements_and_Design.md` §4.1 | The design doesn't match the code: four built endpoints are missing from it, and `DELETE /players/{userId}` is marked *(planned)* but is built. | Update §4.1 to match the code. |
-| C6 | `user/routes/authRoutes.ts:34,49` | `GOOGLE_CLIENT_ID` skips the startup check in `env.ts`, so if it's missing the server starts but every login fails. | Add it to `env` with `requiredEnv`. |
-| C7 | `game/routes/gameRoutes.ts:210-213` | The game edit reads the old values outside the transaction, so two edits at once can produce a wrong "what changed" notification. Minor. | Return the old values from `updateGame`. |
 
 ---
 
