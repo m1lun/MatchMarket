@@ -17,6 +17,7 @@
 | 2026-11-14 | 2 | Added the interface tests of the Messaging proposal routes, including the tests that a failed accept can be retried. |
 | 2026-11-14 | 2 | Added the interface tests of `GET /api/events`, the live updates, and how they read the event stream and fake the heartbeat timer. |
 | 2026-11-14 | 4 | Create deal is no longer a separate use case, so the Respond to a proposal tests are described as recording the deal when a proposal is accepted. Close post and Reopen post are now part of Edit post, so the ManagePostsTest row names the use cases it covers. |
+| 2026-11-14 | 2 | Added the Messaging coverage: which files are at 100%, a test for a conversation about a post saved before posts had names, and why the one remaining branch in `routes/conversations.ts` and `routes/paging.ts` cannot be reached. |
 
 ---
 
@@ -137,9 +138,13 @@ The Uncovered Line # column shows lines of the compiled JavaScript, not the Type
 
 Combined coverage is 100% for statements, lines, functions and branches in `models/deal.ts`, `models/rating.ts`, `models/reputation.ts`, `models/schema.ts`, `reputation/score.ts` and `routes/ratings.ts`.
 
+For Messaging, combined coverage is 100% for statements, lines, functions and branches in `events.ts`, `routes/proposals.ts` and `routes/e2e.ts`, and 100% for statements, lines and functions in `routes/conversations.ts` and `routes/paging.ts`, with one defensive branch each (below).
+
 | **File** | **Statements** | **Branches** | **Reason** |
 | -------- | -------------- | ------------ | ---------- |
 | `routes/deals.ts` | 100% | 93.61% | Three defensive branches cannot be reached through the API. Line 41: a stored post always has an `id`. Line 71: Express always gives `req.query` as an object. Line 97: every listing has at least one photo, because the validator requires it. Each one keeps the code safe with the optional types, so removing it would not simplify the logic. |
+| `routes/conversations.ts` | 100% | 98.83% | One defensive branch cannot be reached through the API. Line 94: `byId` skips a post without an `id`, but the store's `findByIds` always returns each post's `id`; the check is there because the store's return type makes every field optional. |
+| `routes/paging.ts` | 100% | 95.83% | One defensive branch cannot be reached through the API. Line 41: `parsePageQuery` falls back to no parameters if the query is not an object, but Express always gives `req.query` as an object. The same check in `routes/deals.ts` is justified above. |
 | `store/mongoStore.ts` | 74.39% | 60.71% | The three Deals store classes (`MongoDealCollection`, `MongoRatingCollection` and `MongoReputationCollection`) reach every line and branch. The uncovered code belongs to other components: options, custom fields, users, sessions, and parts of the post collection. |
 | `routes/feed.ts` | 73.73% | 44.64% | The two Deals routes, `GET /api/feed/listings/:id` and `GET /api/feed/requests/:id`, are fully covered, including the `one()` helper. The uncovered code is the Matching feed's filtering and paging. |
 | `errors.ts` | 75.86% | 58.33% | The handler is shared by the whole back-end. Every path the Deals routes use is covered. The uncovered paths are the `errorMessage` log helper, a response that has already started, a duplicate field in a post, and a document the database validator rejects. Deals input is checked before it reaches the database, so the Deals routes do not reach them. |
