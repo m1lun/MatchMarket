@@ -36,6 +36,7 @@
 | 2026-11-12 | 4.1 | Photos are no longer public: `GET /api/photos/:id` needs a session token and may only be cached on the user's device. |
 | 2026-11-12 | 4.1 | `POST /api/custom-fields` returns 409 if the user already has a custom field with the same name, instead of replacing it. |
 | 2026-11-13 | 4.1 | Messaging: listed the errors every conversation route shares, as tested by the conversation interface tests: 401 without a session, 404 for a malformed id, 400 for an unsupported field or malformed JSON, and 413 for a body over 16 KB. |
+| 2026-11-14 | 4.1 | Accepting a proposal again after a failed accept now finishes the same deal, using the new Deals interface `findByPosts`, and the proposal is marked accepted last. Listed what proposing returns, that the note is trimmed, and that either user can propose again after a decline. |
 
 ---
 
@@ -361,6 +362,8 @@ Each use case covers one goal. The five marked with a link have a formal specifi
             - **Purpose**: Return one request, open or closed, to any signed-in user, so a deal card can open its request. 404 for a malformed or unknown id. The route sits under `/api/feed`, but the Deals tab is its only caller.
         6. `Deal insert(Deal deal)`
             - **Purpose**: Internal interface that records a deal. Messaging calls it when a proposal is accepted, with the listing, request, seller and buyer of the conversation and the proposed price. Rejects a deal with neither a listing nor a request, or a second deal for the same listing or request.
+        7. `Deal findByPosts(String listingId, String requestId)`
+            - **Purpose**: Internal interface that returns the deal on the listing or the request, or null if neither has one. Messaging calls it before recording a deal, so that accepting a proposal again after a failed accept finishes that deal rather than reporting the posts as taken.
 
 5. **Messaging**
     - **Purpose**: Conversations between two users about a post, their messages, price proposals that record a deal when accepted, and live updates to the open app.
@@ -376,9 +379,9 @@ Each use case covers one goal. The five marked with a link have a formal specifi
         4. `POST /api/conversations/:id/messages`
             - **Purpose**: Send a message from JSON `{ text }`, 1 to 1000 characters after trimming. Returns 201 with the message and sends `message.created` to the other user.
         5. `POST /api/conversations/:id/proposal`
-            - **Purpose**: Propose a price from JSON `{ price, note? }`: a price of at least 0 and a note of up to 300 characters. Returns 201 with the proposal and sends `proposal.updated` to the other user. 409 while a proposal is pending or once one was accepted.
+            - **Purpose**: Propose a price from JSON `{ price, note? }`: a price of at least 0 and a note of up to 300 characters after trimming. Returns 201 with the proposal `{ proposerId, price, note, status: "pending", createdAt }` and sends `proposal.updated` to the other user. Either user can propose, and a new proposal replaces a declined one. 409 while a proposal is pending or once one was accepted.
         6. `POST /api/conversations/:id/proposal/accept`
-            - **Purpose**: Accept the other user's pending proposal: records the deal and closes both posts. Returns 201 with `{ deal, proposal }` and sends `proposal.updated`. 403 for the caller's own proposal; 409 if no proposal is pending, or a post is closed, deleted or already in a deal.
+            - **Purpose**: Accept the other user's pending proposal: records the deal with the conversation's listing, request, seller and buyer at the proposed price, and closes the conversation's posts. Returns 201 with `{ deal, proposal }` and sends `proposal.updated`. 403 for the caller's own proposal; 409 if no proposal is pending, or a post is closed, deleted or already in another deal, in which case nothing changes. The proposal is marked accepted last, so if an accept fails partway (500) the proposal stays pending, and accepting again finishes the same deal instead of recording a second one.
         7. `POST /api/conversations/:id/proposal/decline`
             - **Purpose**: Decline the other user's pending proposal, after which either user can propose again. Returns 200 with the proposal and sends `proposal.updated`. 403 for the caller's own proposal; 409 if no proposal is pending.
         8. `GET /api/events`
