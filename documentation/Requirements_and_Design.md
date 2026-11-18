@@ -45,7 +45,7 @@
 | 2026-11-18 | 4.6 | Following TA and peer-review feedback, the Send a Message sequence diagram now shows every failure in Use Case 4 (2a, 4a, 5a, 6a, 7a) and loading earlier messages, and each database write has a reply. Removed its invalid-text branch, which the app never reaches because Send is disabled for an empty message. |
 | 2026-11-18 | 4.7 | NFR 2 is now measured for every failure it names: the NFR test times a routing service that never answers (about 2 seconds) and one that is rate-limited, fails or is unreachable (under 10 ms). |
 | 2026-11-18 | 4.1 | `POST /api/auth/google`, `/refresh` and `/logout`: listed what each returns and its 400, 401 and 413 errors, and that reusing a refresh token revokes the whole sign-in, as tested by their interface tests. |
-| 2026-11-18 | 3.5, 4.6 | Following TA and peer-review feedback, the Create Post, Rate a Deal, View Recommendations and Filter Feed sequence diagrams now show every failure scenario of their use cases, and every database write has a reply. Rate a Deal shows that the Deals tab offers "Rate" only on deals the user has not rated, and that the rating and score are saved in one transaction. Filter Feed no longer shows a 400 for invalid filters, which the app never sends because it disables "Apply". Use Case 2 now names the messages the app shows when the deals or the rating cannot reach the server. Each branch is labelled with its use case step, failures that happen only on the screen are notes, and failures with the same result share a branch. |
+| 2026-11-18 | 3.5, 4.6 | Following TA and peer-review feedback, the Create Post, Rate a Deal, View Recommendations and Filter Feed sequence diagrams now show every failure scenario of their use cases, and every database write has a reply. Rate a Deal shows that the Deals tab offers "Rate" only on deals the user has not rated, and that the rating and score are saved in one transaction. Filter Feed no longer shows a 400 for invalid filters, which the app never sends because it disables "Apply". Use Case 2 now names the messages the app shows when the deals or the rating cannot reach the server. Each branch is labelled with its use case step, and failures with the same result share a branch. |
 
 ---
 
@@ -567,38 +567,40 @@ sequenceDiagram
     end
     U->>FE: Tap "Rate" on a deal
     FE--)U: show the stars and an optional comment field
-    Note over U,FE: 5a. "Submit" stays disabled until the user picks a star
-    U->>FE: Pick 1 to 5 stars, write an optional comment, tap "Submit"
-    FE->>D: POST /api/deals/:id/ratings (stars, comment)
-    alt 6b. the network or server is unavailable
-        FE--)U: "Could not reach the server. Check your connection." in the dialog, and the rating is not saved
+    alt 5a. no stars are picked
+        FE--)U: "Submit" stays disabled
     else
-        activate D
-        D->>DB: find the deal
-        activate DB
-        DB--)D: deal
-        deactivate DB
-        Note over D,DB: One transaction: the rating and the score change are saved together or not at all
-        alt the user has not rated this deal
-            D->>DB: insert the rating
+        U->>FE: Pick 1 to 5 stars, write an optional comment, tap "Submit"
+        FE->>D: POST /api/deals/:id/ratings (stars, comment)
+        alt 6b. the network or server is unavailable
+            FE--)U: "Could not reach the server. Check your connection." in the dialog, and the rating is not saved
+        else
+            activate D
+            D->>DB: find the deal
             activate DB
-            DB--)D: saved rating
+            DB--)D: deal
             deactivate DB
-            D->>DB: add the stars to the other user's reputation
-            activate DB
-            DB--)D: updated reputation
-            deactivate DB
-            D--)FE: 201 rating and the other user's new score
-            FE--)U: show the rating and the other user's new score on the deal
-        else 6a. the user already rated this deal on another device
-            D->>DB: insert the rating
-            activate DB
-            DB--)D: duplicate key error, nothing saved
-            deactivate DB
-            D--)FE: 409 "You already rated this deal"
-            FE--)U: "You already rated this deal", and the first rating is unchanged
+            alt the user has not rated this deal
+                D->>DB: insert the rating (one transaction with the reputation update)
+                activate DB
+                DB--)D: saved rating
+                deactivate DB
+                D->>DB: add the stars to the other user's reputation
+                activate DB
+                DB--)D: updated reputation
+                deactivate DB
+                D--)FE: 201 rating and the other user's new score
+                FE--)U: show the rating and the other user's new score on the deal
+            else 6a. the user already rated this deal on another device
+                D->>DB: insert the rating (one transaction with the reputation update)
+                activate DB
+                DB--)D: duplicate key error, nothing saved
+                deactivate DB
+                D--)FE: 409 "You already rated this deal"
+                FE--)U: "You already rated this deal", and the first rating is unchanged
+            end
+            deactivate D
         end
-        deactivate D
     end
 ```
 
@@ -626,7 +628,6 @@ sequenceDiagram
         FE--)U: "You have no open posts to get recommendations for"
     else
         U->>FE: Pick an open post under "Recommended for", or tap "See recommendations" on the post
-        Note over U,M: 1b. A closed post has no "See recommendations" button,<br/>and the server answers 409 "Closed posts have no feed" for it
         FE->>M: GET /api/feed?postId (and any feed filters)
         alt 6a. the network or server is unavailable
             FE--)U: "Couldn't load the feed. Check your connection and try again." and "Retry"
@@ -636,28 +637,32 @@ sequenceDiagram
             activate DB
             DB--)M: source post
             deactivate DB
-            M->>DB: find other users' open posts in the same category
-            activate DB
-            DB--)M: candidates
-            deactivate DB
-            M->>M: keep the candidates that meet the hard requirements and the filters, and rank them
-            alt 3a. no candidate is kept
-                M--)FE: 200 empty list
-                FE--)U: "Nothing here yet. Try changing the filters or check back soon." and "Refresh"
-            else the routing service answers within 2 seconds
-                M->>ORS: walking travel times to the first 20 results
-                activate ORS
-                ORS--)M: travel times, with none for a result that has no route
-                deactivate ORS
-                M--)FE: 200 ranked results with travel times, and the cursor for the next page
-                FE--)U: "Recommended for" with the post, each item with its travel time,<br/>such as "12 min walk", or "No route available" (5b)
-            else 5a. the routing service is unavailable, rate-limited or slower than 2 seconds
-                M->>ORS: walking travel times to the first 20 results
-                activate ORS
-                ORS--)M: an error, or no answer in time
-                deactivate ORS
-                M--)FE: 200 ranked results without travel times, and the cursor for the next page
-                FE--)U: "Recommended for" with the post, each item on the first page with "Travel time unavailable"
+            alt 1b. the post is closed (the app shows no "See recommendations" button for it)
+                M--)FE: 409 "Closed posts have no feed"
+            else
+                M->>DB: find other users' open posts in the same category
+                activate DB
+                DB--)M: candidates
+                deactivate DB
+                M->>M: keep the candidates that meet the hard requirements and the filters, and rank them
+                alt 3a. no candidate is kept
+                    M--)FE: 200 empty list
+                    FE--)U: "Nothing here yet. Try changing the filters or check back soon." and "Refresh"
+                else the routing service answers within 2 seconds
+                    M->>ORS: walking travel times to the first 20 results
+                    activate ORS
+                    ORS--)M: travel times, with none for a result that has no route
+                    deactivate ORS
+                    M--)FE: 200 ranked results with travel times, and the cursor for the next page
+                    FE--)U: "Recommended for" with the post, each item with its travel time,<br/>such as "12 min walk", or "No route available" (5b)
+                else 5a. the routing service is unavailable, rate-limited or slower than 2 seconds
+                    M->>ORS: walking travel times to the first 20 results
+                    activate ORS
+                    ORS--)M: an error, or no answer in time
+                    deactivate ORS
+                    M--)FE: 200 ranked results without travel times, and the cursor for the next page
+                    FE--)U: "Recommended for" with the post, each item on the first page with "Travel time unavailable"
+                end
             end
             deactivate M
         end
@@ -673,8 +678,7 @@ sequenceDiagram
     participant MS as Messaging
     participant DB as MongoDB
     participant O as Other user's frontend
-    Note over U,FE: Precondition: the user is signed in and has a conversation
-    Note over MS,O: The other user's app keeps GET /api/events open while their conversation is on screen
+    Note over U,O: Precondition: the user is signed in and has a conversation, and the other user's app<br/>keeps GET /api/events open while their conversation is on screen
     U->>FE: Open the Messages tab
     FE->>MS: GET /api/conversations
     alt 2a. the network or server is unavailable
@@ -713,33 +717,36 @@ sequenceDiagram
             deactivate MS
         end
     end
-    Note over U,FE: 5a. "Send" stays disabled while the message is empty or only spaces
-    U->>FE: Type a message and tap "Send"
-    FE->>MS: POST /api/conversations/:id/messages (text)
-    alt 6a. the network or server is unavailable
-        FE--)U: "Could not send the message. Try again.", and the message stays in the box
+    alt 5a. the message is empty or only spaces
+        FE--)U: "Send" stays disabled
     else
-        activate MS
-        MS->>DB: insert the message
-        activate DB
-        DB--)MS: saved message
-        deactivate DB
-        MS->>DB: set the conversation's last message
-        activate DB
-        DB--)MS: updated
-        deactivate DB
-        MS--)FE: 201 message
-        FE--)U: show the message on the right and clear the box
-        MS-)O: message.created (message) on the events stream
-        deactivate MS
-        alt the other user's connection is open
-            O--)O: show the message without refreshing
-        else 7a. the other user's connection was lost
-            O->>MS: GET /api/events (reconnect)
-            O->>MS: GET /api/conversations/:id/messages (reload)
+        U->>FE: Type a message and tap "Send"
+        FE->>MS: POST /api/conversations/:id/messages (text)
+        alt 6a. the network or server is unavailable
+            FE--)U: "Could not send the message. Try again.", and the message stays in the box
+        else
             activate MS
-            MS--)O: 200 messages, including the new one
+            MS->>DB: insert the message
+            activate DB
+            DB--)MS: saved message
+            deactivate DB
+            MS->>DB: set the conversation's last message
+            activate DB
+            DB--)MS: updated
+            deactivate DB
+            MS--)FE: 201 message
+            FE--)U: show the message on the right and clear the box
+            MS-)O: message.created (message) on the events stream
             deactivate MS
+            alt the other user's connection is open
+                O--)O: show the message without refreshing
+            else 7a. the other user's connection was lost
+                O->>MS: GET /api/events (reconnect)
+                O->>MS: GET /api/conversations/:id/messages (reload)
+                activate MS
+                MS--)O: 200 messages, including the new one
+                deactivate MS
+            end
         end
     end
 ```
@@ -783,23 +790,26 @@ sequenceDiagram
     GEO--)FE: address suggestions with coordinates
     deactivate GEO
     U->>FE: Set category, price and distance
-    Note over U,FE: 3a–3d. An invalid filter disables "Apply" and shows its message: "Enter a number of 0 or more",<br/>"Min must not be more than max", "Pick an address to filter by distance" or "Enter a distance from 0 to 100"
-    U->>FE: Tap "Apply"
-    FE->>M: GET /api/feed/listings or /api/feed/requests (category, minPrice, maxPrice, lat, lng, radiusKm)
-    alt 5b. the network or server is unavailable
-        FE--)U: "Couldn't load the feed. Check your connection and try again." and "Retry"
+    alt 3a–3d. a filter is invalid
+        FE--)U: its message, "Enter a number of 0 or more", "Min must not be more than max",<br/>"Pick an address to filter by distance" or "Enter a distance from 0 to 100", and "Apply" is disabled
     else
-        activate M
-        M->>DB: find other users' open posts that match the filters, newest first
-        activate DB
-        DB--)M: matching posts
-        deactivate DB
-        M--)FE: 200 posts and the cursor for the next page
-        deactivate M
-        alt 5a. no posts pass the filters
-            FE--)U: "Nothing here yet. Try changing the filters or check back soon." and "Refresh"
+        U->>FE: Tap "Apply"
+        FE->>M: GET /api/feed/listings or /api/feed/requests (category, minPrice, maxPrice, lat, lng, radiusKm)
+        alt 5b. the network or server is unavailable
+            FE--)U: "Couldn't load the feed. Check your connection and try again." and "Retry"
         else
-            FE--)U: show only the posts that pass the filters
+            activate M
+            M->>DB: find other users' open posts that match the filters, newest first
+            activate DB
+            DB--)M: matching posts
+            deactivate DB
+            M--)FE: 200 posts and the cursor for the next page
+            deactivate M
+            alt 5a. no posts pass the filters
+                FE--)U: "Nothing here yet. Try changing the filters or check back soon." and "Refresh"
+            else
+                FE--)U: show only the posts that pass the filters
+            end
         end
     end
 ```
