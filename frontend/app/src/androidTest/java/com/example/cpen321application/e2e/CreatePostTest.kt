@@ -1,17 +1,22 @@
 package com.example.cpen321application.e2e
 
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import com.example.cpen321application.support.PostForm
+import com.example.cpen321application.support.TEST_CATEGORY
 import com.example.cpen321application.support.TEST_NAME
 import com.example.cpen321application.support.TestPhotos
 import com.example.cpen321application.support.click
 import com.example.cpen321application.support.createPost
 import com.example.cpen321application.support.deleteTestPosts
+import com.example.cpen321application.support.field
 import com.example.cpen321application.support.fillForm
+import com.example.cpen321application.support.firstValueField
 import com.example.cpen321application.support.mainRule
 import com.example.cpen321application.support.openForm
 import com.example.cpen321application.support.pickPhotoWithId
@@ -72,6 +77,7 @@ class CreatePostTest(private val form: PostForm) {
 
         rule.waitForText(form.listHeader, substring = true)
         assertTrue(rule.postCards().size == 1)
+        assertTrue(testPosts().single().second.raw.getJSONArray("photoIds").length() == 3)
     }
 
     @Test
@@ -105,7 +111,11 @@ class CreatePostTest(private val form: PostForm) {
         val fields = post.getJSONArray(if (request) "requestFields" else "listingFields")
         val saved = (0 until fields.length()).associate { fields.getJSONObject(it).let { f -> f.getString("key") to f } }
         assertTrue(post.getString("description") == "Oak, barely used")
-        assertTrue(saved.keys.containsAll(listOf("dimensions", "brand", "colour", "material")))
+        val size = saved.getValue("dimensions").getJSONObject("value")
+        assertTrue(listOf("width", "height", "depth").map { size.getDouble(it) } == listOf(120.0, 75.0, 60.0))
+        assertTrue(saved.getValue("brand").getString("value").equals("ikea", ignoreCase = true))
+        assertTrue(saved.getValue("colour").getString("value").equals("brown", ignoreCase = true))
+        assertTrue(saved.getValue("material").getString("value").equals("oak", ignoreCase = true))
         if (request) {
             assertTrue(saved.getValue("condition").getString("value") == "fair")
             assertTrue(saved.getValue("radiuskm").getBoolean("hard"))
@@ -189,6 +199,11 @@ class CreatePostTest(private val form: PostForm) {
         rule.waitForText("Could not reach the server", substring = true)
         setAirplaneMode(false)
         rule.onNodeWithText(form.createButton).assertExists()
+        rule.field("Name *").assert(hasText(TEST_NAME))
+        rule.field("Category *").assert(hasText(TEST_CATEGORY))
+        (if (form == PostForm.REQUEST) rule.firstValueField() else rule.field("Price *")).assert(hasText("150"))
+        rule.waitForText("✓ Address confirmed")
+        if (form.photoRequired) rule.waitForText("Photos 1/10", substring = true)
     }
 
     @Test
