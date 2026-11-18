@@ -24,6 +24,7 @@
 | 2026-11-18 | 3 | The NFR 2 test now also times a rate-limited, failing and unreachable routing service, and logs each response time, so the verification log shows the measured times rather than only the pass count. |
 | 2026-11-18 | 2 | Added the interface tests of the auth routes, `POST /api/auth/google`, `POST /api/auth/refresh` and `POST /api/auth/logout`, and of the session token that every protected route checks. Writing them showed that an auth body over 4 KB returned 500, so it now returns 413. Replaced the `app.ts` and `sessions.ts` coverage row with the reasons for their remaining branches and for `googleAuth.ts`. |
 | 2026-11-18 | 4 | Added the end-to-end tests of Use Case 3: View Recommendations for a Post (`ViewRecommendationsTest.kt`), mapped to its steps 1–6 and failures 1a, 1b, 3a and 6a. Failures 5a and 5b need OpenRouteService to fail, which the front-end tests cannot cause, so the back-end tests cover them. |
+| 2026-11-18 | 4 | Added the end-to-end tests of Use Case 5: Filter Feed (`FilterFeedTest.kt`), mapped to its steps 1–5 and failures 2a, 3a–3d, 5a and 5b. |
 
 ---
 
@@ -221,6 +222,7 @@ Tests:       4 passed, 4 total
 | [`ManagePostsTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/ManagePostsTest.kt) | [Use Case 1: Create Post](Requirements_and_Design.md#uc1), steps 1–2 and failure 2a. Its other tests cover the Edit post use case, including closing and reopening a post, and the Delete post use case ([Section 3.4](Requirements_and_Design.md#34-use-case-description)), which have no formal specification. |
 | [`ViewRecommendationsTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/ViewRecommendationsTest.kt) | [Use Case 3: View Recommendations for a Post](Requirements_and_Design.md#uc3), steps 1–6 and failures 1a, 1b, 3a and 6a |
 | [`SendMessageTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/SendMessageTest.kt) | [Use Case 4: Send a Message](Requirements_and_Design.md#uc4), steps 1–7 and failures 2a, 4a, 5a, 6a and 7a. Steps 1–2 and 2a are also the View conversations use case. |
+| [`FilterFeedTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/FilterFeedTest.kt) | [Use Case 5: Filter Feed](Requirements_and_Design.md#uc5), steps 1–5 and failures 2a, 3a–3d, 5a and 5b |
 | [`StartConversationTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/StartConversationTest.kt) | Start a conversation ([Section 3.4](Requirements_and_Design.md#34-use-case-description)) |
 | [`SendProposalTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/SendProposalTest.kt) | Send a proposal ([Section 3.4](Requirements_and_Design.md#34-use-case-description)) |
 | [`RespondToProposalTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/RespondToProposalTest.kt) | Respond to a proposal, including recording the deal when it is accepted ([Section 3.4](Requirements_and_Design.md#34-use-case-description)) |
@@ -422,6 +424,47 @@ Leave out the class list to run every test in `e2e/`.
       sendDisabledForBlankMessage                    PASSED   5.83 s
 
     8 tests: 8 passed, 0 failed, 0 skipped (123.4 s)
+    ```
+
+- **Use Case 5: Filter Feed** ([`FilterFeedTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/FilterFeedTest.kt)). Each test starts with the E2E Seller's open listing "E2E lamp" at $30 in the category lamp, at 6335 Thunderbird Crescent, and tests the "I'm buying" side, which lists other users' listings. The "I'm selling" side uses the same screen and filters on requests.
+
+  - **Expected Behaviors:**
+
+    | **Scenario Steps** | **Test Case Steps** |
+    | ------------------ | ------------------- |
+    | 1. The user opens the Feed tab and chooses "I'm buying" (listings) or "I'm selling" (requests). | (`filtersByCategoryAndPrice`) Tap "Feed", then "I'm buying". |
+    | 2. The app shows other users' open posts of that kind, newest first, filtered near the user's home address if one is set. | Tap "Filters" and "Clear" to remove the home-address filter, which depends on the tester's profile. Check that the "E2E lamp" card is shown with "$30.00" and "Condition: good". |
+    | 2a. The network or server is unavailable. | (`showsErrorWhenFeedCannotLoad`) Open the feed, turn on airplane mode, and tap "I'm selling" and then "I'm buying" to reload it. |
+    | 2a1. The app shows "Couldn't load the feed. Check your connection and try again." and a "Retry" button. | Check that the message and the "Retry" button are shown.<br>Turn off airplane mode, wait until the back-end can be reached, tap "Retry", and check that the "E2E lamp" card is shown. |
+    | 3. The user taps "Filters" and sets any of: category, minimum and maximum price, and "Near address" with "Within (km)". | Tap "Filters", input "lamp" as the category, "20" as the minimum and "40" as the maximum price.<br>(`filtersByDistanceFromAddress`) Tap "Filters", input "lamp" as the category, input "6335 Thunderbird Crescent, Vancouver" in "Near address", tap the first suggestion, and input "5" in "Within (km)". |
+    | 3a. A price is not a number of 0 or more. | (`rejectsInvalidFilters`) Tap "Filters" and input "-5" as the minimum price. |
+    | 3a1. The app shows "Enter a number of 0 or more". | Check that "Enter a number of 0 or more" is shown and "Apply" is disabled. |
+    | 3b. The minimum is more than the maximum. | Input "50" as the minimum and "10" as the maximum price. |
+    | 3b1. The app shows "Min must not be more than max". | Check that "Min must not be more than max" is shown and "Apply" is disabled. |
+    | 3c. A distance is set without an address. | Clear both prices and input "5" in "Within (km)". |
+    | 3c1. The app shows "Pick an address to filter by distance". | Check that "Pick an address to filter by distance" is shown and "Apply" is disabled. |
+    | 3d. The distance is outside 0–100 km. | Input "150" in "Within (km)". |
+    | 3d1. The app shows "Enter a distance from 0 to 100". | Check that "Enter a distance from 0 to 100" is shown and "Apply" is disabled. Clear the distance and check that "Apply" is enabled. |
+    | 4. The user taps "Apply". | Tap "Apply" (in each test that sets filters). |
+    | 5. The app reloads the list with only the posts that pass the filters; "Clear" removes the filters. | Check that the button reads "Filters (2)" and the "E2E lamp" card is shown, for the category and price filters and for the category and distance filters.<br>Set the minimum price to "31", tap "Apply", and check that "E2E lamp" is no longer shown.<br>Tap "Filters" and "Clear", and check that the button reads "Filters" and "E2E lamp" is shown again. |
+    | 5a. No posts pass the filters. | Set the category to "e2e nothing matches" and tap "Apply". |
+    | 5a1. The app shows "Nothing here yet. Try changing the filters or check back soon." and a "Refresh" button. | Check that the message and the "Refresh" button are shown. |
+    | 5b. The network or server is unavailable. | (`showsErrorWhenFilteredFeedCannotLoad`) Open the feed, tap "Filters", input "lamp" as the category, turn on airplane mode, and tap "Apply". |
+    | 5b1. The app shows "Couldn't load the feed. Check your connection and try again." and a "Retry" button. | Check that the message and the "Retry" button are shown.<br>Turn off airplane mode, wait until the back-end can be reached, tap "Retry", and check that the "E2E lamp" card is shown. |
+
+  - **Test Logs:**
+    ```
+    Pixel_9(AVD) - 16 (Android 16, API 36), 2026-11-18, adb shell am instrument (ViewRecommendationsTest, FilterFeedTest)
+    main a7d227c with the tests of PR #216 (branch test/feed-e2e)
+
+    com.example.cpen321application.e2e.FilterFeedTest
+      showsErrorWhenFilteredFeedCannotLoad           PASSED  11.07 s
+      showsErrorWhenFeedCannotLoad                   PASSED   9.34 s
+      filtersByDistanceFromAddress                   PASSED  13.21 s
+      rejectsInvalidFilters                          PASSED  10.91 s
+      filtersByCategoryAndPrice                      PASSED  14.48 s
+
+    5 tests: 5 passed, 0 failed, 0 skipped (59.0 s)
     ```
 
 - **Start a conversation** ([`StartConversationTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/StartConversationTest.kt)). This use case has no formal specification. Each test starts with the E2E Seller's open listing "E2E lamp" at $30 and no conversation about it.
