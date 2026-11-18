@@ -5,6 +5,7 @@ import { BadRequestError } from '../errors';
 import { MAX_COMMENT_LENGTH, MAX_STARS, MIN_STARS } from '../models/common';
 import { otherParty } from '../models/deal';
 import type { Rating } from '../models/rating';
+import type { Reputation } from '../models/reputation';
 import { reputationSummary } from '../reputation/score';
 import { currentUser } from '../sessions';
 import type { Store } from '../store/types';
@@ -96,7 +97,14 @@ export function createRatingsRouter(store: Store): Router {
       }
       throw error;
     }
-    const reputation = await store.reputations.addRating(ratedUserId, stars, now);
+    let reputation: Reputation;
+    try {
+      reputation = await store.reputations.addRating(ratedUserId, stars, now);
+    } catch (error) {
+      // Undo the rating, so it is never stored without being counted and a retry can save it.
+      await store.ratings.remove(rating.id);
+      throw error;
+    }
     res.status(201).json({ rating, otherUser: reputationSummary(ratedUserId, reputation) });
   }));
 
@@ -115,8 +123,15 @@ export function createRatingsRouter(store: Store): Router {
       res.status(404).json({ error: 'You have not rated this deal' });
       return;
     }
-    const delta = stars - updated.previousStars;
-    const reputation = delta === 0 ? await store.reputations.find(ratedUserId) : await store.reputations.changeStars(ratedUserId, delta, now);
+    const delta = stars - updated.previous.stars;
+    let reputation: Reputation | null;
+    try {
+      reputation = delta === 0 ? await store.reputations.find(ratedUserId) : await store.reputations.changeStars(ratedUserId, delta, now);
+    } catch (error) {
+      // Put the old rating back, so its stars always match the score.
+      await store.ratings.restore(updated.previous);
+      throw error;
+    }
     res.json({ rating: updated.rating, otherUser: reputationSummary(ratedUserId, reputation) });
   }));
 

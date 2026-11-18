@@ -348,7 +348,7 @@ class MongoRatingCollection implements RatingCollection {
       return null;
     }
     const previous = toDoc<Rating>(before as Stored<Rating>);
-    return { previousStars: previous.stars, rating: { ...previous, stars, comment, updatedAt: now } };
+    return { previous, rating: { ...previous, stars, comment, updatedAt: now } };
   }
 
   async listByDeals(dealIds: string[]): Promise<Rating[]> {
@@ -364,6 +364,15 @@ class MongoRatingCollection implements RatingCollection {
 
   async removeByDealIds(dealIds: string[]): Promise<void> {
     await this.collection.deleteMany({ dealId: { $in: dealIds } });
+  }
+
+  async remove(id: string): Promise<void> {
+    await this.collection.deleteOne({ _id: new ObjectId(id) });
+  }
+
+  async restore(previous: Rating): Promise<void> {
+    const { id, ...fields } = previous;
+    await this.collection.replaceOne({ _id: new ObjectId(id) }, fields);
   }
 }
 

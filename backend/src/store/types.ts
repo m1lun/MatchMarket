@@ -96,7 +96,8 @@ export interface DealCollection {
 }
 
 export interface RatingUpdate {
-  previousStars: number;
+  // The whole rating as it was, so it can be put back if the score update fails.
+  previous: Rating;
   rating: Rating;
 }
 
@@ -105,6 +106,9 @@ export interface RatingCollection {
   update(dealId: string, raterId: string, stars: number, comment: string, now: Date): Promise<RatingUpdate | null>;
   listByDeals(dealIds: string[]): Promise<Rating[]>;
   removeByDealIds(dealIds: string[]): Promise<void>;
+  remove(id: string): Promise<void>;
+  // Writes a rating back exactly as it was before an update.
+  restore(previous: Rating): Promise<void>;
 }
 
 export interface ReputationCollection {
