@@ -28,11 +28,11 @@ data class AuthSession(
 class AuthApi(private val http: BackendClient) {
     // Has the backend verify a Google ID token and start a session.
     fun signIn(idToken: String): AuthSession =
-        readSession(http.send("POST", "/api/auth/google", JSONObject().put("idToken", idToken)))
+        readSession(http.send("POST", "/api/auth/google", JSONObject().put("idToken", idToken).toJsonBody()))
 
     // Trades a refresh token for a new session. Google is not involved.
     fun refresh(refreshToken: String): AuthSession {
-        val result = http.send("POST", "/api/auth/refresh", JSONObject().put("refreshToken", refreshToken))
+        val result = http.send("POST", "/api/auth/refresh", JSONObject().put("refreshToken", refreshToken).toJsonBody())
         if (result.code == HttpURLConnection.HTTP_UNAUTHORIZED) {
             throw SessionExpiredException(result.errorMessage)
         }
@@ -41,7 +41,7 @@ class AuthApi(private val http: BackendClient) {
 
     // Revokes the refresh token on the backend.
     fun logout(refreshToken: String) {
-        val result = http.send("POST", "/api/auth/logout", JSONObject().put("refreshToken", refreshToken))
+        val result = http.send("POST", "/api/auth/logout", JSONObject().put("refreshToken", refreshToken).toJsonBody())
         if (!result.isSuccess) {
             throw IOException("HTTP ${result.code}: ${result.errorMessage}")
         }

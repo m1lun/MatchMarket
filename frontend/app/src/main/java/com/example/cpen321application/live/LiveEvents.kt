@@ -4,9 +4,10 @@ import android.util.Log
 import com.example.cpen321application.BuildConfig
 import com.example.cpen321application.auth.SessionExpiredException
 import com.example.cpen321application.auth.SessionManager
+import com.example.cpen321application.auth.backendClient
 import java.io.IOException
-import java.net.HttpURLConnection
-import java.net.URL
+import java.io.Reader
+import java.util.concurrent.TimeUnit
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.delay
@@ -14,13 +15,14 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.callbackFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
+import okhttp3.Call
+import okhttp3.Request
 import org.json.JSONException
 import org.json.JSONObject
 
 private const val TAG = "LiveEvents"
-private const val CONNECT_TIMEOUT_MS = 5_000
 // Longer than the server's 25-second heartbeat, so a stream that has gone silent counts as dropped.
-private const val READ_TIMEOUT_MS = 60_000
+private const val READ_TIMEOUT_MS = 60_000L
 private const val RECONNECT_DELAY_MS = 3_000L
 
 // One server-sent event. CONNECTED is sent by the app itself each time the stream (re)opens.
@@ -35,13 +37,19 @@ data class LiveEvent(val type: String, val data: JSONObject) {
 // The signed-in user's live updates from GET /api/events, reconnecting after a drop until the collector stops.
 // Ends with SessionExpiredException when the user has to sign in again.
 fun liveEvents(sessions: SessionManager): Flow<LiveEvent> = callbackFlow {
-    var connection: HttpURLConnection? = null
+    var call: Call? = null
     launch(Dispatchers.IO) {
         while (isActive) {
             try {
-                connection = open(sessions.sessionToken())
-                trySend(LiveEvent(LiveEvent.CONNECTED, JSONObject()))
-                connection?.let { readEvents(it) { event -> trySend(event) } }
+                val opened = eventsCall(sessions.sessionToken()).also { call = it }
+                opened.execute().use { response ->
+                    val body = response.body
+                    if (!response.isSuccessful || body == null) {
+                        throw IOException("HTTP ${response.code} from /api/events")
+                    }
+                    trySend(LiveEvent(LiveEvent.CONNECTED, JSONObject()))
+                    readEvents(body.charStream()) { event -> trySend(event) }
+                }
             } catch (e: SessionExpiredException) {
                 close(e)
                 break
@@ -51,31 +59,27 @@ fun liveEvents(sessions: SessionManager): Flow<LiveEvent> = callbackFlow {
             delay(RECONNECT_DELAY_MS)
         }
     }
-    // Disconnecting ends the blocking read above, which is how leaving the screen stops the stream.
-    awaitClose { connection?.disconnect() }
+    // Cancelling ends the blocking read above, which is how leaving the screen stops the stream.
+    awaitClose { call?.cancel() }
 }
 
-private fun open(token: String): HttpURLConnection {
-    val url = URL(BuildConfig.API_BASE_URL.trimEnd('/') + "/api/events")
-    val connection = (url.openConnection() as HttpURLConnection).apply {
-        connectTimeout = CONNECT_TIMEOUT_MS
-        readTimeout = READ_TIMEOUT_MS
-        setRequestProperty("Accept", "text/event-stream")
-        setRequestProperty("Authorization", "Bearer $token")
-    }
-    val code = connection.responseCode
-    if (code != HttpURLConnection.HTTP_OK) {
-        connection.disconnect()
-        throw IOException("HTTP $code from /api/events")
-    }
-    return connection
-}
+private val streamClient = backendClient.newBuilder()
+    .readTimeout(READ_TIMEOUT_MS, TimeUnit.MILLISECONDS)
+    .build()
+
+private fun eventsCall(token: String): Call = streamClient.newCall(
+    Request.Builder()
+        .url(BuildConfig.API_BASE_URL.trimEnd('/') + "/api/events")
+        .header("Accept", "text/event-stream")
+        .header("Authorization", "Bearer $token")
+        .build()
+)
 
 // An event is an `event:` line and a `data:` line, ended by a blank line; lines starting with ':' are heartbeats.
-private fun readEvents(connection: HttpURLConnection, onEvent: (LiveEvent) -> Unit) {
+private fun readEvents(stream: Reader, onEvent: (LiveEvent) -> Unit) {
     var type = ""
     var data = ""
-    connection.inputStream.bufferedReader().useLines { lines ->
+    stream.buffered().useLines { lines ->
         for (line in lines) {
             when {
                 line.startsWith("event:") -> type = line.removePrefix("event:").trim()

@@ -2,13 +2,12 @@ package com.example.cpen321application.post
 
 import android.content.res.Resources
 import com.example.cpen321application.R
+import com.example.cpen321application.auth.HttpResult
 import com.example.cpen321application.auth.SessionExpiredException
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import com.example.cpen321application.auth.SessionManager
+import java.io.IOException
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.MultipartBody
-import okhttp3.OkHttpClient
-import okhttp3.Request
 import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONArray
 import org.json.JSONObject
@@ -19,6 +18,7 @@ class ApiException(message: String) : Exception(message)
 class PhotoData(val mimeType: String, val bytes: ByteArray)
 
 private const val PHOTO_FILE_NAME = "photo"
+private const val API_PREFIX = "/api"
 // The date part ("2026-10-20") of an ISO timestamp.
 private const val DATE_CHARS = 10
 
@@ -27,33 +27,24 @@ internal fun JSONArray.objects(): List<JSONObject> = (0 until length()).map { ge
 internal fun JSONArray.strings(): List<String> = (0 until length()).map { getString(it) }
 
 class PostApi(
-    baseUrl: String,
-    private val auth: RequestAuth,
+    private val sessions: SessionManager,
     private val resources: Resources,
-    private val client: OkHttpClient = OkHttpClient(),
 ) {
-    private val base = baseUrl.trimEnd('/')
-    private val json = "application/json".toMediaType()
+    private suspend fun call(method: String, path: String, body: JSONObject? = null): String =
+        bodyOf { sessions.authorizedRequest(method, "$API_PREFIX$path", body) }
 
-    private fun JSONObject.asBody() = toString().toRequestBody(json)
-
-    private suspend fun call(path: String, build: Request.Builder.() -> Unit = {}): String =
-        withContext(Dispatchers.IO) {
-            val builder = Request.Builder().url("$base$path")
-            try {
-                auth.headers().forEach { (name, value) -> builder.header(name, value) }
-                builder.apply(build)
-                client.newCall(builder.build()).execute().use { response ->
-                    val body = response.body?.string().orEmpty()
-                    if (!response.isSuccessful) throw ApiException(errorMessage(body, response.code))
-                    body
-                }
-            } catch (_: SessionExpiredException) {
-                throw ApiException(resources.getString(R.string.error_session_expired))
-            } catch (_: java.io.IOException) {
-                throw ApiException(resources.getString(R.string.error_unreachable))
-            }
+    // The response body of a successful request; anything else becomes an ApiException with a message for the user.
+    private suspend fun bodyOf(send: suspend () -> HttpResult): String {
+        val result = try {
+            send()
+        } catch (_: SessionExpiredException) {
+            throw ApiException(resources.getString(R.string.error_session_expired))
+        } catch (_: IOException) {
+            throw ApiException(resources.getString(R.string.error_unreachable))
         }
+        if (!result.isSuccess) throw ApiException(errorMessage(result.body, result.code))
+        return result.body
+    }
 
     private fun errorMessage(body: String, code: Int): String = try {
         val obj = JSONObject(body)
@@ -68,7 +59,7 @@ class PostApi(
     }
 
     suspend fun listPosts(mode: Mode): List<PostSummary> {
-        return JSONArray(call("/${mode.path}")).objects().map { summarise(mode, it) }
+        return JSONArray(call("GET", "/${mode.path}")).objects().map { summarise(mode, it) }
     }
 
     private fun formatValue(row: JSONObject): String {
@@ -146,11 +137,11 @@ class PostApi(
     }
 
     suspend fun createPost(mode: Mode, body: JSONObject) {
-        call("/${mode.path}") { post(body.asBody()) }
+        call("POST", "/${mode.path}", body)
     }
 
     suspend fun updatePost(mode: Mode, id: String, body: JSONObject) {
-        call("/${mode.path}/$id") { patch(body.asBody()) }
+        call("PATCH", "/${mode.path}/$id", body)
     }
 
     suspend fun setStatus(mode: Mode, id: String, status: String) {
@@ -158,18 +149,18 @@ class PostApi(
     }
 
     suspend fun deletePost(mode: Mode, id: String) {
-        call("/${mode.path}/$id") { delete() }
+        call("DELETE", "/${mode.path}/$id")
     }
 
     suspend fun options(field: String): List<OptionItem> {
         val encoded = java.net.URLEncoder.encode(field, "UTF-8")
-        return JSONArray(call("/options?field=$encoded")).objects().map {
+        return JSONArray(call("GET", "/options?field=$encoded")).objects().map {
             OptionItem(it.getString("key"), it.getString("label"))
         }
     }
 
     suspend fun fields(): List<FieldDef> {
-        return JSONArray(call("/custom-fields")).objects().map {
+        return JSONArray(call("GET", "/custom-fields")).objects().map {
             FieldDef(it.getString("key"), it.getString("label"), it.getString("type"))
         }
     }
@@ -184,6 +175,7 @@ class PostApi(
             )
         }
         val body = form.build()
-        return JSONObject(call("/photos") { post(body) }).getJSONArray("ids").strings()
+        val response = bodyOf { sessions.authorizedRequest("POST", "$API_PREFIX/photos", body) }
+        return JSONObject(response).getJSONArray("ids").strings()
     }
 }

@@ -9,7 +9,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
-import com.example.cpen321application.BuildConfig
 import com.example.cpen321application.R
 import com.example.cpen321application.auth.SessionManager
 import kotlinx.coroutines.Job
@@ -22,11 +21,7 @@ import org.json.JSONObject
 const val MIN_ADDRESS_QUERY_LENGTH = 3
 
 class PostViewModel(app: Application) : AndroidViewModel(app) {
-    private val api = PostApi(
-        BuildConfig.API_BASE_URL.trimEnd('/') + "/api",
-        SessionRequestAuth(SessionManager.get(app)),
-        app.resources,
-    )
+    private val api = PostApi(SessionManager.get(app), app.resources)
     private val addressSearch = AddressSearch(app)
 
     var tab by mutableStateOf(AppTab.POSTS)

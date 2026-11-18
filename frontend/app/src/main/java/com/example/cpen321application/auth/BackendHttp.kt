@@ -1,17 +1,31 @@
 package com.example.cpen321application.auth
 
 import java.io.IOException
-import java.net.HttpURLConnection
-import java.net.URL
+import java.util.concurrent.TimeUnit
+import okhttp3.MediaType.Companion.toMediaType
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody
+import okhttp3.RequestBody.Companion.toRequestBody
 import org.json.JSONObject
 
-private const val HTTP_TIMEOUT_MS = 5_000
+private const val CONNECT_TIMEOUT_SECONDS = 5L
 private const val MAX_ERROR_CHARS = 200
+private val SUCCESS_CODES = 200..299
+private val JSON_TYPE = "application/json".toMediaType()
+private val METHODS_WITHOUT_BODY = setOf("GET", "HEAD", "DELETE")
+
+// The app's only HTTP client. Every backend call and photo download shares its connection pool.
+val backendClient: OkHttpClient = OkHttpClient.Builder()
+    .connectTimeout(CONNECT_TIMEOUT_SECONDS, TimeUnit.SECONDS)
+    .build()
+
+fun JSONObject.toJsonBody(): RequestBody = toString().toRequestBody(JSON_TYPE)
 
 // A finished HTTP exchange with the backend.
 data class HttpResult(val code: Int, val body: String) {
     val isSuccess: Boolean
-        get() = code in HttpURLConnection.HTTP_OK until HttpURLConnection.HTTP_MULT_CHOICE
+        get() = code in SUCCESS_CODES
 
     // The backend's `{ error }` message for a failed request, or the raw body.
     val errorMessage: String
@@ -20,35 +34,27 @@ data class HttpResult(val code: Int, val body: String) {
             .ifBlank { "HTTP $code" }
 }
 
-// Plain JSON requests to the backend. Blocks, so call it from Dispatchers.IO.
+// Requests to the backend. Blocks, so call it from Dispatchers.IO.
 // Throws IOException only when the backend cannot be reached at all; HTTP
 // error statuses come back as an HttpResult.
 interface BackendClient {
-    fun send(method: String, path: String, body: JSONObject? = null, bearerToken: String? = null): HttpResult
+    fun send(method: String, path: String, body: RequestBody? = null, bearerToken: String? = null): HttpResult
 }
 
-class BackendHttp(private val apiBaseUrl: String) : BackendClient {
-    override fun send(method: String, path: String, body: JSONObject?, bearerToken: String?): HttpResult {
-        val conn = (URL(apiBaseUrl.trimEnd('/') + path).openConnection() as HttpURLConnection).apply {
-            requestMethod = method
-            connectTimeout = HTTP_TIMEOUT_MS
-            readTimeout = HTTP_TIMEOUT_MS
-            setRequestProperty("Accept", "application/json")
-            if (bearerToken != null) {
-                setRequestProperty("Authorization", "Bearer $bearerToken")
-            }
-        }
-        try {
-            if (body != null) {
-                conn.doOutput = true
-                conn.setRequestProperty("Content-Type", "application/json")
-                conn.outputStream.use { it.write(body.toString().toByteArray()) }
-            }
-            val code = conn.responseCode
-            val stream = if (code < HttpURLConnection.HTTP_BAD_REQUEST) conn.inputStream else conn.errorStream
-            return HttpResult(code, stream?.bufferedReader()?.use { it.readText() }.orEmpty())
-        } finally {
-            conn.disconnect()
+class BackendHttp(
+    private val apiBaseUrl: String,
+    private val client: OkHttpClient = backendClient,
+) : BackendClient {
+    override fun send(method: String, path: String, body: RequestBody?, bearerToken: String?): HttpResult {
+        val request = Request.Builder()
+            .url(apiBaseUrl.trimEnd('/') + path)
+            .header("Accept", "application/json")
+            .apply { if (bearerToken != null) header("Authorization", "Bearer $bearerToken") }
+            // OkHttp refuses a POST, PUT or PATCH without a body, e.g. accepting a proposal.
+            .method(method, body ?: if (method in METHODS_WITHOUT_BODY) null else ByteArray(0).toRequestBody())
+            .build()
+        client.newCall(request).execute().use { response ->
+            return HttpResult(response.code, response.body?.string().orEmpty())
         }
     }
 }

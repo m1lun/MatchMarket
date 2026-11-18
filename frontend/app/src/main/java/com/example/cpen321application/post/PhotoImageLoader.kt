@@ -6,15 +6,15 @@ import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import com.example.cpen321application.BuildConfig
 import com.example.cpen321application.auth.SessionExpiredException
 import com.example.cpen321application.auth.SessionManager
+import com.example.cpen321application.auth.backendClient
 import kotlinx.coroutines.runBlocking
 import okhttp3.HttpUrl
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Interceptor
-import okhttp3.OkHttpClient
 import okhttp3.Response
 
 fun photoImageLoader(context: Context): ImageLoader {
-    val client = OkHttpClient.Builder()
+    val client = backendClient.newBuilder()
         .addInterceptor(BackendTokenInterceptor(SessionManager.get(context), BuildConfig.API_BASE_URL.toHttpUrl()))
         .build()
     return ImageLoader.Builder(context)

@@ -46,6 +46,7 @@
 | 2026-11-18 | 4.7 | NFR 2 is now measured for every failure it names: the NFR test times a routing service that never answers (about 2 seconds) and one that is rate-limited, fails or is unreachable (under 10 ms). |
 | 2026-11-18 | 4.1 | `POST /api/auth/google`, `/refresh` and `/logout`: listed what each returns and its 400, 401 and 413 errors, and that reusing a refresh token revokes the whole sign-in, as tested by their interface tests. |
 | 2026-11-18 | 3.5, 4.6 | Following TA and peer-review feedback, the Create Post, Rate a Deal, View Recommendations and Filter Feed sequence diagrams now show every failure scenario of their use cases, and every database write has a reply. Rate a Deal shows that the Deals tab offers "Rate" only on deals the user has not rated, and that the rating and score are saved in one transaction. Filter Feed no longer shows a 400 for invalid filters, which the app never sends because it disables "Apply". Use Case 2 now names the messages the app shows when the deals or the rating cannot reach the server. Each branch is labelled with its use case step, and failures with the same result share a branch. |
+| 2026-11-18 | 4.4 | Following TA feedback that the app had two HTTP paths, it now uses OkHttp for every request, so HttpURLConnection is no longer listed. |
 
 ---
 
@@ -412,9 +413,9 @@ Each use case covers one goal, and the user starts each of them directly, so the
 1. **Jetpack Compose and Kotlin** (frontend)
     - **Purpose**: Native Android UI.
     - **Reason**: Required by the project.
-2. **HttpURLConnection** (frontend)
-    - **Purpose**: REST calls to the backend and the live updates stream.
-    - **Reason**: Part of Android, so no extra library is needed.
+2. **OkHttp** (frontend)
+    - **Purpose**: The app's only HTTP client: every REST call to the backend, the photo uploads, the live updates stream and Coil's photo downloads share one client.
+    - **Reason**: Coil downloads images through OkHttp, so using it for every request gives the app a single HTTP stack. It also builds multipart photo uploads and reads the live updates stream.
 3. **Android Credential Manager / Google ID** (frontend)
     - **Purpose**: Google Sign-In.
     - **Reason**: Existing sign-in code is built on it.
@@ -432,7 +433,7 @@ Each use case covers one goal, and the user starts each of them directly, so the
     - **Reason**: Standard JWT library for Node.js.
 8. **Coil** (frontend)
     - **Purpose**: Loads and caches post photos in Compose screens.
-    - **Reason**: Kotlin-first image loader with Compose support.
+    - **Reason**: Kotlin-first image loader with Compose support. It downloads photos through the app's OkHttp client, which adds the session token.
 9. **Jest and Supertest** (backend), **Compose testing** (frontend)
     - **Purpose**: Backend interface tests and frontend Compose test dependencies are present. The frontend also includes AndroidX JUnit and Espresso. UI Automator is also declared; the end-to-end tests use it for the system photo picker. Feature 1 end-to-end tests (`CreatePostTest` and `ManagePostsTest`) are in the frontend's `androidTest` `e2e` package.
 10. **Multer** (backend)

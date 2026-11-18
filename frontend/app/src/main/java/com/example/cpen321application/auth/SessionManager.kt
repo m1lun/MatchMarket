@@ -9,6 +9,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
+import okhttp3.RequestBody
 import org.json.JSONObject
 
 private const val TAG = "SessionManager"
@@ -56,7 +57,14 @@ class SessionManager(
     // Sends a request with the session token, renewing the session first if it
     // has run out, or once on a 401. Throws SessionExpiredException when the
     // user has to sign in again, IOException when the backend is unreachable.
-    suspend fun authorizedRequest(method: String, path: String, body: JSONObject? = null): HttpResult {
+    suspend fun authorizedRequest(method: String, path: String, body: JSONObject? = null): HttpResult =
+        send(method, path, body?.toJsonBody())
+
+    // The same for a body that is not JSON, such as a multipart photo upload.
+    suspend fun authorizedRequest(method: String, path: String, body: RequestBody): HttpResult =
+        send(method, path, body)
+
+    private suspend fun send(method: String, path: String, body: RequestBody?): HttpResult {
         val session = freshSession()
         val result = withContext(Dispatchers.IO) { http.send(method, path, body, session.sessionToken) }
         if (result.code != HttpURLConnection.HTTP_UNAUTHORIZED) {

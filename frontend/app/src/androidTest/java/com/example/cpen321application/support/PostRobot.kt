@@ -34,7 +34,6 @@ import com.example.cpen321application.post.ApiException
 import com.example.cpen321application.post.Mode
 import com.example.cpen321application.post.PostApi
 import com.example.cpen321application.post.PostSummary
-import com.example.cpen321application.post.SessionRequestAuth
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import java.io.ByteArrayOutputStream
@@ -208,11 +207,7 @@ fun MainRule.openFirstPostMenu() {
 
 private val api by lazy {
     val context = InstrumentationRegistry.getInstrumentation().targetContext
-    PostApi(
-        BuildConfig.API_BASE_URL.trimEnd('/') + "/api",
-        SessionRequestAuth(SessionManager.get(context)),
-        context.resources,
-    )
+    PostApi(SessionManager.get(context), context.resources)
 }
 
 private suspend fun <T> whenOnline(block: suspend () -> T): T {
