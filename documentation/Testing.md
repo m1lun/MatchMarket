@@ -25,6 +25,7 @@
 | 2026-11-18 | 2 | Added the interface tests of the auth routes, `POST /api/auth/google`, `POST /api/auth/refresh` and `POST /api/auth/logout`, and of the session token that every protected route checks. Writing them showed that an auth body over 4 KB returned 500, so it now returns 413. Replaced the `app.ts` and `sessions.ts` coverage row with the reasons for their remaining branches and for `googleAuth.ts`. |
 | 2026-11-18 | 4 | Added the end-to-end tests of Use Case 3: View Recommendations for a Post (`ViewRecommendationsTest.kt`), mapped to its steps 1–6 and failures 1a, 1b, 3a and 6a. Failures 5a and 5b need OpenRouteService to fail, which the front-end tests cannot cause, so the back-end tests cover them. |
 | 2026-11-18 | 4 | Added the end-to-end tests of Use Case 5: Filter Feed (`FilterFeedTest.kt`), mapped to its steps 1–5 and failures 2a, 3a–3d, 5a and 5b. |
+| 2026-11-18 | 4 | Added the test logs of Use Cases 3 and 5, and the bug the View Recommendations tests found: the home-address filter replaced the recommendations when "See recommendations" opened the feed first. |
 
 ---
 
@@ -345,7 +346,7 @@ Leave out the class list to run every test in `e2e/`.
     Finished 42 tests on Pixel_9(AVD) - 16: 42 passed, 0 failed, 0 skipped (550.4 s)
     ```
 
-- **Use Case 3: View Recommendations for a Post** ([`ViewRecommendationsTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/ViewRecommendationsTest.kt)). Each test starts with the E2E Seller's open listing "E2E lamp" at $30 and the tester's open request "E2E feed request" (category lamp, maximum price $50, hard), unless the row says otherwise.
+- **Use Case 3: View Recommendations for a Post** ([`ViewRecommendationsTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/ViewRecommendationsTest.kt)). Each test starts with the E2E Seller's open listing "E2E lamp" at $30 and the tester's open request "E2E feed request" (category lamp, maximum price $50, hard), unless the row says otherwise. `showsRecommendationsForOwnPost` found a bug: when "See recommendations" was the first thing to open the feed, the feed's home-address filter finished loading afterwards and replaced the recommendations with the feed near home. `FeedViewModel` now applies the home filter only if nothing else has set the feed.
 
   - **Expected Behaviors:**
 
