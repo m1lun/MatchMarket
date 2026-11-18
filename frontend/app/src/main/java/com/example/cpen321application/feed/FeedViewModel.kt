@@ -43,9 +43,13 @@ class FeedViewModel(app: Application) : AndroidViewModel(app) {
     var addressSuggestions by mutableStateOf<List<AddressSuggestion>>(emptyList())
         private set
 
-    // The feed starts filtered to near the user's home address, when they have set one.
+    // The feed starts filtered to near the user's home address, when they have set one. "See recommendations" can
+    // set the feed while the profile loads, and then it is kept.
     init {
-        viewModelScope.launch { feed.show(FeedQuery(filter = homeFilter())) }
+        viewModelScope.launch {
+            val home = homeFilter()
+            if (query == FeedQuery()) feed.show(FeedQuery(filter = home))
+        }
     }
 
     fun loadMore() {
