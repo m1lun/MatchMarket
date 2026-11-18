@@ -81,7 +81,7 @@ Main findings:
 | | |
 | :---- | :---- |
 | **Reviewing group** | SportsNow |
-| **Commit reviewed** | Our CP2 submission (the commit after [`149f16a`](https://github.com/m1lun/m1skeletonProject/commit/149f16a96f8931a37c0b1c8f2affbebcb3c4cc6d), as recorded in `CP2_DevelopmentInfo.md`) |
+| **Commit reviewed** | [`1fba57f837b2ea16f32ac258ef019d8f29002898`](https://github.com/m1lun/m1skeletonProject/commit/1fba57f837b2ea16f32ac258ef019d8f29002898) |
 | **Report** | `CP3_MatchMarket_Review.pdf` |
 
 Main findings:
