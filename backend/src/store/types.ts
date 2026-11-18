@@ -38,6 +38,8 @@ export interface PostCollection<T extends PostDoc> {
   findById(id: string): Promise<T | null>;
   listByOwner(ownerId: string): Promise<T[]>;
   replace(doc: T): Promise<T>;
+  // Sets only the status and updatedAt, without rewriting the rest of the post.
+  close(id: string, updatedAt: Date): Promise<void>;
   remove(id: string): Promise<void>;
   // Newest first; passing the last post's id as `before` starts the next page.
   listOpen(excludeOwnerId: string, limit: number, filter?: OpenPostFilter): Promise<T[]>;

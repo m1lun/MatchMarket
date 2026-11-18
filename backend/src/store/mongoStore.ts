@@ -185,6 +185,10 @@ class MongoPostCollection<T extends PostDoc & { name: string; category: string }
     return { ...clean, id } as T;
   }
 
+  async close(id: string, updatedAt: Date): Promise<void> {
+    await this.collection.updateOne({ _id: new ObjectId(id) }, { $set: { status: 'closed', updatedAt } });
+  }
+
   async remove(id: string): Promise<void> {
     await this.collection.deleteOne({ _id: new ObjectId(id) });
   }

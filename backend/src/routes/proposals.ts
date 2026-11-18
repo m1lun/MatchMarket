@@ -102,8 +102,8 @@ async function newDeal(store: Store, conversation: Conversation, proposal: Propo
 
 async function closePosts(store: Store, posts: DealPosts, now: Date): Promise<void> {
   await Promise.all([
-    posts.listing === null ? undefined : store.listings.replace({ ...posts.listing, status: 'closed', updatedAt: now }),
-    posts.request === null ? undefined : store.requests.replace({ ...posts.request, status: 'closed', updatedAt: now }),
+    posts.listing === null ? undefined : store.listings.close(posts.listing.id, now),
+    posts.request === null ? undefined : store.requests.close(posts.request.id, now),
   ]);
 }
 
