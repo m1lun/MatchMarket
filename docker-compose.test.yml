@@ -4,14 +4,12 @@ name: cpen321-test
 services:
   mongo-test:
     image: mongo:7
-    # A one-member replica set, because MongoDB only allows transactions on a replica set.
     command: ["--replSet", "rs0", "--bind_ip_all"]
     ports:
       - "127.0.0.1:27018:27017"
     tmpfs:
       - /data/db
     healthcheck:
-      # Sets up the one-member replica set on first start, then is healthy once it accepts writes.
       test: ["CMD", "mongosh", "--quiet", "--eval", "try { rs.status() } catch (e) { rs.initiate({ _id: 'rs0', members: [{ _id: 0, host: 'localhost:27017' }] }) } quit(db.hello().isWritablePrimary ? 0 : 1)"]
       interval: 2s
       timeout: 5s

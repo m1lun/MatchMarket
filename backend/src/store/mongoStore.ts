@@ -66,7 +66,6 @@ function toDocs<T extends { id: string }>(found: unknown[]): T[] {
   return (found as Stored<T>[]).map((stored) => toDoc<T>(stored));
 }
 
-// The session option for a write inside a transaction; empty outside one.
 type InSession = { session: ClientSession } | Record<string, never>;
 
 function inSession(session?: ClientSession): InSession {
@@ -339,7 +338,6 @@ class MongoDealCollection implements DealCollection {
   }
 }
 
-// Ratings and reputations take an optional session, so they can write inside a transaction.
 class MongoRatingCollection implements RatingCollection {
   private readonly tx: InSession;
 
@@ -628,7 +626,6 @@ export async function createMongoStore(uri: string, dbName: string, options?: Mo
     transaction: async <T>(work: (tx: TransactionStore) => Promise<T>): Promise<T> => {
       const session = client.startSession();
       try {
-        // withTransaction commits, or aborts and rethrows, and retries the work on a transient error.
         let result: T | undefined;
         await session.withTransaction(async () => {
           result = await work({

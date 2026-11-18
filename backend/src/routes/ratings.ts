@@ -15,7 +15,6 @@ import { handle } from './handle';
 // MongoDB's code for an insert that breaks a unique index.
 const DUPLICATE_KEY = 11000;
 
-// Thrown inside the rating transaction, so the transaction aborts and the route answers 409.
 class AlreadyRatedError extends Error {}
 
 const RATING_FIELDS = ['stars', 'comment'];
@@ -92,7 +91,6 @@ export function createRatingsRouter(store: Store): Router {
 
     let saved: { rating: Rating; reputation: Reputation };
     try {
-      // One transaction, so a rating is never stored without being counted in the score.
       saved = await store.transaction(async (tx) => {
         let rating: Rating;
         try {
@@ -123,7 +121,6 @@ export function createRatingsRouter(store: Store): Router {
     const { dealId, me, ratedUserId } = myDeal;
     const now = new Date();
 
-    // One transaction, so the rating's stars always match the score.
     const saved = await store.transaction(async (tx) => {
       const updated = await tx.ratings.update(dealId, me, stars, comment, now);
       if (updated === null) {

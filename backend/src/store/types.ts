@@ -149,10 +149,8 @@ export interface Store {
   conversations: ConversationCollection;
   messages: MessageCollection;
   photos: PhotoStorage;
-  // Runs work in one MongoDB transaction: every write it makes is saved, or none is.
   transaction<T>(work: (tx: TransactionStore) => Promise<T>): Promise<T>;
   close(): Promise<void>;
 }
 
-// The collections that can write inside a transaction.
 export type TransactionStore = Pick<Store, 'ratings' | 'reputations'>;
