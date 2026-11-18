@@ -23,6 +23,7 @@
 | 2026-11-17 | 2, 3 | Added the interface tests of the Matching component, `GET /api/feed`, `GET /api/feed/listings` and `GET /api/feed/requests`, and why the two remaining branches in `matching/rank.ts` and `matching/satisfies.ts` cannot be reached. Added the NFR 1 test, feed ranking latency, with its verification and logs. |
 | 2026-11-18 | 3 | The NFR 2 test now also times a rate-limited, failing and unreachable routing service, and logs each response time, so the verification log shows the measured times rather than only the pass count. |
 | 2026-11-18 | 2 | Added the interface tests of the auth routes, `POST /api/auth/google`, `POST /api/auth/refresh` and `POST /api/auth/logout`, and of the session token that every protected route checks. Writing them showed that an auth body over 4 KB returned 500, so it now returns 413. Replaced the `app.ts` and `sessions.ts` coverage row with the reasons for their remaining branches and for `googleAuth.ts`. |
+| 2026-11-18 | 4 | Added the end-to-end tests of Use Case 3: View Recommendations for a Post (`ViewRecommendationsTest.kt`), mapped to its steps 1–6 and failures 1a, 1b, 3a and 6a. Failures 5a and 5b need OpenRouteService to fail, which the front-end tests cannot cause, so the back-end tests cover them. |
 
 ---
 
@@ -218,6 +219,7 @@ Tests:       4 passed, 4 total
 | -------------- | ------------- |
 | [`CreatePostTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/CreatePostTest.kt) | [Use Case 1: Create Post](Requirements_and_Design.md#uc1), steps 1–7 |
 | [`ManagePostsTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/ManagePostsTest.kt) | [Use Case 1: Create Post](Requirements_and_Design.md#uc1), steps 1–2 and failure 2a. Its other tests cover the Edit post use case, including closing and reopening a post, and the Delete post use case ([Section 3.4](Requirements_and_Design.md#34-use-case-description)), which have no formal specification. |
+| [`ViewRecommendationsTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/ViewRecommendationsTest.kt) | [Use Case 3: View Recommendations for a Post](Requirements_and_Design.md#uc3), steps 1–6 and failures 1a, 1b, 3a and 6a |
 | [`SendMessageTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/SendMessageTest.kt) | [Use Case 4: Send a Message](Requirements_and_Design.md#uc4), steps 1–7 and failures 2a, 4a, 5a, 6a and 7a. Steps 1–2 and 2a are also the View conversations use case. |
 | [`StartConversationTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/StartConversationTest.kt) | Start a conversation ([Section 3.4](Requirements_and_Design.md#34-use-case-description)) |
 | [`SendProposalTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/SendProposalTest.kt) | Send a proposal ([Section 3.4](Requirements_and_Design.md#34-use-case-description)) |
@@ -233,6 +235,7 @@ Shared test steps are in `support/PostRobot.kt`, and the differences between the
 - **Results checked on the server.** When a scenario says nothing is saved, the test asks the back-end with `testPosts()` and checks the list is empty, instead of trusting the screen.
 - **System UI.** The Android photo picker is not part of the app, so it is driven with UI Automator. `TestPhotos` adds small JPEGs to the emulator's gallery before each test and deletes them afterwards.
 - **A second user for Messaging.** Every conversation needs another user. Before each Messaging test, `POST /api/e2e/listings` or `POST /api/e2e/conversations` (Section 2) gives the signed-in tester a made-up partner, "E2E Seller", with an open listing "E2E lamp" and, if needed, a conversation with up to 40 messages. During a test, the E2E Seller replies, proposes and declines through the real conversation routes, so live updates reach the app exactly as they would from a second phone, and no manual tester is needed. `DELETE /api/e2e/conversations` removes everything afterwards, including a deal made by accepting a proposal. The tester's real conversations and deals are never touched.
+- **Another user's post for the Matching feed.** The feed only shows other users' posts, so before each feed test `POST /api/e2e/listings` gives the tester the E2E Seller's open listing "E2E lamp" ($30, category lamp, at 6335 Thunderbird Crescent). The recommendation tests create the tester's own request "E2E feed request" through the API, in the same category and place with a hard maximum price of $50, so the listing meets every hard requirement, and delete it before and after each test (`support/FeedSeed.kt`). The feed starts filtered near the tester's home address, so the tests clear the filters first, and the one test that needs the tester to have no open requests closes them and reopens them afterwards.
 - **Back online after airplane mode.** The emulator needs several seconds to reconnect after airplane mode is turned off, so the tests call `waitUntilOnline()` before a step that needs the network again.
 
 **How to run them.**
@@ -338,6 +341,45 @@ Leave out the class list to run every test in `e2e/`.
       closesAndReopensPost[LISTING]                    PASSED   8.48 s
 
     Finished 42 tests on Pixel_9(AVD) - 16: 42 passed, 0 failed, 0 skipped (550.4 s)
+    ```
+
+- **Use Case 3: View Recommendations for a Post** ([`ViewRecommendationsTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/ViewRecommendationsTest.kt)). Each test starts with the E2E Seller's open listing "E2E lamp" at $30 and the tester's open request "E2E feed request" (category lamp, maximum price $50, hard), unless the row says otherwise.
+
+  - **Expected Behaviors:**
+
+    | **Scenario Steps** | **Test Case Steps** |
+    | ------------------ | ------------------- |
+    | 1. The user opens one of their open posts and taps "See recommendations", or picks the post under "Recommended for" in the feed filters. | (`showsRecommendationsForOwnPost`) Tap "My Posts", then "I'm selling" and "I'm buying" (switching reloads My Posts, which the app loaded before the test created the request), tap "E2E feed request", and tap "See recommendations".<br>(`showsRecommendationsPickedInFilters`) Tap "Feed", clear the filters, tap "Filters", tap the "Recommended for" button, pick "Lamp · Seeded for the feed E2E tests", and tap "Apply". |
+    | 1a. The user has no open posts. | (`saysWhenThereAreNoOpenPosts`) Close every open request of the tester through the API. Tap "Feed", clear the filters, and tap "Filters". |
+    | 1a1. The feed filters show "You have no open posts to get recommendations for". | Check that "You have no open posts to get recommendations for" is shown, and that the "Recommended for" button does not appear within 3 seconds. The requests are reopened afterwards. |
+    | 1b. The post is closed. | (`closedPostHasNoRecommendations`) Close "E2E feed request" through the API, then tap "My Posts", "I'm selling", "I'm buying" and "E2E feed request". |
+    | 1b1. "See recommendations" is not shown, and the server returns no feed for it (409). | Check that "See recommendations" is not shown, and that `GET /api/feed?postId=<id>` returns 409. |
+    | 2. The app shows "Recommended for: <post>". | Check that "Recommended for: Lamp · Seeded for the feed E2E tests" is shown (both ways in). |
+    | 3. The system keeps other users' open posts in the same category that meet the request's hard requirements. | Covered by step 6: "E2E lamp" is in the same category, within 10 km and under the $50 maximum, so it is shown. The back-end interface tests check each hard requirement. |
+    | 3a. No posts meet the hard requirements. | (`saysWhenNothingMatches`) Create the request in the category "e2e nothing matches" instead, open it and tap "See recommendations". |
+    | 3a1. The app shows "Nothing here yet. Try changing the filters or check back soon." and a "Refresh" button. | Check that "Nothing here yet. Try changing the filters or check back soon." and the "Refresh" button are shown. |
+    | 4. The system scores each remaining post and orders the best first. | Not checked on screen: only one other user's post is seeded. The back-end tests in `feedRanking.test.ts` check the order. |
+    | 5. The system requests walking travel times for the first 20 results from OpenRouteService. | Covered by step 6, which checks the card's travel time. |
+    | 5a. The routing service is unavailable, rate-limited or takes more than 2 seconds. | Not automated: the front-end tests use the real back-end and cannot make OpenRouteService fail. The mocked back-end tests and NFR 2 cover it. If the back-end runs without `ORS_API_KEY`, step 6 sees "Travel time unavailable", which is 5a1. |
+    | 5b. No route exists for the user's travel mode. | Not automated, for the same reason; covered by the mocked back-end test `Travel Times From The Routing Service`. |
+    | 6. The app shows the ranked list, 20 at a time; each item shows its price, condition and distance, plus its travel time on the first page. | Check that the "E2E lamp" card shows "$30.00", "Condition: good", "km away", and a travel time ("min walk", "min by bike" or "min drive") or "No route available" or "Travel time unavailable". |
+    | 6a. The network or server is unavailable. | (`showsErrorWhenFeedCannotLoad`) Open "E2E feed request", turn on airplane mode, and tap "See recommendations". |
+    | 6a1. The app shows "Couldn't load the feed. Check your connection and try again." and a "Retry" button. | Check that the message and the "Retry" button are shown.<br>Turn off airplane mode, wait until the back-end can be reached, tap "Retry", and check the "E2E lamp" card as in step 6. |
+
+  - **Test Logs:**
+    ```
+    Pixel_9(AVD) - 16 (Android 16, API 36), 2026-11-18, adb shell am instrument (ViewRecommendationsTest, FilterFeedTest)
+    main a7d227c with the tests of PR #216 (branch test/feed-e2e)
+
+    com.example.cpen321application.e2e.ViewRecommendationsTest
+      saysWhenNothingMatches                         PASSED   6.75 s
+      showsRecommendationsForOwnPost                 PASSED   5.92 s
+      showsErrorWhenFeedCannotLoad                   PASSED   7.20 s
+      saysWhenThereAreNoOpenPosts                    PASSED  10.13 s
+      closedPostHasNoRecommendations                 PASSED   4.01 s
+      showsRecommendationsPickedInFilters            PASSED   9.26 s
+
+    6 tests: 6 passed, 0 failed, 0 skipped (43.3 s)
     ```
 
 - **Use Case 4: Send a Message** ([`SendMessageTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/SendMessageTest.kt)). Each test starts with a conversation with the E2E Seller about "E2E lamp", holding one message from them, "Message 1". Steps 7 and 7a are about the user who receives the message, so in those tests the signed-in tester receives it and the E2E Seller sends it.
