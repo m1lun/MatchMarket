@@ -42,6 +42,7 @@
 | 2026-11-14 | 3.2, 3.4 | Following TA feedback to simplify the use case diagram, removed every include and extend relationship and connected each use case directly to the user, showed Respond to a proposal as one use case, and merged Close post and Reopen post into Edit post. Removed Create deal as a separate use case, since the user never starts it: Respond to a proposal now describes recording the deal when a proposal is accepted. |
 | 2026-11-15 | 3.2, 3.4, 4.1, 5 | Added the Manage profile use case, covering the Profile tab and setting the home address, to the Authentication and Profile group and the use case diagram; the use cases after it are renumbered. Listed the `PATCH /api/users/me` errors covered by its interface tests, including 413 for a body over 4 KB, and added the profile data rules. |
 | 2026-11-17 | 4.1, 4.7 | `GET /api/feed`: listed the 404 for a post that does not exist, as tested by its interface tests. NFR 1 is now measured: the NFR test `feedLatency.test.ts` ranks 1,000 candidate posts, and 95% of 100 feed requests return within 45 ms. |
+| 2026-11-18 | 4.6 | Following TA and peer-review feedback, the Send a Message sequence diagram now shows every failure in Use Case 4 (2a, 4a, 5a, 6a, 7a) and loading earlier messages, and each database write has a reply. Removed its invalid-text branch, which the app never reaches because Send is disabled for an empty message. |
 
 ---
 
@@ -622,36 +623,75 @@ sequenceDiagram
     Note over MS,O: The other user's app keeps GET /api/events open while their conversation is on screen
     U->>FE: Open the Messages tab
     FE->>MS: GET /api/conversations
-    activate MS
-    MS->>DB: find the user's conversations, their posts and the other users
-    activate DB
-    DB--)MS: conversations
-    deactivate DB
-    MS--)FE: 200 conversations
-    deactivate MS
+    alt the network or server is unavailable
+        FE--)U: "Could not reach the server. Check your connection." and "Retry"
+    else
+        activate MS
+        MS->>DB: find the user's conversations, their posts and the other users
+        activate DB
+        DB--)MS: conversations
+        deactivate DB
+        MS--)FE: 200 conversations
+        deactivate MS
+        FE--)U: show the conversations, newest activity first
+    end
     U->>FE: Tap a conversation
     FE->>MS: GET /api/conversations/:id/messages
-    activate MS
-    MS->>DB: find the newest messages
-    activate DB
-    DB--)MS: messages
-    deactivate DB
-    MS--)FE: 200 messages and the cursor for older ones
-    deactivate MS
-    U->>FE: Type a message, tap "Send"
-    FE->>MS: POST /api/conversations/:id/messages (text)
-    activate MS
-    alt the text is 1 to 1000 characters
-        MS->>DB: insert the message and update the conversation's last message
+    alt the network or server is unavailable
+        FE--)U: "Could not reach the server. Check your connection." and "Retry"
+    else
+        activate MS
+        MS->>DB: find the 30 newest messages
         activate DB
+        DB--)MS: messages
         deactivate DB
-        MS--)FE: 201 message
-        FE--)U: show the message on the right
-        MS-)O: message.created (message) on the events stream
-    else the text is invalid
-        MS--)FE: 400 with the error message
+        MS--)FE: 200 messages and the cursor for older ones
+        deactivate MS
+        FE--)U: show the messages, newest at the bottom
+        opt there are older messages and the user taps "Load earlier messages"
+            FE->>MS: GET /api/conversations/:id/messages?before=cursor
+            activate MS
+            MS->>DB: find the 30 messages before the cursor
+            activate DB
+            DB--)MS: messages
+            deactivate DB
+            MS--)FE: 200 messages and the next cursor
+            deactivate MS
+        end
     end
-    deactivate MS
+    U->>FE: Type a message
+    alt the message is empty or only spaces
+        FE--)U: "Send" stays disabled
+    else
+        U->>FE: Tap "Send"
+        FE->>MS: POST /api/conversations/:id/messages (text)
+        alt the network or server is unavailable
+            FE--)U: "Could not send the message. Try again.", the message stays in the box
+        else
+            activate MS
+            MS->>DB: insert the message
+            activate DB
+            DB--)MS: saved message
+            deactivate DB
+            MS->>DB: set the conversation's last message
+            activate DB
+            DB--)MS: updated
+            deactivate DB
+            MS--)FE: 201 message
+            FE--)U: show the message on the right and clear the box
+            MS-)O: message.created (message) on the events stream
+            deactivate MS
+            alt the other user's connection is open
+                O--)O: show the message without refreshing
+            else the other user's connection was lost
+                O->>MS: GET /api/events (reconnect)
+                O->>MS: GET /api/conversations/:id/messages (reload)
+                activate MS
+                MS--)O: 200 messages, including the new one
+                deactivate MS
+            end
+        end
+    end
 ```
 
 5. [**Filter Feed**](#uc5)
