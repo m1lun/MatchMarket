@@ -12,6 +12,7 @@ Evidence checked: 2 November 2026, Vancouver time.
 | 2026-10-19 | 1 to 3 | Integrated GitHub Code\_Review.md template fields and review rubric; removed duplicated draft text; refreshed PR merge status while retaining the original review evidence. |
 | 2026-10-20 | 2 and 3 | Updated PR and review evidence through PR \#56; corrected the PR \#41 label; distinguished historical tests from current main; recorded outstanding evidence and documentation gaps. |
 | 2026-11-02 | 2 and 3 | Completed Section 2 for CP2 from the Codacy results on main, replacing the pull-request-level evidence; updated Section 3 for the CP2 code exchange and added internal reviews since CP1. |
+| 2026-11-18 | 2.5, 3 | Completed Section 3 for CP3: the review we performed of SportsNow, the review we received from SportsNow with its scores, and the action taken on each finding. Added the pull requests since CP2 that responded to Codacy findings. |
 
 ## 2. Automated Code Review Results
 
@@ -49,33 +50,85 @@ Since CP1:
 * **TypeScript**: [PR \#158](https://github.com/m1lun/m1skeletonProject/pull/158) gave the stored categories list a type.
 * **TypeScript**: [PR \#107](https://github.com/m1lun/m1skeletonProject/pull/107) named a caught error so that Codacy sees it as handled.
 
+Since CP2:
+
+* **TypeScript**: [PR \#184](https://github.com/m1lun/m1skeletonProject/pull/184) typed the MongoDB results that Codacy flagged in the E2E seed code.
+* **TypeScript**: [PR \#187](https://github.com/m1lun/m1skeletonProject/pull/187) resolved the Codacy issues in the accept retry code (untyped driver results, a dynamic object key and an unhandled async error).
+* **TypeScript**: [PR \#200](https://github.com/m1lun/m1skeletonProject/pull/200) awaited and typed the stored address test helper.
+
 ## 3. Manual Code Review Results
 
-The code exchange with our peer group is due at CP2 and has not happened yet. The review results will be documented at CP3.
+Our group exchanged code with SportsNow at CP2. Each group reviewed the other's code, tests, Testing.md and Code_Review.md, scored them on the course's 0–10 scale, and reported one major fault.
 
 ### 3.1 Review Performed by Our Group
 
-Our group has not yet performed the formal review of another group’s project. The report is due at CP3. The reviewed group, the commit SHA received and the exchange date will be recorded after the exchange.
+| | |
+| :---- | :---- |
+| **Group reviewed** | SportsNow |
+| **Commit reviewed** | [`eccf7d9343f9ef4d088c1da59cb5ecf89106b622`](https://github.com/pawanpaddaeng/SportsNow_Project/commit/eccf7d9343f9ef4d088c1da59cb5ecf89106b622) |
+| **Date** | 13 November 2026 |
+| **Report** | [`CP3_SportsNow_Review.md`](CP3_SportsNow_Review.md), submitted as `CP3_SportsNow_Review.pdf` |
+
+Main findings:
+
+* **Code (8/10):** clear structure by domain, named constants and careful error handling. Issues: signing out does not unregister the device's FCM token, so the signed-out phone keeps receiving that user's message previews; user search reads every user and compares names in Node; the reputation score treats missing ratings as 5 stars; Discover can wait 10 s for a location fix although NFR 1 promises 5 s; and §4.1 of their design does not list three built routes.
+* **Tests:** all 13 Game routes have unmocked tests and 12 have mocked tests, but the end-to-end test planned for CP2 had not been written, no GitHub Actions workflow ran the back-end tests, and Testing.md had not been updated for CP2. No NFR tests existed yet (due at CP3).
+* **Codacy (7/10 and 8/10):** 0 issues, but one inline `@Suppress("DEPRECATION")` breaks the course rule against suppressions.
+* **Major fault (Medium-High):** a player can leave a game after it starts. When the organiser completes the game, attendance is only recorded for players still in it, so the player who left cannot be marked as a no-show or rated, and the game has no effect on their score, although it still counts as played on their profile. We reproduced it on their CP2 APK, with screenshots in the report.
 
 ### 3.2 Review Received by Our Group
 
-Our group has not yet received a formal peer-review report. The feedback will be recorded at CP3. The reviewing group, the commit SHA handed over and the exchange date will be recorded after the exchange.
+| | |
+| :---- | :---- |
+| **Reviewing group** | SportsNow |
+| **Commit reviewed** | Our CP2 submission (the commit after [`149f16a`](https://github.com/m1lun/m1skeletonProject/commit/149f16a96f8931a37c0b1c8f2affbebcb3c4cc6d), as recorded in `CP2_DevelopmentInfo.md`) |
+| **Report** | `CP3_MatchMarket_Review.pdf` |
 
-| Type | Criterion | Performed | Received |
+Main findings:
+
+* **Documentation:** links in Requirements_and_Design.md did not work; "Create deal" read like a user action; Use Case 1 mixes the request and listing flows; Use Case 3 describes the ranking algorithm; the sequence diagrams showed only one failure each, the UC2 diagram checked for an existing rating only after the rating was written and had an activation box with no arrow into it, and database writes had no reply; and the address field required typing the address from memory.
+* **Code:** accepting a proposal closed both posts by rewriting the whole post document; the code structure was not explained, so files were hard to find; front-end files had no top-level explanation, `DealsModel.kt` and `DealModels.kt` were easy to confuse, and screens sat beside models and API calls instead of in `ui`; the back end had many very small files and no agreed place for new code.
+* **Tests:** the Deals component and the Create Post end-to-end test were the strongest parts. Deductions: a mocked rating test expected a half-finished write; end-to-end tests waited with a fixed `Thread.sleep(2_000)`; `assertTrue(size == 1)` hides the actual count; Testing.md listed an older commit, test counts and coverage screenshots, and only the Deals routes; Use Cases 2–5 had no end-to-end tests and Messaging had no back-end tests; NFR 1 had no test; and coverage gaps were justified only for Deals.
+* **Major fault:** on a physical device using the deployed back end, no photos load anywhere in the app.
+
+| Type | Criterion | Performed (SportsNow) | Received (from SportsNow) |
 | :---- | :---- | :---- | :---- |
-| Manual code review | Maintainable code, clear names, appropriate method size, efficiency and error handling | N/A – CP2 | N/A – CP2 |
-| Manual test review | API / core-feature coverage; edge cases; correct assertions | N/A – CP2 | N/A – CP2 |
-| Manual test review | Well-structured, maintainable test code | N/A – CP2 | N/A – CP2 |
-| Manual test review | Tests match requirements and design | N/A – CP2 | N/A – CP2 |
-| Manual test review | Non-functional requirements are properly tested | N/A – CP2 | N/A – CP2 |
-| Manual test review | Coverage targets and justifications for uncovered code | N/A – CP2 | N/A – CP2 |
-| Manual test review | Backend tests can be run automatically | N/A – CP2 | N/A – CP2 |
-| Automated code review | Codacy configured according to project requirements | N/A – CP2 | N/A – CP2 |
-| Automated code review | Remaining Codacy issues appropriately justified | N/A – CP2 | N/A – CP2 |
+| Manual code review | Maintainable code, clear names, appropriate method size, efficiency and error handling | 8/10 | 8.5/10 |
+| Manual test review | API / core-feature coverage; edge cases; correct assertions | 5/10 | 9/10 |
+| Manual test review | Well-structured, maintainable test code | 8/10 | 8/10 |
+| Manual test review | Tests match requirements and design | 5/10 | 8/10 |
+| Manual test review | Non-functional requirements are properly tested | 0/10 (not yet due) | 5/10 |
+| Manual test review | Coverage targets and justifications for uncovered code | 5/10 | 6/10 |
+| Manual test review | Backend tests can be run automatically | 5/10 | 10/10 |
+| Automated code review | Codacy configured according to project requirements | 7/10 | 10/10 |
+| Automated code review | Remaining Codacy issues appropriately justified | 8/10 | 10/10 |
 
 ### 3.3 Actions Taken in Response to the Review
 
-No actions have been taken in response to formal peer review, as feedback has not yet been received. Any resulting changes and unresolved findings will be documented after the review.
+| Finding from SportsNow | Action | Status |
+| :---- | :---- | :---- |
+| "Create deal" reads like a user action | Removed it as a use case: recording the deal is now a step of "Respond to a proposal" ([PR \#196](https://github.com/m1lun/m1skeletonProject/pull/196)). | Fixed |
+| Sequence diagrams show only one failure each | Every sequence diagram now shows each failure of its formal use case: Send a Message in [PR \#212](https://github.com/m1lun/m1skeletonProject/pull/212), the other four in the pull request that adds this section. | Fixed |
+| UC2 checks for an existing rating only after the rating is written; activation box with no arrow | The Rate a Deal diagram now starts from the Deals tab, where an already-rated deal shows "Edit rating" instead of "Rate", and every activation box starts at an incoming arrow. | Fixed |
+| Database writes with no reply | Every database write in the sequence diagrams now has a reply ([PR \#212](https://github.com/m1lun/m1skeletonProject/pull/212) and this pull request). | Fixed |
+| The address must be typed from memory | The Profile tab now searches addresses as the user types and saves the picked suggestion ([PR \#198](https://github.com/m1lun/m1skeletonProject/pull/198)). | Fixed |
+| Accepting a proposal rewrites both posts to close them | The posts are closed with a status-only update ([PR \#213](https://github.com/m1lun/m1skeletonProject/pull/213)). | Fixed |
+| A mocked rating test expects a half-finished write | A rating and its reputation update are saved in one transaction, and the tests now check that a failure saves neither ([PR \#204](https://github.com/m1lun/m1skeletonProject/pull/204)). | Fixed |
+| Fixed `Thread.sleep(2_000)` after airplane mode | The tests now wait until the server answers again instead of a fixed time ([PR \#208](https://github.com/m1lun/m1skeletonProject/pull/208)). | Fixed |
+| Testing.md has an old commit, test counts and coverage screenshots | Refreshed the commit, test counts and coverage screenshots ([PR \#202](https://github.com/m1lun/m1skeletonProject/pull/202)). | Fixed |
+| Testing.md's back-end table lists only Deals; Messaging has no back-end tests | Added interface tests, both mocked and unmocked, for the post, photo, option and custom field routes ([PR \#173](https://github.com/m1lun/m1skeletonProject/pull/173), [\#174](https://github.com/m1lun/m1skeletonProject/pull/174), [\#179](https://github.com/m1lun/m1skeletonProject/pull/179)), the Messaging routes ([PR \#186](https://github.com/m1lun/m1skeletonProject/pull/186), [\#187](https://github.com/m1lun/m1skeletonProject/pull/187), [\#191](https://github.com/m1lun/m1skeletonProject/pull/191), [\#197](https://github.com/m1lun/m1skeletonProject/pull/197)), the profile routes ([PR \#200](https://github.com/m1lun/m1skeletonProject/pull/200)) and the Matching feed ([PR \#209](https://github.com/m1lun/m1skeletonProject/pull/209)), each listed in Testing.md. | Fixed |
+| Use Cases 2–5 have no end-to-end tests | Added end-to-end tests for the Deals use cases ([PR \#167](https://github.com/m1lun/m1skeletonProject/pull/167)) and the Messaging use cases ([PR \#185](https://github.com/m1lun/m1skeletonProject/pull/185)). | Fixed |
+| NFR 1 has no test | Added the feed ranking latency test and its results ([PR \#209](https://github.com/m1lun/m1skeletonProject/pull/209)). | Fixed |
+| Coverage gaps are justified only for Deals | Testing.md now justifies every file below 100% across the back end ([PR \#202](https://github.com/m1lun/m1skeletonProject/pull/202), [\#209](https://github.com/m1lun/m1skeletonProject/pull/209)). | Fixed |
+| Major fault: no photos load on a physical device with the deployed back end | Not fixed yet. | Open |
+| Links in Requirements_and_Design.md do not work | Not changed yet. | Open |
+| Use Case 1 mixes the request and listing flows | Not changed yet. | Open |
+| Use Case 3 describes the ranking algorithm | Not changed yet. | Open |
+| No explanation of the code structure; files have no top-level explanation | Not changed yet. | Open |
+| `DealsModel.kt` and `DealModels.kt` are easy to confuse | Not changed yet. | Open |
+| Screens are not in the `ui` folder | Not changed yet. | Open |
+| The back end has many very small files and no agreed structure | Not changed yet. | Open |
+| `assertTrue(size == 1)` hides the actual count | Not changed yet. | Open |
 
 ### 3.4 Additional Internal Team Review
 
