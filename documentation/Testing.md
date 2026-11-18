@@ -21,12 +21,14 @@
 | 2026-11-15 | 2 | Added the interface tests of the profile routes, `GET /api/users/me` and `PATCH /api/users/me`, and listed the existing `GET /api/users/:id/reputation` tests. A body over 4 KB to `/api/users` now returns 413 instead of 500. |
 | 2026-11-14 | 2 | Added the Messaging coverage: which files are at 100%, a test for a conversation about a post saved before posts had names, and why the one remaining branch in `routes/conversations.ts` and `routes/paging.ts` cannot be reached. |
 | 2026-11-17 | 2, 3 | Added the interface tests of the Matching component, `GET /api/feed`, `GET /api/feed/listings` and `GET /api/feed/requests`, and why the two remaining branches in `matching/rank.ts` and `matching/satisfies.ts` cannot be reached. Added the NFR 1 test, feed ranking latency, with its verification and logs. |
+| 2026-11-18 | 3 | The NFR 2 test now also times a rate-limited, failing and unreachable routing service, and logs each response time, so the verification log shows the measured times rather than only the pass count. |
+| 2026-11-18 | 2 | Added the interface tests of the auth routes, `POST /api/auth/google`, `POST /api/auth/refresh` and `POST /api/auth/logout`, and of the session token that every protected route checks. Writing them showed that an auth body over 4 KB returned 500, so it now returns 413. Replaced the `app.ts` and `sessions.ts` coverage row with the reasons for their remaining branches and for `googleAuth.ts`. |
 
 ---
 
 ## 2. Back-end Test Specification: APIs
 
-This section covers the Deals, Messaging and Matching components and the profile routes of the Users component ([Section 4.1](Requirements_and_Design.md#41-main-components)). Tests for the other components will be added here as they are written.
+This section covers the Deals, Messaging and Matching components, and the auth and profile routes of the Users component ([Section 4.1](Requirements_and_Design.md#41-main-components)). Tests for the other components will be added here as they are written.
 
 ### 2.1. Locations of Back-end Tests and Instructions to Run Them
 
@@ -53,6 +55,9 @@ This section covers the Deals, Messaging and Matching components and the profile
 | **GET /api/feed** | [`tests/no-mock/feed.test.ts#L95`](../backend/tests/no-mock/feed.test.ts#L95), ranking in [`tests/no-mock/feedRanking.test.ts#L80`](../backend/tests/no-mock/feedRanking.test.ts#L80) | [`tests/mock/feed.test.ts#L57`](../backend/tests/mock/feed.test.ts#L57) | OpenRouteService, Listings DB, Requests DB |
 | **GET /api/feed/listings** | [`tests/no-mock/feed.test.ts#L514`](../backend/tests/no-mock/feed.test.ts#L514) | [`tests/mock/feed.test.ts#L231`](../backend/tests/mock/feed.test.ts#L231) | Listings DB |
 | **GET /api/feed/requests** | [`tests/no-mock/feed.test.ts#L537`](../backend/tests/no-mock/feed.test.ts#L537) | [`tests/mock/feed.test.ts#L248`](../backend/tests/mock/feed.test.ts#L248) | Requests DB |
+| **POST /api/auth/google** | [`tests/no-mock/auth.test.ts#L92`](../backend/tests/no-mock/auth.test.ts#L92) | [`tests/mock/auth.test.ts#L71`](../backend/tests/mock/auth.test.ts#L71) | Google ID token check (`OAuth2Client.verifyIdToken`), Sessions DB, Users DB |
+| **POST /api/auth/refresh** | [`tests/no-mock/auth.test.ts#L111`](../backend/tests/no-mock/auth.test.ts#L111) | [`tests/mock/auth.test.ts#L184`](../backend/tests/mock/auth.test.ts#L184) | Sessions DB |
+| **POST /api/auth/logout** | [`tests/no-mock/auth.test.ts#L209`](../backend/tests/no-mock/auth.test.ts#L209) | [`tests/mock/auth.test.ts#L218`](../backend/tests/mock/auth.test.ts#L218) | Sessions DB |
 
 The mocked tests use `jest.spyOn` on one store method at a time, so each database failure is forced on its own. Both groups otherwise run against a real MongoDB.
 
@@ -64,6 +69,7 @@ How the Messaging conversation tests are organized:
 - **Live updates.** `GET /api/events` keeps its response open, so `tests/helpers/eventStream.ts` opens it as a real HTTP client and records what the server writes. The unmocked group checks that each new message and each proposal change reaches every open stream of the other user, and never the sender or users outside the conversation. The mocked group fakes `setInterval` with Jest, so 25 seconds pass at once, to check the heartbeat and that closing a stream clears its timer: time is the one dependency these tests cannot control.
 - **Profile routes.** `GET /api/users/me` and `PATCH /api/users/me` are tested in `tests/no-mock/users.test.ts` and `tests/mock/users.test.ts`. Every rejected address change, including a body over the 4 KB limit, also checks that the saved address is unchanged. The `Body Over 4 KB: 413` test was written first, failed with a 500, and passes since `/api/users` uses the same body-size handler as the ratings and conversation routes.
 - **Matching feed.** The unmocked `GET /api/feed` group runs without an OpenRouteService key, so it never calls the routing service. It checks every hard requirement (category, radius, price, condition, dimensions in any orientation, text ignoring case, yes/no fields), that a listing's feed holds exactly the requests it meets, paging in rank order, the feed filters (a filter looser than the post's own requirement is ignored), and every 400, 403, 404 and 409. `feedRanking.test.ts` checks the scores. The mocked group fakes OpenRouteService with `jest.spyOn(global, 'fetch')` to check travel times, each travel mode, and that the feed still returns its ranked matches when the service fails, is rate-limited or answers with something unusable; it also makes each store method the feed calls reject in turn. `GET /api/feed/listings` and `GET /api/feed/requests` share their code, so `browseTests` in `tests/no-mock/feed.test.ts` runs the same cases for both, and each has its own price test.
+- **Auth routes.** These tests start the app with the MongoDB session store, as in production, instead of the in-memory one in `tests/helpers/testApp.ts`. The unmocked groups get refresh tokens by starting a session directly, since only Google can issue a real ID token. They cover every unreadable body (missing or blank token, malformed JSON, over 4 KB), a token Google rejects, refresh-token rotation, reuse of an exchanged token revoking the whole sign-in, expiry, and sign-out of every token from a sign-in. `Unmocked: session token on protected routes` checks the session token that `requireAuth` reads on every route except `/health` and `/api/auth`: a missing or non-Bearer header, and expired, wrongly signed, wrong-audience and incomplete tokens. The mocked group for `POST /api/auth/google` replaces Google's `verifyIdToken` to sign in an account with and without names and a photo, and to reject the token, an unverified email and a ticket with no payload; the other mocked groups make each session store method fail in turn. The `Body Over 4 KB: 413` tests were written first, failed with a 500, and pass since `/api/auth` uses the same body-size handler as `/api/users`.
 - **Known limitation.** If saving a message works but updating the conversation's last message fails, the conversations list shows the previous message until the next one is sent. Fixing it needs a MongoDB transaction, which needs a replica set. The mocked test `recordMessage Throws, Next Message Repairs The Last Message` checks that the next message corrects it.
 
 **Test-only routes for the end-to-end tests.** The front-end tests in Section 4 create their data through these routes. They exist only when the backend runs with `ENABLE_E2E_ROUTES=true`, and only touch made-up users tied to the caller: an "E2E Buyer" for deals and an "E2E Seller" for conversations. The `/api/e2e/partner/conversations` routes are the real conversation and proposal routes run as the E2E Seller, so the tests can play the second user through the same code; their full behaviour is tested with the Messaging routes.
@@ -164,7 +170,9 @@ For Matching, combined coverage is 100% for statements, lines, functions and bra
 | `matching/rank.ts` | 98.18% | 96.29% | One defensive branch cannot be reached through the API. Lines 59–60 (line 39 in the coverage report, which numbers the compiled JavaScript): `normaliseWeights` counts the four parts equally when every weight is 0, but the feed always ranks with `DEFAULT_WEIGHTS` (3, 3, 3, 3) until users can save ranking preferences. |
 | `matching/satisfies.ts` | 97.91% | 97.14% | One defensive branch cannot be reached through the API. Lines 87–88 (line 83 in the coverage report): `satisfies` rejects a listing in another category, but the feed only fetches candidates in the post's category (`listOpenInCategory`). The check keeps the rule complete on its own, so a listing is in a request's feed exactly when the request is in the listing's. |
 | `errors.ts` | 75.86% | 58.33% | The handler is shared by the whole back-end. Every path the Deals routes use is covered. The uncovered paths are the `errorMessage` log helper, a response that has already started, a duplicate field in a post, and a document the database validator rejects. Deals input is checked before it reaches the database, so the Deals routes do not reach them. |
-| `app.ts`, `sessions.ts` | about 60% | below 64% | Shared start-up and auth code. The Deals tests cover the routes they use and `requireAuth`; the rest is sign-in and session refresh, which belong to Users and Auth. |
+| `app.ts` | 100% | 96.15% | One branch is code TypeScript adds, not ours. Line 3 of the compiled file (the coverage report numbers the compiled JavaScript) is the `__importDefault` helper that `import express from 'express'` compiles to. It returns the module unchanged only for a package compiled from ES modules, and Express is a CommonJS package, so that side is never taken. |
+| `sessions.ts` | 100% | 90% | Line 3 (compiled) is the same `__importDefault` helper, for `import jwt from 'jsonwebtoken'`. Lines 96–97 (70–71 in the report): `verifySessionToken` reads no claims from a token whose payload is a plain string, but `jwt.verify` is called with an issuer and audience, and it rejects a string payload because it has neither, so a string never reaches those lines. They stay because `jwt.verify` returns `string \| JwtPayload`. |
+| `googleAuth.ts` | 100% | 91.66% | Line 40 (27 in the report): `payload.email ?? ''` is for a ticket without an email. The line before it rejects an account whose `email_verified` is not `true`, and Google only sends `email_verified` together with `email` (both come from the `email` scope), so a ticket that gets this far always has an email. |
 
 ---
 
@@ -188,10 +196,14 @@ NFR 1: 100 requests, 1000 candidates: p50 43.0 ms, p95 45.0 ms, max 65.4 ms, mea
 Tests:       1 passed, 1 total
 ```
 
-**NFR 2:** the test mocks a routing service that never answers. It checks that `GET /api/feed` abandons the routing request after `ROUTING_TIMEOUT_MS` (2 seconds) and returns the ranked match with `travelMinutes` null and `travelTimesAvailable` false in under 3 seconds.
+**NFR 2:** the test replaces OpenRouteService with a mock for each way it can fail, and times one `GET /api/feed` request for my request, which one listing matches. For a service that never answers, it checks that the feed abandons the routing request after `ROUTING_TIMEOUT_MS` (2 seconds), so the time is at least 2 seconds, and still answers in under 3 seconds. For a service that is rate-limited (429), fails (500) or refuses the connection, it checks that the feed answers in under 3 seconds without waiting for the timeout. In every case the routing service is called once and the feed returns the ranked match with `travelMinutes` null and `travelTimesAvailable` false, which the app shows as "Travel time unavailable".
 
 ```
-Tests:       1 passed, 1 total
+NFR 2: routing service never answers: feed answered in 2023 ms (limit 3000 ms)
+NFR 2: routing service is rate-limited (429): feed answered in 8 ms (limit 3000 ms)
+NFR 2: routing service fails (500): feed answered in 6 ms (limit 3000 ms)
+NFR 2: routing service is unreachable: feed answered in 6 ms (limit 3000 ms)
+Tests:       4 passed, 4 total
 ```
 
 ---

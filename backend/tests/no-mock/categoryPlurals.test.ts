@@ -247,6 +247,7 @@ describe('Unmocked: normaliseStoredCategories', () => {
   }
 
   // Input: a stored listing with the category desks, and my request for a desk
+  // Expected status code: 200 from GET /api/feed after normaliseStoredCategories runs
   // Expected behavior: the stored listing becomes desk, so the feed finds it
   // Expected output: the listing is a match, with category desk
   test('Stored Plural Post Becomes A Match', async () => {
@@ -262,6 +263,7 @@ describe('Unmocked: normaliseStoredCategories', () => {
   });
 
   // Input: a stored listing with a plural category and no name, which the validator would now reject
+  // Expected status code: none, since normaliseStoredCategories runs at start-up rather than on a request
   // Expected behavior: it is still renamed, so an old post can't stop the backend starting
   // Expected output: the stored category is desk
   test('Post That Fails The Validator Is Still Renamed', async () => {
@@ -281,6 +283,7 @@ describe('Unmocked: normaliseStoredCategories', () => {
   });
 
   // Input: stored options books (built-in), desks and desk, and a stored word that only looks plural
+  // Expected status code: none, since normaliseStoredCategories runs at start-up rather than on a request
   // Expected behavior: plural options become singular, merging with one that already exists
   // Expected output: book, desk and electronics, with book still built-in
   test('Stored Plural Options Are Merged', async () => {
@@ -299,6 +302,7 @@ describe('Unmocked: normaliseStoredCategories', () => {
   });
 
   // Input: stored plural options for another field
+  // Expected status code: none, since normaliseStoredCategories runs at start-up rather than on a request
   // Expected behavior: only categories change
   // Expected output: the brand option is unchanged
   test('Other Options Are Left Alone', async () => {
@@ -310,6 +314,7 @@ describe('Unmocked: normaliseStoredCategories', () => {
   });
 
   // Input: a stored plural listing and option, normalised twice
+  // Expected status code: none, since normaliseStoredCategories runs at start-up rather than on a request
   // Expected behavior: it runs on every start, so a second run changes nothing
   // Expected output: the same category and option after both runs
   test('Running Twice Changes Nothing', async () => {

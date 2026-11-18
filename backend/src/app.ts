@@ -90,6 +90,8 @@ export function createApp({ sessions, store, e2eRoutes = false }: AppDeps): Expr
       }
     );
   });
+  // An auth body over the 4 KB limit is the client's mistake: 413, not 500.
+  app.use('/api/auth', ratingBodyTooLarge);
 
   // Posts carry photo ids and fields, so they get a larger body limit.
   if (store !== undefined) {
