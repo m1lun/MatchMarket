@@ -120,7 +120,7 @@ Main findings:
 | Use Cases 2–5 have no end-to-end tests | Added end-to-end tests for the Deals use cases ([PR \#167](https://github.com/m1lun/m1skeletonProject/pull/167)) and the Messaging use cases ([PR \#185](https://github.com/m1lun/m1skeletonProject/pull/185)). | Fixed |
 | NFR 1 has no test | Added the feed ranking latency test and its results ([PR \#209](https://github.com/m1lun/m1skeletonProject/pull/209)). | Fixed |
 | Coverage gaps are justified only for Deals | Testing.md now justifies every file below 100% across the back end ([PR \#202](https://github.com/m1lun/m1skeletonProject/pull/202), [\#209](https://github.com/m1lun/m1skeletonProject/pull/209)). | Fixed |
-| Major fault: no photos load on a physical device with the deployed back end | Not fixed yet. | Open |
+| Major fault: no photos load on a physical device with the deployed back end | Could not reproduce: photos loaded throughout the app on our physical device, a Samsung Galaxy S20 FE running Android 13, with the deployed back end. | Could not reproduce |
 | Links in Requirements_and_Design.md do not work | Not changed yet. | Open |
 | Use Case 1 mixes the request and listing flows | Not changed yet. | Open |
 | Use Case 3 describes the ranking algorithm | Not changed yet. | Open |
