@@ -38,6 +38,8 @@ import com.example.cpen321application.post.SessionRequestAuth
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import java.io.ByteArrayOutputStream
+import java.net.HttpURLConnection
+import java.net.URL
 import java.util.Random
 import org.junit.rules.ExternalResource
 
@@ -54,15 +56,34 @@ private const val RETRY_DELAY_MS = 1_000L
 private const val PICKER_PHOTO = "Photo taken on"
 private const val OPEN_ATTEMPTS = 3
 private const val FORM_WAIT_MS = 5_000L
+private const val NETWORK_WAIT_MS = 30_000L
+private const val NETWORK_POLL_MS = 250L
+private const val HEALTH_TIMEOUT_MS = 1_000
 
 fun mainRule(): MainRule = createAndroidComposeRule<MainActivity>()
 
 val device: UiDevice get() = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
 
+// Waits until the backend is really unreachable (on) or reachable again (off), not a fixed time.
 fun setAirplaneMode(on: Boolean) {
     device.executeShellCommand("cmd connectivity airplane-mode ${if (on) "enable" else "disable"}")
-    Thread.sleep(2_000)
+    val deadline = System.currentTimeMillis() + NETWORK_WAIT_MS
+    while (backendReachable() == on) {
+        check(System.currentTimeMillis() < deadline) { "The network did not turn ${if (on) "off" else "on"}" }
+        Thread.sleep(NETWORK_POLL_MS)
+    }
 }
+
+private fun backendReachable(): Boolean = runCatching {
+    val connection = URL(BuildConfig.API_BASE_URL.trimEnd('/') + "/health").openConnection() as HttpURLConnection
+    connection.connectTimeout = HEALTH_TIMEOUT_MS
+    connection.readTimeout = HEALTH_TIMEOUT_MS
+    try {
+        connection.responseCode == HttpURLConnection.HTTP_OK
+    } finally {
+        connection.disconnect()
+    }
+}.getOrDefault(false)
 
 fun SemanticsNodeInteraction.scrolled(): SemanticsNodeInteraction {
     runCatching { performScrollTo() }
