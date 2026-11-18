@@ -1,4 +1,4 @@
-import { MongoClient, ObjectId, type Collection, type Db, type Document, type MongoClientOptions } from 'mongodb';
+import { MongoClient, ObjectId, type ClientSession, type Collection, type Db, type Document, type MongoClientOptions } from 'mongodb';
 
 import { createGridFsPhotoStorage } from '../photos/storage';
 import { CUSTOM_FIELDS_COLLECTION, type CustomField } from '../models/customField';
@@ -45,6 +45,7 @@ import type {
   PostCollection,
   RatingCollection,
   RatingUpdate,
+  TransactionStore,
   ReputationCollection,
   SessionRepo,
   Store,
@@ -65,9 +66,16 @@ function toDocs<T extends { id: string }>(found: unknown[]): T[] {
   return (found as Stored<T>[]).map((stored) => toDoc<T>(stored));
 }
 
-async function insertDoc<T extends { id: string }>(collection: Collection, doc: Omit<T, 'id'>): Promise<T> {
+// The session option for a write inside a transaction; empty outside one.
+type InSession = { session: ClientSession } | Record<string, never>;
+
+function inSession(session?: ClientSession): InSession {
+  return session === undefined ? {} : { session };
+}
+
+async function insertDoc<T extends { id: string }>(collection: Collection, doc: Omit<T, 'id'>, options: InSession = {}): Promise<T> {
   const _id = new ObjectId();
-  await collection.insertOne({ ...doc, _id });
+  await collection.insertOne({ ...doc, _id }, options);
   return { ...doc, id: _id.toHexString() } as T;
 }
 
@@ -331,24 +339,29 @@ class MongoDealCollection implements DealCollection {
   }
 }
 
+// Ratings and reputations take an optional session, so they can write inside a transaction.
 class MongoRatingCollection implements RatingCollection {
-  constructor(private readonly collection: Collection) {}
+  private readonly tx: InSession;
+
+  constructor(private readonly collection: Collection, session?: ClientSession) {
+    this.tx = inSession(session);
+  }
 
   insert(doc: Omit<Rating, 'id'>): Promise<Rating> {
-    return insertDoc<Rating>(this.collection, doc);
+    return insertDoc<Rating>(this.collection, doc, this.tx);
   }
 
   async update(dealId: string, raterId: string, stars: number, comment: string, now: Date): Promise<RatingUpdate | null> {
     const before = await this.collection.findOneAndUpdate(
       { dealId, raterId },
       { $set: { stars, comment, updatedAt: now } },
-      { returnDocument: 'before' },
+      { returnDocument: 'before', ...this.tx },
     );
     if (before === null) {
       return null;
     }
     const previous = toDoc<Rating>(before as Stored<Rating>);
-    return { previous, rating: { ...previous, stars, comment, updatedAt: now } };
+    return { previousStars: previous.stars, rating: { ...previous, stars, comment, updatedAt: now } };
   }
 
   async listByDeals(dealIds: string[]): Promise<Rating[]> {
@@ -357,30 +370,28 @@ class MongoRatingCollection implements RatingCollection {
     }
     // Only what the deals list shows, not ratedUserId or updatedAt.
     const found = await this.collection
-      .find({ dealId: { $in: dealIds } }, { projection: { dealId: 1, raterId: 1, stars: 1, comment: 1, createdAt: 1 } })
+      .find(
+        { dealId: { $in: dealIds } },
+        { projection: { dealId: 1, raterId: 1, stars: 1, comment: 1, createdAt: 1 }, ...this.tx },
+      )
       .toArray();
     return toDocs<Rating>(found as unknown[]);
   }
 
   async removeByDealIds(dealIds: string[]): Promise<void> {
-    await this.collection.deleteMany({ dealId: { $in: dealIds } });
-  }
-
-  async remove(id: string): Promise<void> {
-    await this.collection.deleteOne({ _id: new ObjectId(id) });
-  }
-
-  async restore(previous: Rating): Promise<void> {
-    const { id, ...fields } = previous;
-    await this.collection.replaceOne({ _id: new ObjectId(id) }, fields);
+    await this.collection.deleteMany({ dealId: { $in: dealIds } }, this.tx);
   }
 }
 
 class MongoReputationCollection implements ReputationCollection {
-  constructor(private readonly collection: Collection) {}
+  private readonly tx: InSession;
+
+  constructor(private readonly collection: Collection, session?: ClientSession) {
+    this.tx = inSession(session);
+  }
 
   async find(userId: string): Promise<Reputation | null> {
-    const found = await this.collection.findOne({ userId }, WITHOUT_ID);
+    const found = await this.collection.findOne({ userId }, { ...WITHOUT_ID, ...this.tx });
     return found as Reputation | null;
   }
 
@@ -388,7 +399,7 @@ class MongoReputationCollection implements ReputationCollection {
     if (userIds.length === 0) {
       return [];
     }
-    const found = await this.collection.find({ userId: { $in: userIds } }, WITHOUT_ID).toArray();
+    const found = await this.collection.find({ userId: { $in: userIds } }, { ...WITHOUT_ID, ...this.tx }).toArray();
     return found as unknown as Reputation[];
   }
 
@@ -405,7 +416,7 @@ class MongoReputationCollection implements ReputationCollection {
           },
         },
       ],
-      { upsert: true, returnDocument: 'after', ...WITHOUT_ID },
+      { upsert: true, returnDocument: 'after', ...WITHOUT_ID, ...this.tx },
     );
     return updated as unknown as Reputation;
   }
@@ -414,13 +425,13 @@ class MongoReputationCollection implements ReputationCollection {
     const updated = await this.collection.findOneAndUpdate(
       { userId },
       { $inc: { starSum: delta }, $set: { updatedAt: now } },
-      { returnDocument: 'after', ...WITHOUT_ID },
+      { returnDocument: 'after', ...WITHOUT_ID, ...this.tx },
     );
     return updated as Reputation | null;
   }
 
   async remove(userId: string): Promise<void> {
-    await this.collection.deleteOne({ userId });
+    await this.collection.deleteOne({ userId }, this.tx);
   }
 }
 
@@ -614,6 +625,22 @@ export async function createMongoStore(uri: string, dbName: string, options?: Mo
     deals: new MongoDealCollection(db.collection(DEALS_COLLECTION)),
     ratings: new MongoRatingCollection(db.collection(RATINGS_COLLECTION)),
     reputations: new MongoReputationCollection(db.collection(REPUTATIONS_COLLECTION)),
+    transaction: async <T>(work: (tx: TransactionStore) => Promise<T>): Promise<T> => {
+      const session = client.startSession();
+      try {
+        // withTransaction commits, or aborts and rethrows, and retries the work on a transient error.
+        let result: T | undefined;
+        await session.withTransaction(async () => {
+          result = await work({
+            ratings: new MongoRatingCollection(db.collection(RATINGS_COLLECTION), session),
+            reputations: new MongoReputationCollection(db.collection(REPUTATIONS_COLLECTION), session),
+          });
+        });
+        return result as T;
+      } finally {
+        await session.endSession();
+      }
+    },
     conversations: new MongoConversationCollection(db.collection(CONVERSATIONS_COLLECTION)),
     messages: new MongoMessageCollection(db.collection(MESSAGES_COLLECTION)),
     photos: createGridFsPhotoStorage(db),

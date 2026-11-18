@@ -130,7 +130,7 @@ else {
     docker compose -f $TestCompose up -d --wait
     if ($LASTEXITCODE -ne 0) { Die "Could not start the test MongoDB." }
     $StartedMongo = $true
-    $env:TEST_MONGODB_URI = 'mongodb://127.0.0.1:27018'
+    $env:TEST_MONGODB_URI = 'mongodb://127.0.0.1:27018/?directConnection=true'
 }
 
 # ---------------------------------------------------------------------------

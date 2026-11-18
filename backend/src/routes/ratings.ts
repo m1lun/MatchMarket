@@ -15,6 +15,9 @@ import { handle } from './handle';
 // MongoDB's code for an insert that breaks a unique index.
 const DUPLICATE_KEY = 11000;
 
+// Thrown inside the rating transaction, so the transaction aborts and the route answers 409.
+class AlreadyRatedError extends Error {}
+
 const RATING_FIELDS = ['stars', 'comment'];
 
 function parseRating(body: unknown): { stars: number; comment: string } {
@@ -87,25 +90,27 @@ export function createRatingsRouter(store: Store): Router {
     const { dealId, me, ratedUserId } = myDeal;
     const now = new Date();
 
-    let rating: Rating;
+    let saved: { rating: Rating; reputation: Reputation };
     try {
-      rating = await store.ratings.insert({ dealId, raterId: me, ratedUserId, stars, comment, createdAt: now });
+      // One transaction, so a rating is never stored without being counted in the score.
+      saved = await store.transaction(async (tx) => {
+        let rating: Rating;
+        try {
+          rating = await tx.ratings.insert({ dealId, raterId: me, ratedUserId, stars, comment, createdAt: now });
+        } catch (error) {
+          throw (error as { code?: number }).code === DUPLICATE_KEY ? new AlreadyRatedError() : error;
+        }
+        const reputation = await tx.reputations.addRating(ratedUserId, stars, now);
+        return { rating, reputation };
+      });
     } catch (error) {
-      if ((error as { code?: number }).code === DUPLICATE_KEY) {
+      if (error instanceof AlreadyRatedError) {
         res.status(409).json({ error: 'You already rated this deal' });
         return;
       }
       throw error;
     }
-    let reputation: Reputation;
-    try {
-      reputation = await store.reputations.addRating(ratedUserId, stars, now);
-    } catch (error) {
-      // Undo the rating, so it is never stored without being counted and a retry can save it.
-      await store.ratings.remove(rating.id);
-      throw error;
-    }
-    res.status(201).json({ rating, otherUser: reputationSummary(ratedUserId, reputation) });
+    res.status(201).json({ rating: saved.rating, otherUser: reputationSummary(ratedUserId, saved.reputation) });
   }));
 
   // PUT /api/deals/:id/ratings — the caller replaces their rating of the deal and gets back the other party's new score.
@@ -118,21 +123,21 @@ export function createRatingsRouter(store: Store): Router {
     const { dealId, me, ratedUserId } = myDeal;
     const now = new Date();
 
-    const updated = await store.ratings.update(dealId, me, stars, comment, now);
-    if (updated === null) {
+    // One transaction, so the rating's stars always match the score.
+    const saved = await store.transaction(async (tx) => {
+      const updated = await tx.ratings.update(dealId, me, stars, comment, now);
+      if (updated === null) {
+        return null;
+      }
+      const delta = stars - updated.previousStars;
+      const reputation = delta === 0 ? await tx.reputations.find(ratedUserId) : await tx.reputations.changeStars(ratedUserId, delta, now);
+      return { rating: updated.rating, reputation };
+    });
+    if (saved === null) {
       res.status(404).json({ error: 'You have not rated this deal' });
       return;
     }
-    const delta = stars - updated.previous.stars;
-    let reputation: Reputation | null;
-    try {
-      reputation = delta === 0 ? await store.reputations.find(ratedUserId) : await store.reputations.changeStars(ratedUserId, delta, now);
-    } catch (error) {
-      // Put the old rating back, so its stars always match the score.
-      await store.ratings.restore(updated.previous);
-      throw error;
-    }
-    res.json({ rating: updated.rating, otherUser: reputationSummary(ratedUserId, reputation) });
+    res.json({ rating: saved.rating, otherUser: reputationSummary(ratedUserId, saved.reputation) });
   }));
 
   return router;

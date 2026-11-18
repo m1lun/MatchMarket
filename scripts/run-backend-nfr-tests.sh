@@ -51,7 +51,7 @@ else
   info "Starting a throwaway MongoDB (docker-compose.test.yml)..."
   docker compose -f "$ROOT/docker-compose.test.yml" up -d --wait || die "Could not start the test MongoDB."
   trap 'docker compose -f "$ROOT/docker-compose.test.yml" down >/dev/null 2>&1' EXIT
-  export TEST_MONGODB_URI="mongodb://127.0.0.1:27018"
+  export TEST_MONGODB_URI="mongodb://127.0.0.1:27018/?directConnection=true"
 fi
 
 info "Running backend NFR tests (tests/nfr/) ..."

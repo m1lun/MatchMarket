@@ -308,6 +308,20 @@ describe('Unmocked: POST /api/deals/:id/ratings', () => {
     expect(await storedRatings(mongo.db)).toMatchObject([{ stars: 5, comment: 'First' }]);
   });
 
+  // Input: { stars: 4 } from ME, sent twice at the same time on a deal ME has not rated
+  // Expected status code: 201 for one request and 409 for the other
+  // Expected behavior: one rating is stored and counted once, since the losing transaction saves nothing
+  // Expected output: { rating, otherUser } and { error: 'You already rated this deal' }
+  test('Same Rating Sent Twice At Once: 201 And 409', async () => {
+    const deal = await dealWithRating('POST');
+
+    const responses = await Promise.all([rate(app, 'POST', deal.id, { stars: 4 }), rate(app, 'POST', deal.id, { stars: 4 })]);
+
+    expect(responses.map((response) => Number(response.status)).sort()).toStrictEqual([201, 409]);
+    expect(await storedRatings(mongo.db)).toHaveLength(1);
+    expect(await mongo.store.reputations.find(OTHER)).toMatchObject({ starSum: 4, ratingCount: 1 });
+  });
+
   // Input: { stars: 5 } from ME, then { stars: 2 } from OTHER, on one deal
   // Expected status code: 201
   // Expected behavior: both ratings are stored and each party gets the other's stars

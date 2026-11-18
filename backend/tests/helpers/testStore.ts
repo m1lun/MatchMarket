@@ -6,7 +6,7 @@ import { MongoClient, type Db, type MongoClientOptions } from 'mongodb';
 import { createMongoStore } from '../../src/store/mongoStore';
 import type { Store } from '../../src/store/types';
 
-const TEST_MONGODB_URI: string = process.env.TEST_MONGODB_URI ?? 'mongodb://127.0.0.1:27018';
+const TEST_MONGODB_URI: string = process.env.TEST_MONGODB_URI ?? 'mongodb://127.0.0.1:27018/?directConnection=true';
 const REACH_TIMEOUT_MS = 3000;
 
 // Jest cannot run the driver's dynamic import('os'), so the handshake fails without this.
