@@ -22,6 +22,7 @@
 | 2026-11-14 | 2 | Added the Messaging coverage: which files are at 100%, a test for a conversation about a post saved before posts had names, and why the one remaining branch in `routes/conversations.ts` and `routes/paging.ts` cannot be reached. |
 | 2026-11-17 | 2, 3 | Added the interface tests of the Matching component, `GET /api/feed`, `GET /api/feed/listings` and `GET /api/feed/requests`, and why the two remaining branches in `matching/rank.ts` and `matching/satisfies.ts` cannot be reached. Added the NFR 1 test, feed ranking latency, with its verification and logs. |
 | 2026-11-18 | 3 | The NFR 2 test now also times a rate-limited, failing and unreachable routing service, and logs each response time, so the verification log shows the measured times rather than only the pass count. |
+| 2026-11-18 | 4 | Following TA feedback that only Create Post was described, added the test steps and logs of the Edit post and Delete post tests (`ManagePostsTest.kt`) and of the Deals end-to-end tests: Use Case 2: Rate a Deal, Edit a rating and View deals. |
 | 2026-11-18 | 2 | Added the interface tests of the auth routes, `POST /api/auth/google`, `POST /api/auth/refresh` and `POST /api/auth/logout`, and of the session token that every protected route checks. Writing them showed that an auth body over 4 KB returned 500, so it now returns 413. Replaced the `app.ts` and `sessions.ts` coverage row with the reasons for their remaining branches and for `googleAuth.ts`. |
 
 ---
@@ -217,7 +218,10 @@ Tests:       4 passed, 4 total
 | **Test class** | **Use cases** |
 | -------------- | ------------- |
 | [`CreatePostTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/CreatePostTest.kt) | [Use Case 1: Create Post](Requirements_and_Design.md#uc1), steps 1–7 |
-| [`ManagePostsTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/ManagePostsTest.kt) | [Use Case 1: Create Post](Requirements_and_Design.md#uc1), steps 1–2 and failure 2a. Its other tests cover the Edit post use case, including closing and reopening a post, and the Delete post use case ([Section 3.4](Requirements_and_Design.md#34-use-case-description)), which have no formal specification. |
+| [`ManagePostsTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/ManagePostsTest.kt) | Edit post, including closing and reopening a post, and Delete post ([Section 3.4](Requirements_and_Design.md#34-use-case-description)), which have no formal specification. One test also covers [Use Case 1: Create Post](Requirements_and_Design.md#uc1) failure 2a. |
+| [`RateDealTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/RateDealTest.kt) | [Use Case 2: Rate a Deal](Requirements_and_Design.md#uc2), steps 1–7 and failures 2a, 5a, 6a and 6b |
+| [`EditRatingTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/EditRatingTest.kt) | Edit a rating ([Section 3.4](Requirements_and_Design.md#34-use-case-description)) |
+| [`ViewDealsTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/ViewDealsTest.kt) | View deals ([Section 3.4](Requirements_and_Design.md#34-use-case-description)) |
 | [`SendMessageTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/SendMessageTest.kt) | [Use Case 4: Send a Message](Requirements_and_Design.md#uc4), steps 1–7 and failures 2a, 4a, 5a, 6a and 7a. Steps 1–2 and 2a are also the View conversations use case. |
 | [`StartConversationTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/StartConversationTest.kt) | Start a conversation ([Section 3.4](Requirements_and_Design.md#34-use-case-description)) |
 | [`SendProposalTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/SendProposalTest.kt) | Send a proposal ([Section 3.4](Requirements_and_Design.md#34-use-case-description)) |
@@ -232,6 +236,7 @@ Shared test steps are in `support/PostRobot.kt`, and the differences between the
 - **No mocking.** The tests talk to the real back-end. For failure scenarios 2a and 6a ("the network or server is unavailable"), the test switches on the emulator's airplane mode, and switches it off again in `@After` even if the test fails.
 - **Results checked on the server.** When a scenario says nothing is saved, the test asks the back-end with `testPosts()` and checks the list is empty, instead of trusting the screen.
 - **System UI.** The Android photo picker is not part of the app, so it is driven with UI Automator. `TestPhotos` adds small JPEGs to the emulator's gallery before each test and deletes them afterwards.
+- **A deal for the Deals tests.** Before each Deals test, `POST /api/e2e/deals` (Section 2) gives the signed-in tester a deal in which they sold the made-up "E2E Buyer" the request "E2E desk" for $45, and `DELETE /api/e2e/deals` removes it afterwards.
 - **A second user for Messaging.** Every conversation needs another user. Before each Messaging test, `POST /api/e2e/listings` or `POST /api/e2e/conversations` (Section 2) gives the signed-in tester a made-up partner, "E2E Seller", with an open listing "E2E lamp" and, if needed, a conversation with up to 40 messages. During a test, the E2E Seller replies, proposes and declines through the real conversation routes, so live updates reach the app exactly as they would from a second phone, and no manual tester is needed. `DELETE /api/e2e/conversations` removes everything afterwards, including a deal made by accepting a proposal. The tester's real conversations and deals are never touched.
 - **Back online after airplane mode.** The emulator needs several seconds to reconnect after airplane mode is turned off, so the tests call `waitUntilOnline()` before a step that needs the network again.
 
@@ -274,7 +279,7 @@ Leave out the class list to run every test in `e2e/`.
     | 4. The app shows the post form. | Check that the "Category \*" field is present on screen. |
     | 5. The user enters a name and a category and picks an address from the suggestions.<br>- For a request: a maximum price (required), and optionally a minimum condition, maximum size, search radius, brand and colour. Each of these fields, including the maximum price, is marked Hard or Soft, and a Soft field gets an importance from 1 to 5. The user may also add a description, custom fields, and up to 10 reference photos.<br>- For a listing: a price, a condition and 1–10 photos, and optionally a brand, colour, size, description and custom fields. | Input "Test item" in "Name \*".<br>Input "e2e chair" in "Category \*".<br>Input "6335 Thunderbird Crescent, Vancouver" in "Address \*", tap the first suggestion, and check that "✓ Address confirmed" is shown.<br>Input "150" as the price.<br>`[LISTING]`: tap "+ Add", select one photo in the system photo picker, tap "Done", and check that "Photos 1/10" is shown.<br>(`createsPostWithSeveralPhotos` selects three photos; `photoIsRequiredOnlyOnListings[REQUEST]` selects none, since photos are optional for requests; `createsPostWithOptionalFields` also inputs "Oak, barely used" in "Description", "120", "75" and "60" in "W", "H" and "D", "ikea" as the brand, "brown" as the colour, and a custom field "Material" with the value "oak" through "+ Add field", and picks "Fair" from the "Any" condition dropdown with a radius of "5" marked "Hard" (`[REQUEST]`) or picks "Like New" from the "Good" condition dropdown (`[LISTING]`).) |
     | 5a. A required field is missing or invalid. | **Missing category** (`rejectsMissingCategory`): open the form and tap the create button without filling it.<br>**Missing name** (`rejectsMissingName`): fill everything except the name and submit.<br>**Missing price** (`rejectsMissingPrice`): fill everything except the price and submit.<br>**Negative price** (`rejectsNegativePrice`): fill the form with the price "-5" and submit.<br>**Missing photo** (`photoIsRequiredOnlyOnListings[LISTING]`): fill everything except the photo and submit. |
-    | 5a1. The app shows an error message, such as "Choose a category", "Enter a name", "Max price is required", "Enter a price", "Add at least one photo", or for a price below 0 "max price must be at least 0" (request) or "price must be a number of at least 0" (listing). Nothing is saved. | **Missing category:** check that "Choose a category" is shown and the create button is still on screen.<br>**Missing name:** check that "Enter a name" is shown and the back-end has no test posts.<br>**Missing price:** check that "Max price is required" (`[REQUEST]`) or "Enter a price" (`[LISTING]`) is shown and the back-end has no test posts.<br>**Negative price:** check that an error containing "at least 0" (`[REQUEST]`) or "price must be" (`[LISTING]`) is shown and the back-end has no test posts.<br>**Missing photo:** check that "Add at least one photo" is shown and the back-end has no test posts. |
+    | 5a1. The app shows what is wrong, and nothing is saved. For either kind of post: "Choose a category" or "Enter a name". For a request: "Max price is required" or "max price must be at least 0". For a listing: "Enter a price", "price must be a number of at least 0" or "Add at least one photo". | **Missing category:** check that "Choose a category" is shown and the create button is still on screen.<br>**Missing name:** check that "Enter a name" is shown and the back-end has no test posts.<br>**Missing price:** check that "Max price is required" (`[REQUEST]`) or "Enter a price" (`[LISTING]`) is shown and the back-end has no test posts.<br>**Negative price:** check that an error containing "at least 0" (`[REQUEST]`) or "price must be" (`[LISTING]`) is shown and the back-end has no test posts.<br>**Missing photo:** check that "Add at least one photo" is shown and the back-end has no test posts. |
     | 5b. The address was typed but not picked from the suggestions. | (`rejectsAddressThatWasNotPicked`) Fill the form without picking an address, input "zzzzqqqqxxxx nowhere" in "Address \*", and submit. |
     | 5b1. The app highlights the address field and shows "Choose your address from the suggestions list". | Check that "Choose your address from the suggestions list" is shown and the back-end has no test posts. |
     | 5c. A photo is larger than 5 MB. | (`rejectsPhotoOverFiveMegabytes`) Replace the test photos in the gallery with a single JPEG larger than 5 MB. Fill the form without photos, select that photo in the photo picker, and submit. |
@@ -338,6 +343,126 @@ Leave out the class list to run every test in `e2e/`.
       closesAndReopensPost[LISTING]                    PASSED   8.48 s
 
     Finished 42 tests on Pixel_9(AVD) - 16: 42 passed, 0 failed, 0 skipped (550.4 s)
+    ```
+
+- **Edit post and Delete post** ([`ManagePostsTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/ManagePostsTest.kt), each test run once as `[REQUEST]` and once as `[LISTING]`). These use cases have no formal specification. Each test first creates a post through the form, as in Use Case 1 (category "e2e chair", price 150), unless noted.
+
+  | **Test** | **Test Case Steps** |
+  | -------- | ------------------- |
+  | `editsPost` | Open the post's "More options" menu and tap "Edit". Check that "Edit request" or "Edit listing" is shown, replace the price with "175" and tap "Save changes".<br>Check that My Posts is shown, open the post, and check that "175" is shown. |
+  | `rejectsInvalidEditAndKeepsPost` | Tap "Edit" in the menu, clear "Category \*" and tap "Save changes". Check that "Choose a category" is shown. Go back and check that My Posts still shows exactly one test post. |
+  | `closesAndReopensPost` | Tap "Close" in the menu and check that the post shows "Closed". Tap "Reopen" in the menu and check that it shows "Open". |
+  | `deletesPost` | Tap "Delete" in the menu and confirm with "Delete". Check that no test post is shown. |
+  | `managesPostFromItsDetailScreen` | Tap the post to open it. Tap "Close" and check "Closed", tap "Reopen" and check "Open". Tap "Edit", replace the price with "175", tap "Save changes" and check that "175" is shown. Tap the delete icon, confirm with "Delete", and check that no test post is shown. |
+  | `keepsPostWhenServerIsUnreachable` | Turn on airplane mode and tap "Close" in the menu. Check that "Could not reach the server" is shown. Turn off airplane mode and check that the post still shows "Open". |
+  | `keepsPostWhenEditCannotBeSaved` | Tap "Edit", replace the price with "175", turn on airplane mode and tap "Save changes". Check that "Could not reach the server" is shown. Turn off airplane mode, go back, and check that "175" is not shown. |
+  | `keepsPostClosedWhenReopenFails` | Close the post and check "Closed". Turn on airplane mode and tap "Reopen" in the menu. Check that "Could not reach the server" is shown. Turn off airplane mode and check that the post still shows "Closed". |
+  | `keepsPostWhenDeleteFails` | Turn on airplane mode, tap "Delete" in the menu and confirm. Check that "Could not reach the server" is shown. Turn off airplane mode and check that the test post is still shown. |
+  | `showsErrorWhenPostsCannotLoad` | No post is created. Open the other kind of post, turn on airplane mode, and tap "I'm buying" or "I'm selling". Check that "Could not reach the server" is shown (Use Case 1, failure 2a). |
+
+  - **Test Logs:**
+    ```
+    Pixel_9(AVD) - 16 (Android 16, API 36), 2026-11-18, .\gradlew.bat connectedDebugAndroidTest (every test in e2e/)
+    main 3e448e4 (PR #230), run on its branch commit ae80bb6, which has the same code
+
+    com.example.cpen321application.e2e.ManagePostsTest
+      closesAndReopensPost[LISTING]                  PASSED   12.48 s
+      closesAndReopensPost[REQUEST]                  PASSED    9.29 s
+      deletesPost[LISTING]                           PASSED   12.47 s
+      deletesPost[REQUEST]                           PASSED    9.77 s
+      editsPost[LISTING]                             PASSED   12.92 s
+      editsPost[REQUEST]                             PASSED   19.81 s
+      keepsPostClosedWhenReopenFails[LISTING]        PASSED   16.70 s
+      keepsPostClosedWhenReopenFails[REQUEST]        PASSED   14.06 s
+      keepsPostWhenDeleteFails[LISTING]              PASSED   25.30 s
+      keepsPostWhenDeleteFails[REQUEST]              PASSED   23.36 s
+      keepsPostWhenEditCannotBeSaved[LISTING]        PASSED   26.42 s
+      keepsPostWhenEditCannotBeSaved[REQUEST]        PASSED   22.58 s
+      keepsPostWhenServerIsUnreachable[LISTING]      PASSED   25.14 s
+      keepsPostWhenServerIsUnreachable[REQUEST]      PASSED   23.17 s
+      managesPostFromItsDetailScreen[LISTING]        PASSED   23.14 s
+      managesPostFromItsDetailScreen[REQUEST]        PASSED   20.71 s
+      rejectsInvalidEditAndKeepsPost[LISTING]        PASSED   23.10 s
+      rejectsInvalidEditAndKeepsPost[REQUEST]        PASSED   20.02 s
+      showsErrorWhenPostsCannotLoad[LISTING]         PASSED    9.15 s
+      showsErrorWhenPostsCannotLoad[REQUEST]         PASSED    7.43 s
+
+    20 tests: 20 passed, 0 failed, 0 skipped (357.0 s)
+    ```
+
+- **Use Case 2: Rate a Deal** ([`RateDealTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/RateDealTest.kt)). Each test starts with the seeded deal, which the tester has not rated.
+
+  - **Expected Behaviors:**
+
+    | **Scenario Steps** | **Test Case Steps** |
+    | ------------------ | ------------------- |
+    | 1. The user opens the Deals tab. | (`ratesDeal`) Tap "Deals". |
+    | 2. The app shows the user's deals, newest first, with "Rate" on each deal they have not rated yet. | Wait for the seeded deal's "Rate" button. |
+    | 2a. The deals cannot be loaded. | (`showsErrorWhenDealsCannotLoad`) Turn on airplane mode and tap "Deals". |
+    | 2a1. The app shows "Could not reach the server. Check your connection." and a "Retry" button. | Check that "Could not reach the server" and the "Retry" button are shown.<br>Turn off airplane mode, tap "Retry", and check that the seeded deal's "Rate" button appears. |
+    | 3. The user taps "Rate" on a deal. | Tap "Rate" on the seeded deal. |
+    | 4. The app shows the stars and an optional comment field. | Check that the five star buttons and the comment field are shown. |
+    | 5. The user picks 1 to 5 stars, optionally writes a comment, and taps "Submit". | Tap the fourth star, input "Smooth deal" as the comment, and tap "Submit". |
+    | 5a. The user has not picked any stars. | (`submitDisabledWithoutStars`) Tap "Rate" on the seeded deal. |
+    | 5a1. "Submit" is disabled. | Check that "Submit" is disabled, and still disabled after inputting "No stars yet" as the comment. Tap the third star and check that "Submit" is enabled. |
+    | 6. The system saves the rating and updates the other user's score. | Check on the back-end that the tester's rating of the deal has 4 stars. |
+    | 6a. The user already rated this deal on another device. | (`rejectsSecondRatingFromAnotherDevice`) Tap "Rate" and the fifth star. Rate the deal with 2 stars through the API, as if from another device, then tap "Submit". |
+    | 6a1. The app shows "You already rated this deal" and the first rating is unchanged. | Check that "You already rated this deal" is shown, and on the back-end that the rating still has 2 stars. Tap "Cancel", reload the Deals tab, and check that "★★☆☆☆" is shown. |
+    | 6b. The network or server is unavailable. | (`keepsRatingUnsavedWhenServerIsUnreachable`) Tap "Rate" and the third star, turn on airplane mode, and tap "Submit". |
+    | 6b1. The app shows "Could not reach the server. Check your connection." and the rating is not saved. | Check that "Could not reach the server" is shown. Turn off airplane mode and check on the back-end that the deal has no rating from the tester. Tap "Cancel", reload the Deals tab, and check that "Rate" is still shown. |
+    | 7. The app shows the rating and the other user's new score on the deal. | Check that "Smooth deal", "★★★★☆" and the score "★ 4.0 (1)" are shown. |
+
+  - **Test Logs:**
+    ```
+    Pixel_9(AVD) - 16 (Android 16, API 36), 2026-11-18, .\gradlew.bat connectedDebugAndroidTest (every test in e2e/)
+    main 3e448e4 (PR #230), run on its branch commit ae80bb6, which has the same code
+
+    com.example.cpen321application.e2e.RateDealTest
+      keepsRatingUnsavedWhenServerIsUnreachable      PASSED    7.95 s
+      ratesDeal                                      PASSED    3.61 s
+      rejectsSecondRatingFromAnotherDevice           PASSED    4.39 s
+      showsErrorWhenDealsCannotLoad                  PASSED   15.13 s
+      submitDisabledWithoutStars                     PASSED    3.66 s
+
+    5 tests: 5 passed, 0 failed, 0 skipped (34.7 s)
+    ```
+
+- **Edit a rating** ([`EditRatingTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/EditRatingTest.kt)). This use case has no formal specification. Each test starts with the seeded deal, rated 4 stars with the comment "Smooth deal" through the API.
+
+  | **Test** | **Test Case Steps** |
+  | -------- | ------------------- |
+  | `editsRating` | Tap "Deals" and "Edit" on the seeded deal. Check that "Edit your rating" and "Smooth deal" are shown. Tap the second star, replace the comment with "Late pickup", and tap "Save".<br>Check that "Late pickup", "★★☆☆☆" and the score "★ 2.0 (1)" are shown, and on the back-end that the rating has 2 stars and the comment "Late pickup". |
+  | `keepsRatingWhenEditCannotBeSaved` | Tap "Edit" on the seeded deal and the first star, turn on airplane mode, and tap "Save". Check that "Could not reach the server" is shown. Turn off airplane mode and check on the back-end that the rating still has 4 stars and "Smooth deal". Tap "Cancel", reload the Deals tab, and check that "★★★★☆" is shown. |
+
+  - **Test Logs:**
+    ```
+    Pixel_9(AVD) - 16 (Android 16, API 36), 2026-11-18, .\gradlew.bat connectedDebugAndroidTest (every test in e2e/)
+    main 3e448e4 (PR #230), run on its branch commit ae80bb6, which has the same code
+
+    com.example.cpen321application.e2e.EditRatingTest
+      editsRating                                    PASSED    3.75 s
+      keepsRatingWhenEditCannotBeSaved               PASSED    9.40 s
+
+    2 tests: 2 passed, 0 failed, 0 skipped (13.2 s)
+    ```
+
+- **View deals** ([`ViewDealsTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/ViewDealsTest.kt)). This use case has no formal specification. Each test starts with the seeded deal.
+
+  | **Test** | **Test Case Steps** |
+  | -------- | ------------------- |
+  | `showsDeal` | Tap "Deals". Check that the card shows the price "$45.00", "You sold to", the other user's score "New" (nobody has rated them), and "Request". |
+  | `opensRequestOfDeal` | Tap "Deals" and "Request" on the card. Check that "E2E desk" and "Closed" are shown, and that neither "Delete" nor "Reopen" is shown, since the request is not the tester's. Go back and check that the Deals tab is shown again. |
+
+  - **Test Logs:**
+    ```
+    Pixel_9(AVD) - 16 (Android 16, API 36), 2026-11-18, .\gradlew.bat connectedDebugAndroidTest (every test in e2e/)
+    main 3e448e4 (PR #230), run on its branch commit ae80bb6, which has the same code
+
+    com.example.cpen321application.e2e.ViewDealsTest
+      opensRequestOfDeal                             PASSED    2.33 s
+      showsDeal                                      PASSED    2.00 s
+
+    2 tests: 2 passed, 0 failed, 0 skipped (4.3 s)
     ```
 
 - **Use Case 4: Send a Message** ([`SendMessageTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/SendMessageTest.kt)). Each test starts with a conversation with the E2E Seller about "E2E lamp", holding one message from them, "Message 1". Steps 7 and 7a are about the user who receives the message, so in those tests the signed-in tester receives it and the E2E Seller sends it.
