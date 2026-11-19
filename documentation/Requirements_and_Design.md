@@ -47,6 +47,12 @@
 | 2026-11-18 | 4.1 | `POST /api/auth/google`, `/refresh` and `/logout`: listed what each returns and its 400, 401 and 413 errors, and that reusing a refresh token revokes the whole sign-in, as tested by their interface tests. |
 | 2026-11-18 | 3.5, 4.6 | Following TA and peer-review feedback, the Create Post, Rate a Deal, View Recommendations and Filter Feed sequence diagrams now show every failure scenario of their use cases, and every database write has a reply. Rate a Deal shows that the Deals tab offers "Rate" only on deals the user has not rated, and that the rating and score are saved in one transaction. Filter Feed no longer shows a 400 for invalid filters, which the app never sends because it disables "Apply". Use Case 2 now names the messages the app shows when the deals or the rating cannot reach the server. Each branch is labelled with its use case step, and failures with the same result share a branch. |
 | 2026-11-18 | 4.4 | Following TA feedback that the app had two HTTP paths, it now uses OkHttp for every request, so HttpURLConnection is no longer listed. |
+| 2026-11-18 | 3.5, 4.6 | Following TA feedback, a user with no open posts, recommendations with no results and filters with no results are now part of the success scenarios of Use Cases 3 and 5 instead of failures, and the later failures are renumbered (Use Case 3: 1b is now 1a; Use Case 5: 5b is now 5a). The sequence diagrams follow. |
+| 2026-11-18 | 4.1 | Following TA feedback, each route is listed under the component that serves it: `GET /api/users/:id/reputation` moved from Users and Auth to Deals, which keeps the reputations, and `GET /api/feed/listings/:id` and `/requests/:id` moved from Deals to Matching, which serves them. The option and custom field routes are listed one by one, with their parameters, results and errors. |
+| 2026-11-18 | 4.2, 5 | Following TA feedback that Section 5 is not part of the template, the collections and data rules moved to Section 4.2, Databases, and Section 5 was removed. |
+| 2026-11-18 | 3.5 | Following peer-review feedback, Use Case 1 says which failures apply to requests and which to listings. The use case links now use `id` anchors, which more Markdown viewers support. |
+| 2026-11-19 | 4.7 | Following peer feedback that the NFR 2 test used only one candidate post, NFR 2 is now measured with the NFR 1 workload of 1,000 candidates, and checks that the feed keeps its ranked order without travel times. Updated the measured times of both NFRs. |
+| 2026-11-19 | 3.5, 4.1 | Following TA and peer-review feedback, Use Case 3 steps 3–5 now say what the system does for the user instead of how it ranks; the scoring details moved to the `rank` interface of Matching in 4.1. |
 
 ---
 
@@ -126,11 +132,11 @@ Each use case covers one goal, and the user starts each of them directly, so the
 
 ### **3.5. Formal Use Case Specifications (5 Most Major Use Cases)**
 
-<a name="uc1"></a>
+<a id="uc1"></a>
 
 #### Use Case 1: Create Post
 
-**Description**: A user creates a buyer request or a seller listing, which then appears in their My Posts.
+**Description**: A user creates a buyer request or a seller listing, which then appears in their My Posts. The steps are the same for both kinds of post; where they differ, the step says which.
 
 **Primary actor(s)**: Buyer, Seller
 
@@ -149,7 +155,7 @@ Each use case covers one goal, and the user starts each of them directly, so the
 - 2a. The network or server is unavailable when the posts are loaded.
     - 2a1. The app shows "Could not reach the server. Check your connection."
 - 5a. A required field is missing or invalid.
-    - 5a1. The app shows an error message, such as "Choose a category", "Enter a name", "Max price is required", "Enter a price", "Add at least one photo", or for a price below 0 "max price must be at least 0" (request) or "price must be a number of at least 0" (listing). Nothing is saved.
+    - 5a1. The app shows what is wrong, and nothing is saved. For either kind of post: "Choose a category" or "Enter a name". For a request: "Max price is required" or "max price must be at least 0". For a listing: "Enter a price", "price must be a number of at least 0" or "Add at least one photo".
 - 5b. The address was typed but not picked from the suggestions.
     - 5b1. The app highlights the address field and shows "Choose your address from the suggestions list".
 - 5c. A photo is larger than 5 MB.
@@ -159,7 +165,7 @@ Each use case covers one goal, and the user starts each of them directly, so the
 - 6a. The network or server is unavailable when the post is submitted.
     - 6a1. The app shows "Could not reach the server. Check your connection." and the form keeps what the user entered.
 
-<a name="uc2"></a>
+<a id="uc2"></a>
 
 #### Use Case 2: Rate a Deal
 
@@ -186,7 +192,7 @@ Each use case covers one goal, and the user starts each of them directly, so the
 - 6b. The network or server is unavailable.
     - 6b1. The app shows "Could not reach the server. Check your connection." and the rating is not saved.
 
-<a name="uc3"></a>
+<a id="uc3"></a>
 
 #### Use Case 3: View Recommendations for a Post
 
@@ -195,20 +201,16 @@ Each use case covers one goal, and the user starts each of them directly, so the
 **Primary actor(s)**: Buyer, Seller
 
 **Main success scenario**:
-1. The user opens one of their open posts and taps "See recommendations", or picks the post under "Recommended for" in the feed filters.
+1. The user opens one of their open posts and taps "See recommendations", or picks the post under "Recommended for" in the feed filters. If the user has no open posts, the feed filters show "You have no open posts to get recommendations for" instead.
 2. The app shows "Recommended for: <post>".
-3. The system takes other users' open posts in the same category and keeps those that meet the request's hard requirements: within the request's radius (10 km if none was set) and every field the buyer marked Hard. Any feed filters (Use Case 5) also apply.
-4. The system scores each remaining post on price, condition, distance and preference match, weights the four scores equally, and orders the best first. In the preference match, each soft preference counts by its importance from 1 to 5, or 3 if it has none. A listing over a soft maximum price or below a soft minimum condition loses more score the further it misses; the price penalty stops growing at 50% over the maximum.
-5. The system requests walking travel times for the first 20 results from OpenRouteService.
-6. The app shows the ranked list, 20 at a time; each item shows its price or budget, its condition (listings), and its distance, plus its travel time on the first page, such as "12 min walk".
+3. The system finds other users' open posts in the same category that meet every requirement the buyer marked Hard, within the request's search radius (10 km if none was set), and that match any feed filters (Use Case 5).
+4. The system puts the posts that best fit the buyer's soft preferences first. How they are scored is described under [Matching](#41-main-components).
+5. The system looks up the walking travel time to each of the first 20 results.
+6. The app shows the ranked list, 20 at a time; each item shows its price or budget, its condition (listings), and its distance, plus its travel time on the first page, such as "12 min walk". If no post fits, the app shows "Nothing here yet. Try changing the filters or check back soon." and a "Refresh" button.
 
 **Failure scenario(s)**:
-- 1a. The user has no open posts.
-    - 1a1. The feed filters show "You have no open posts to get recommendations for".
-- 1b. The post is closed.
-    - 1b1. "See recommendations" is not shown, and the server returns no feed for it (409).
-- 3a. No posts meet the hard requirements.
-    - 3a1. The app shows "Nothing here yet. Try changing the filters or check back soon." and a "Refresh" button.
+- 1a. The post is closed.
+    - 1a1. "See recommendations" is not shown, and the server returns no feed for it (409).
 - 5a. The routing service is unavailable, rate-limited or takes more than 2 seconds.
     - 5a1. The app shows the ranked list without travel times, and each item on the first page shows "Travel time unavailable".
 - 5b. No route exists for the user's travel mode.
@@ -216,7 +218,7 @@ Each use case covers one goal, and the user starts each of them directly, so the
 - 6a. The network or server is unavailable.
     - 6a1. The app shows "Couldn't load the feed. Check your connection and try again." and a "Retry" button.
 
-<a name="uc4"></a>
+<a id="uc4"></a>
 
 #### Use Case 4: Send a Message
 
@@ -245,7 +247,7 @@ Each use case covers one goal, and the user starts each of them directly, so the
 - 7a. The other user's connection to the server was lost.
     - 7a1. Their app reconnects and reloads the conversation, which then shows the message. A connection that fails with an error is replaced within a few seconds; one that stops without an error is noticed by the app's 60-second read timeout, so the message can take up to about a minute to appear.
 
-<a name="uc5"></a>
+<a id="uc5"></a>
 
 #### Use Case 5: Filter Feed
 
@@ -258,7 +260,7 @@ Each use case covers one goal, and the user starts each of them directly, so the
 2. The app shows other users' open posts of that kind, newest first. If the user has set a home address on their profile, the feed starts filtered to posts within 50 km of it, and the Filters sheet shows that address and distance.
 3. The user taps "Filters" and sets any of: category, minimum and maximum price ("Min budget" and "Max budget" for requests), and "Near address", picked from the suggestions, with "Within (km)".
 4. The user taps "Apply".
-5. The app reloads the list with only the posts that pass the filters; "Clear" removes the filters.
+5. The app reloads the list with only the posts that pass the filters; "Clear" removes the filters. If no posts pass the filters, the app shows "Nothing here yet. Try changing the filters or check back soon." and a "Refresh" button.
 
 **Failure scenario(s)**:
 - 2a. The network or server is unavailable.
@@ -271,20 +273,18 @@ Each use case covers one goal, and the user starts each of them directly, so the
     - 3c1. The app shows "Pick an address to filter by distance".
 - 3d. The distance is outside 0–100 km.
     - 3d1. The app shows "Enter a distance from 0 to 100".
-- 5a. No posts pass the filters.
-    - 5a1. The app shows "Nothing here yet. Try changing the filters or check back soon." and a "Refresh" button.
-- 5b. The network or server is unavailable.
-    - 5b1. The app shows "Couldn't load the feed. Check your connection and try again." and a "Retry" button.
+- 5a. The network or server is unavailable.
+    - 5a1. The app shows "Couldn't load the feed. Check your connection and try again." and a "Retry" button.
 
 ### **3.7. Non-Functional Requirements**
 
-<a name="nfr1"></a>
+<a id="nfr1"></a>
 
 1. **Performance: Feed ranking latency**
     - **Description**: The feed returns the first page of ranked recommendations for a post within 1 second for 95% of requests, with 1,000 open candidate posts in the same category, not counting the travel-time lookup. Section 4.7 describes how it is measured.
     - **Justification**: Recommendations are the core of the app, so the feed must load quickly. 1 second is the limit for a user's flow of thought to stay uninterrupted ([Nielsen Norman Group, "Response Times: The 3 Important Limits"](https://www.nngroup.com/articles/response-times-3-important-limits/)), and 1,000 open posts in one category is several times more than we expect from a student community.
 
-<a name="nfr2"></a>
+<a id="nfr2"></a>
 
 2. **Reliability: Graceful degradation without the routing service**
     - **Description**: If the external routing service fails, times out or is rate-limited, the feed still returns the ranked recommendations within 3 seconds, without travel times, and shows that travel time is unavailable.
@@ -315,8 +315,16 @@ Each use case covers one goal, and the user starts each of them directly, so the
             - **Purpose**: Upload 1–10 photos using multipart form data. Accepted MIME types are JPEG, PNG, WebP and GIF, with a current limit of 5 MB per photo. Returns the uploaded photo IDs.
         7. `GET /api/photos/:id`
             - **Purpose**: Retrieve a photo from GridFS for any signed-in user; 401 without a valid session token, 404 if the photo does not exist. Only the user's own device may cache it.
-        8. Options and custom fields
-            - **Purpose**: `/api/options` supports retrieving and adding option values. `/api/custom-fields` supports retrieving and saving the user's reusable field definitions, returning 409 if the user already has a field with the same name, in any case; `/api/custom-fields/:key` supports deleting a definition.
+        8. `GET /api/options?field=<field>`
+            - **Purpose**: Return the values users can pick for a field, such as category, brand, colour or a custom text field, as `[{ field, key, label, builtin, createdBy, createdAt }]`, sorted by label. 400 without `field`.
+        9. `POST /api/options`
+            - **Purpose**: Add a value to a field's list from JSON `{ field, label }`, with a label of 1 to 60 characters; categories are saved in the singular. Returns 201 with the option, or with the existing one when the list already has it. 400 for a missing field or label.
+        10. `GET /api/custom-fields`
+            - **Purpose**: Return the caller's reusable custom field definitions as `[{ ownerId, key, label, type }]`.
+        11. `POST /api/custom-fields`
+            - **Purpose**: Save a custom field definition from JSON `{ label, type }`: a label of 1 to 60 characters and a type of text, number or bool. Returns 201 with the definition. 400 for a bad label or type, or a label that names a built-in field; 409 if the caller already has a field with the same name, in any case.
+        12. `DELETE /api/custom-fields/:key`
+            - **Purpose**: Delete one of the caller's definitions. Returns 204, or 404 if the caller has none with that key.
 
 2. **Matching**
     - **Purpose**: Hard-requirement filtering and weighted ranking in both directions, plus travel time.
@@ -326,11 +334,13 @@ Each use case covers one goal, and the user starts each of them directly, so the
             - **Purpose**: Return the feed for the user's own request or listing, with travel times for the first page: each recommendation has travelMinutes, and the response has travelMode and travelTimesAvailable, which is false when the routing service did not answer. The post type decides the direction: a request returns listings, a listing returns requests. Every parameter except postId, limit and cursor is an optional temporary filter. A value looser than the saved requirement is ignored, and an unsupported parameter returns 400. Returns 404 if the post does not exist, 403 for another user's post and 409 for a closed post. The planned minCondition filter (request feeds only) and sort=best|nearest|cheapest are not implemented yet.
         2. `GET /api/feed/listings` and `GET /api/feed/requests`
             - **Purpose**: Return other users' open posts, newest first, with the same filters; `before` pages through them.
-        3. `boolean satisfies(Request request, Listing listing)`
+        3. `GET /api/feed/listings/:id` and `GET /api/feed/requests/:id`
+            - **Purpose**: Return one listing or request, open or closed, to any signed-in user. The Deals tab uses it to open the posts of a deal. 404 for a malformed or unknown id.
+        4. `boolean satisfies(Request request, Listing listing)`
             - **Purpose**: The single hard-requirement rule (category and straight-line distance within radius, plus price, condition, dimensions or any other field the buyer marked hard) used by both feed directions.
-        4. `List<RankedMatch> rank(Post source, List<Post> candidates, Weights weights)`
-            - **Purpose**: Score each candidate on price, condition, distance, and brand/colour match, and order by the viewer's weights. Soft preferences count by their importance, and missing a soft maximum price or soft minimum condition lowers the score, which can go below 0.
-        5. `List<Duration> travelTimes(Location origin, List<Location> destinations, TravelMode mode)`
+        5. `List<RankedMatch> rank(Post source, List<Post> candidates, Weights weights)`
+            - **Purpose**: Score each candidate on price, condition, distance and preference match, and order the best first by the viewer's weights, which count the four scores equally until users can save ranking preferences. In the preference match, each soft preference counts by its importance from 1 to 5, or 3 if it has none. A listing over a soft maximum price or below a soft minimum condition loses more score the further it misses, which can go below 0; the price penalty stops growing at 50% over the maximum.
+        6. `List<Duration> travelTimes(Location origin, List<Location> destinations, TravelMode mode)`
             - **Purpose**: Get travel times from the external routing service for one page of results; returns empty when it is unavailable.
 
 3. **Users and Auth**
@@ -347,9 +357,7 @@ Each use case covers one goal, and the user starts each of them directly, so the
             - **Purpose**: Return the signed-in user's profile: names, email, photo URL, address and location if set, and when it was created and updated. 404 if there is none.
         5. `PATCH /api/users/me`
             - **Purpose**: Set the profile address from JSON `{ address, location: { longitude, latitude } }`, or clear it with `{ address: null, location: null }`. Returns the updated profile, with the address trimmed. 400 for an unsupported field, a missing or blank address, an address over 200 characters, a missing, malformed or out-of-range location, only one of the two cleared, or malformed JSON; 413 for a body over 4 KB; 404 if the user has no profile.
-        6. `GET /api/users/:id/reputation`
-            - **Purpose**: Return a user's reputation as `{ userId, score, ratingCount }`: score is the average of the ratings they received, or null when nobody has rated them.
-        7. `userId requireAuth(token)`
+        6. `userId requireAuth(token)`
             - **Purpose**: Internal interface protecting every other route.
 
 4. **Deals**
@@ -363,13 +371,11 @@ Each use case covers one goal, and the user starts each of them directly, so the
             - **Purpose**: Rate the other side of a deal from JSON `{ stars, comment }`: whole stars from 1 to 5, and an optional comment of up to 300 characters. Returns 201 with `{ rating, otherUser }`. Unknown fields return 400, a body over 4 KB returns 413, a caller outside the deal gets 403, an unknown deal returns 404, and a second rating returns 409.
         3. `PUT /api/deals/:id/ratings`
             - **Purpose**: Replace the caller's rating, with the same body and errors as `POST`. Returns 200 with `{ rating, otherUser }`, or 404 if the caller has not rated the deal.
-        4. `GET /api/feed/listings/:id`
-            - **Purpose**: Return one listing, open or closed, to any signed-in user, so a deal card can open its listing. 404 for a malformed or unknown id. The route sits under `/api/feed`, but the Deals tab is its only caller.
-        5. `GET /api/feed/requests/:id`
-            - **Purpose**: Return one request, open or closed, to any signed-in user, so a deal card can open its request. 404 for a malformed or unknown id. The route sits under `/api/feed`, but the Deals tab is its only caller.
-        6. `Deal insert(Deal deal)`
+        4. `GET /api/users/:id/reputation`
+            - **Purpose**: Return a user's reputation as `{ userId, score, ratingCount }`: score is the average of the ratings they received, or null when nobody has rated them. The route sits under `/api/users`, but Deals keeps the reputations.
+        5. `Deal insert(Deal deal)`
             - **Purpose**: Internal interface that records a deal. Messaging calls it when a proposal is accepted, with the listing, request, seller and buyer of the conversation and the proposed price. Rejects a deal with neither a listing nor a request, or a second deal for the same listing or request.
-        7. `Deal findByPosts(String listingId, String requestId)`
+        6. `Deal findByPosts(String listingId, String requestId)`
             - **Purpose**: Internal interface that returns the deal on the listing or the request, or null if neither has one. Messaging calls it before recording a deal, so that accepting a proposal again after a failed accept finishes that deal rather than reporting the posts as taken.
 
 5. **Messaging**
@@ -398,6 +404,45 @@ Each use case covers one goal, and the user starts each of them directly, so the
 
 1. **MongoDB** (self-hosted in Docker on the cloud VM)
     - **Purpose**: Stores users, requests, listings, options, custom fields, sessions, deals, ratings, reputations, conversations and messages. Photos for requests and listings are stored in the same database using GridFS (fs.files and fs.chunks), and each post keeps the ids of its photos. Geospatial index on post locations.
+
+    **Collections and data rules:**
+
+    | **Collection** | **Key fields** |
+    | -------------- | -------------- |
+    | users | id (the Google account id, which is every post's ownerId), firstName, lastName, email, pictureUrl (or null), address and location (both set or both absent), createdAt, updatedAt |
+    | requests | ownerId, name, category, description, requestFields[] (built-in price (max), condition (min), dimensions {width, height, depth} (max), radiuskm, brand, colour, plus custom fields; each hard, or soft with an importance 1 to 5), address, location, photoIds[] (optional GridFS file ids), status (open, closed) |
+    | listings | ownerId, name, category, description, price, condition, listingFields[] (built-in brand, dimensions {width, height, depth}, colour, plus custom fields), address, location, photoIds[] (GridFS file ids), status (open, closed) |
+    | options | field, key, label, builtin, createdBy |
+    | customFields | ownerId, key, label, type (text, number, bool) |
+    | sessions | tokenHash, familyId, userId, expiresAt, usedAt |
+    | conversations | listingId, requestId (either may be null, not both), sellerId, buyerId, postKind (the post that was tapped: listing or request), lastMessage {senderId, text, createdAt} or null, proposal {proposerId, price, note (up to 300 characters), status (pending, accepted, declined), createdAt} (absent until the first proposal), createdAt, updatedAt |
+    | messages | conversationId, senderId, text (1 to 1000 characters), createdAt |
+    | deals | listingId, requestId (either may be null, not both), sellerId, buyerId, agreedPrice, createdAt |
+    | ratings | dealId, raterId, ratedUserId, stars (whole number 1 to 5), comment (up to 300 characters), createdAt, updatedAt (only after an edit) |
+    | reputations | userId, starSum, ratingCount, updatedAt |
+
+    Condition is one of five ordered levels: new, like new, good, fair, poor.
+
+    **Posts data rules:**
+    - The backend obtains ownerId from the authenticated session. New posts start open. Closing retains a record; the current API also supports reopening and permanent deletion.
+    - Both post types require name, category, address and coordinates. Requests require a built-in price field. Listings require non-negative top-level price, a valid condition and at least one photo ID. Request price, radius and size cannot be negative. The 1–50 km radius rule is not enforced by the inspected request-field validation; it must not be claimed as completed validation.
+    - Requests allow 0–10 photo IDs and listings 1–10. Actual upload size is at most 5 MB per file. Post validation checks ID format/count; photo existence and ownership checks are not established by that validation.
+    - Categories are normalized, extendable option values rather than a fixed list. They are saved in the singular, so desks is saved as desk, except words that only look plural, such as glass and electronics. Existing posts and category options are converted when the backend starts. Description is supported, up to 2,000 characters. The name, up to 80 characters, is the post's title; posts saved before names were added use their category as the name. Dimensions use cm and radius uses km; CAD remains the intended currency.
+    - Unfilled optional editor rows are omitted. Existing post addresses and coordinates are saved with each post. The post editor does not pre-fill the profile address. The feed starts filtered to 50 km around the profile address when one is set. Closed listings are excluded from the current open-listings feed.
+
+    **Messaging data rules:**
+    - A conversation has the same listingId, requestId, sellerId and buyerId as a deal, taken from the posts rather than the request body. Partial unique indexes allow one conversation per tapped post and the user who started it.
+    - lastMessage is copied from the newest message, so the conversations list needs one query instead of one per conversation.
+    - A new proposal is saved in one atomic update that only matches when the current proposal is not pending or accepted, so two proposals sent at once cannot both be saved.
+
+    **Deals data rules:**
+    - A deal must have a listing, a request or both. Unique indexes allow one deal per listing and one per request; deals with a null post do not collide.
+    - A unique index on dealId and raterId allows each user one rating per deal. The rated user is always the other side of the deal, taken from the deal rather than the request.
+    - Each user has at most one reputation, created by their first rating. Adding a rating updates starSum and ratingCount in one atomic write, so simultaneous ratings all count, and editing a rating adds the star difference to starSum.
+
+    **Profile data rules:**
+    - A user's profile is created at their first sign-in. Each later sign-in updates the email, and the photo when Google sends one; the name is only set at the first sign-in, and a session refresh keeps the stored photo.
+    - The database validator requires the address to be 1 to 200 characters and to be stored together with its location. Clearing the address removes both fields instead of storing null.
 
 ### **4.3. External Modules**
 
@@ -625,7 +670,7 @@ sequenceDiagram
     deactivate DB
     P--)FE: 200 posts
     deactivate P
-    alt 1a. the user has no open posts
+    alt the user has no open posts
         FE--)U: "You have no open posts to get recommendations for"
     else
         U->>FE: Pick an open post under "Recommended for", or tap "See recommendations" on the post
@@ -638,7 +683,7 @@ sequenceDiagram
             activate DB
             DB--)M: source post
             deactivate DB
-            alt 1b. the post is closed (the app shows no "See recommendations" button for it)
+            alt 1a. the post is closed (the app shows no "See recommendations" button for it)
                 M--)FE: 409 "Closed posts have no feed"
             else
                 M->>DB: find other users' open posts in the same category
@@ -646,7 +691,7 @@ sequenceDiagram
                 DB--)M: candidates
                 deactivate DB
                 M->>M: keep the candidates that meet the hard requirements and the filters, and rank them
-                alt 3a. no candidate is kept
+                alt no candidate is kept
                     M--)FE: 200 empty list
                     FE--)U: "Nothing here yet. Try changing the filters or check back soon." and "Refresh"
                 else the routing service answers within 2 seconds
@@ -796,7 +841,7 @@ sequenceDiagram
     else
         U->>FE: Tap "Apply"
         FE->>M: GET /api/feed/listings or /api/feed/requests (category, minPrice, maxPrice, lat, lng, radiusKm)
-        alt 5b. the network or server is unavailable
+        alt 5a. the network or server is unavailable
             FE--)U: "Couldn't load the feed. Check your connection and try again." and "Retry"
         else
             activate M
@@ -806,7 +851,7 @@ sequenceDiagram
             deactivate DB
             M--)FE: 200 posts and the cursor for the next page
             deactivate M
-            alt 5a. no posts pass the filters
+            alt no posts pass the filters
                 FE--)U: "Nothing here yet. Try changing the filters or check back soon." and "Refresh"
             else
                 FE--)U: show only the posts that pass the filters
@@ -820,53 +865,10 @@ sequenceDiagram
 1. **Feed ranking latency**
     - **Implementation**: The design filters out ineligible candidates before calculating ranking scores. It then ranks the qualifying candidates and paginates the results. This supports the feed-ranking latency requirement in Section 3.7.
 
-      Performance will be measured using this candidate workload and environment:
-        - Candidate workload: 1,000 open posts in the same category as the user's post.
+      Performance is measured using this candidate workload and environment:
+        - Candidate workload: 1,000 open posts in the same category as the user's post, all meeting its hard requirements, so every one is ranked.
         - Target ranking latency: 1 second at the 95th percentile, not counting the travel-time lookup.
         - Measurement environment: a backend Jest NFR test in `backend/tests/nfr/`, run with `scripts/run-backend-nfr-tests.sh`, that sends 100 `GET /api/feed?postId=<id>` requests through Supertest. It measures the backend's response time only, without the phone's network.
 2. **Graceful degradation without the routing service**
     - **Implementation**: The feed requests travel times only for the first page of recommendations, in one OpenRouteService matrix request with a timeout of 2 seconds (`ROUTING_TIMEOUT_MS` in `matching/travelTime.ts`). If the service fails, times out or is rate-limited, the feed returns the ranked recommendations with `travelTimesAvailable: false`, and the app shows "Travel time unavailable". The timeout lets the feed meet the 3-second response target in Section 3.7.
-    - **Implementation status**: Matching on main filters candidates and ranks them before pagination. `backend/tests/nfr/routingFallback.test.ts` checks NFR 2: with a routing service that never answers, the feed returns its ranked recommendations in about 2 seconds, and with one that is rate-limited, fails or is unreachable, in under 10 ms, all under the 3-second limit. `backend/tests/nfr/feedLatency.test.ts` checks NFR 1: with 1,000 candidate posts, 95% of 100 feed requests return within 45 ms, well under the 1-second target.
-
----
-
-## 5. Data Model
-
-| **Collection** | **Key fields** |
-| -------------- | -------------- |
-| users | id (the Google account id, which is every post's ownerId), firstName, lastName, email, pictureUrl (or null), address and location (both set or both absent), createdAt, updatedAt |
-| requests | ownerId, name, category, description, requestFields[] (built-in price (max), condition (min), dimensions {width, height, depth} (max), radiuskm, brand, colour, plus custom fields; each hard, or soft with an importance 1 to 5), address, location, photoIds[] (optional GridFS file ids), status (open, closed) |
-| listings | ownerId, name, category, description, price, condition, listingFields[] (built-in brand, dimensions {width, height, depth}, colour, plus custom fields), address, location, photoIds[] (GridFS file ids), status (open, closed) |
-| options | field, key, label, builtin, createdBy |
-| customFields | ownerId, key, label, type (text, number, bool) |
-| sessions | tokenHash, familyId, userId, expiresAt, usedAt |
-| conversations | listingId, requestId (either may be null, not both), sellerId, buyerId, postKind (the post that was tapped: listing or request), lastMessage {senderId, text, createdAt} or null, proposal {proposerId, price, note (up to 300 characters), status (pending, accepted, declined), createdAt} (absent until the first proposal), createdAt, updatedAt |
-| messages | conversationId, senderId, text (1 to 1000 characters), createdAt |
-| deals | listingId, requestId (either may be null, not both), sellerId, buyerId, agreedPrice, createdAt |
-| ratings | dealId, raterId, ratedUserId, stars (whole number 1 to 5), comment (up to 300 characters), createdAt, updatedAt (only after an edit) |
-| reputations | userId, starSum, ratingCount, updatedAt |
-
-Condition is one of five ordered levels: new, like new, good, fair, poor.
-
-**Feature 1 data rules:**
-- The backend obtains ownerId from the authenticated session. New posts start open. Closing retains a record; the current API also supports reopening and permanent deletion.
-- Both post types require name, category, address and coordinates. Requests require a built-in price field. Listings require non-negative top-level price, a valid condition and at least one photo ID. Request price, radius and size cannot be negative. The 1–50 km radius rule is not enforced by the inspected request-field validation; it must not be claimed as completed validation.
-- Requests allow 0–10 photo IDs and listings 1–10. Actual upload size is at most 5 MB per file. Post validation checks ID format/count; photo existence and ownership checks are not established by that validation.
-- Categories are normalized, extendable option values rather than a fixed list. They are saved in the singular, so desks is saved as desk, except words that only look plural, such as glass and electronics. Existing posts and category options are converted when the backend starts. Description is supported, up to 2,000 characters. The name, up to 80 characters, is the post's title; posts saved before names were added use their category as the name. Dimensions use cm and radius uses km; CAD remains the intended currency.
-- Unfilled optional editor rows are omitted. Existing post addresses and coordinates are saved with each post. The post editor does not pre-fill the profile address. The feed starts filtered to 50 km around the profile address when one is set. Closed listings are excluded from the current open-listings feed.
-
-**Feature 4 data rules:**
-- A conversation has the same listingId, requestId, sellerId and buyerId as a deal, taken from the posts rather than the request body. Partial unique indexes allow one conversation per tapped post and the user who started it.
-- lastMessage is copied from the newest message, so the conversations list needs one query instead of one per conversation.
-- A new proposal is saved in one atomic update that only matches when the current proposal is not pending or accepted, so two proposals sent at once cannot both be saved.
-
-**Feature 3 data rules:**
-- A deal must have a listing, a request or both. Unique indexes allow one deal per listing and one per request; deals with a null post do not collide.
-- A unique index on dealId and raterId allows each user one rating per deal. The rated user is always the other side of the deal, taken from the deal rather than the request.
-- Each user has at most one reputation, created by their first rating. Adding a rating updates starSum and ratingCount in one atomic write, so simultaneous ratings all count, and editing a rating adds the star difference to starSum.
-
-**Profile data rules:**
-- A user's profile is created at their first sign-in. Each later sign-in updates the email, and the photo when Google sends one; the name is only set at the first sign-in, and a session refresh keeps the stored photo.
-- The database validator requires the address to be 1 to 200 characters and to be stored together with its location. Clearing the address removes both fields instead of storing null.
-
-Condition values remain, best to worst: new, like new, good, fair, poor.
+    - **Implementation status**: Matching on main filters candidates and ranks them before pagination. `backend/tests/nfr/routingFallback.test.ts` checks NFR 2 with the same 1,000 candidate posts as NFR 1: with a routing service that never answers, the feed returns the same ranked recommendations as with a working one in about 2 seconds, and with one that is rate-limited, fails or is unreachable, in under 100 ms, all under the 3-second limit. `backend/tests/nfr/feedLatency.test.ts` checks NFR 1: with 1,000 candidate posts, 95% of 100 feed requests return within about 50 ms, well under the 1-second target.

@@ -13,6 +13,8 @@ Evidence checked: 2 November 2026, Vancouver time.
 | 2026-10-20 | 2 and 3 | Updated PR and review evidence through PR \#56; corrected the PR \#41 label; distinguished historical tests from current main; recorded outstanding evidence and documentation gaps. |
 | 2026-11-02 | 2 and 3 | Completed Section 2 for CP2 from the Codacy results on main, replacing the pull-request-level evidence; updated Section 3 for the CP2 code exchange and added internal reviews since CP1. |
 | 2026-11-18 | 2.5, 3 | Completed Section 3 for CP3: the review we performed of SportsNow, the review we received from SportsNow with its scores, and the action taken on each finding. Added the pull requests since CP2 that responded to Codacy findings. |
+| 2026-11-18 | 3.3 | Updated the actions for the review findings on Use Case 1 and the Requirements_and_Design links, and recorded the code restructuring planned for M3. |
+| 2026-11-19 | 3.3 | Use Case 3 no longer describes the ranking algorithm. |
 
 ## 2. Automated Code Review Results
 
@@ -121,13 +123,13 @@ Main findings:
 | NFR 1 has no test | Added the feed ranking latency test and its results ([PR \#209](https://github.com/m1lun/m1skeletonProject/pull/209)). | Fixed |
 | Coverage gaps are justified only for Deals | Testing.md now justifies every file below 100% across the back end ([PR \#202](https://github.com/m1lun/m1skeletonProject/pull/202), [\#209](https://github.com/m1lun/m1skeletonProject/pull/209)). | Fixed |
 | Major fault: no photos load on a physical device with the deployed back end | Could not reproduce: photos loaded throughout the app on our physical device, a Samsung Galaxy S20 FE running Android 13, with the deployed back end. | Could not reproduce |
-| Links in Requirements_and_Design.md do not work | Not changed yet. | Open |
-| Use Case 1 mixes the request and listing flows | Not changed yet. | Open |
-| Use Case 3 describes the ranking algorithm | Not changed yet. | Open |
-| No explanation of the code structure; files have no top-level explanation | Not changed yet. | Open |
+| Links in Requirements_and_Design.md do not work | Every link target exists and the links work on GitHub, so we could not reproduce it in the repository. The use case anchors now use `id` instead of the older `name`, which more Markdown viewers and PDF converters support. | Fixed |
+| Use Case 1 mixes the request and listing flows | Kept as one use case, since both kinds of post share the same screens and steps. Its description now says that, and failure 5a1 lists which messages apply to requests and which to listings. | Fixed |
+| Use Case 3 describes the ranking algorithm | Steps 3–5 now say what the system does for the user, and the scoring details moved to the Matching component in section 4.1 of Requirements_and_Design.md (this pull request). | Fixed |
+| No explanation of the code structure; files have no top-level explanation | Planned for M3: the group will reorganise the code by domain first, with one folder per component, and by architectural layer inside each one (for example routes, services and data access in the back end, and screens, view models and API calls in the app). We decided as a group not to do this before CP3: moving every file this close to the deadline was too great a risk of breaking working features. The new structure will be documented in the README. | Planned for M3 |
 | `DealsModel.kt` and `DealModels.kt` are easy to confuse | Not changed yet. | Open |
-| Screens are not in the `ui` folder | Not changed yet. | Open |
-| The back end has many very small files and no agreed structure | Not changed yet. | Open |
+| Screens are not in the `ui` folder | Part of the M3 restructuring above: within each component's folder, screens will be separated from state and back-end calls. | Planned for M3 |
+| The back end has many very small files and no agreed structure | Part of the M3 restructuring above, which gives the back end an agreed structure: one folder per component, with its layers inside. | Planned for M3 |
 | `assertTrue(size == 1)` hides the actual count | Not changed yet. | Open |
 
 ### 3.4 Additional Internal Team Review

@@ -4,7 +4,8 @@ import request from 'supertest';
 
 import { env } from '../../src/config/env';
 import { ROUTING_TIMEOUT_MS } from '../../src/matching/travelTime';
-import { ME, OTHER, bearer, clearDealData, makeListing, makeRequest } from '../helpers/dealFixtures';
+import { ME, bearer, clearDealData } from '../helpers/dealFixtures';
+import { CANDIDATES, saveFeedWorkload } from '../helpers/feedWorkload';
 import { startTestApp, stopTestApp } from '../helpers/testApp';
 import { createTestStore, type TestStore } from '../helpers/testStore';
 
@@ -13,6 +14,8 @@ import { createTestStore, type TestStore } from '../helpers/testStore';
 const FEED_LIMIT_MS = 3000;
 // A timed-out request ends when the timeout fires, give or take the timer's resolution.
 const TIMER_SLACK_MS = 50;
+const PAGE_SIZE = 20;
+const SECONDS_PER_MINUTE = 60;
 
 let mongo: TestStore;
 let app: Server;
@@ -45,74 +48,105 @@ function hangUntilAborted(_input: unknown, init?: Parameters<typeof fetch>[1]): 
   });
 }
 
-function routingAnswer(status: number): Response {
-  return new Response(JSON.stringify({ error: 'unavailable' }), { status, headers: { 'Content-Type': 'application/json' } });
+function jsonResponse(status: number, body: unknown): Response {
+  return new Response(JSON.stringify(body), { status, headers: { 'Content-Type': 'application/json' } });
+}
+
+// A working routing service: a travel time of i + 1 minutes to the i-th result.
+function workingRoutingAnswer(): Response {
+  return jsonResponse(200, { durations: [Array.from({ length: PAGE_SIZE }, (_unused, i) => (i + 1) * SECONDS_PER_MINUTE)] });
+}
+
+interface FeedPage {
+  matches: { post: { id: string }; score: number; travelMinutes: number | null }[];
+  travelTimesAvailable: boolean;
+  nextCursor: string | null;
 }
 
 interface TimedFeed {
-  response: request.Response;
+  withRouting: FeedPage;
+  withoutRouting: request.Response;
   elapsedMs: number;
-  listingId: string;
 }
 
-// My request and one matching listing, then one timed request for the request's feed.
-async function timeFeed(): Promise<TimedFeed> {
-  const buyerRequest = await makeRequest(mongo.store, ME);
-  const listing = await makeListing(mongo.store, OTHER);
+// The NFR 1 workload of 1,000 candidates. First the feed with a working routing service, then,
+// with the failure installed, one timed request for the same feed.
+async function timeFeed(fetchSpy: jest.SpyInstance, installFailure: () => void): Promise<TimedFeed> {
+  const buyerRequest = await saveFeedWorkload(mongo.store);
+  const feed = (): request.Test => request(app).get(`/api/feed?postId=${buyerRequest.id}`).set('Authorization', bearer(ME));
+
+  fetchSpy.mockResolvedValueOnce(workingRoutingAnswer());
+  const withRouting = await feed();
+  expect(withRouting.status).toBe(200);
+  expect(withRouting.body).toMatchObject({ travelTimesAvailable: true });
+
+  installFailure();
   const started = performance.now();
-  const response = await request(app).get(`/api/feed?postId=${buyerRequest.id}`).set('Authorization', bearer(ME));
-  return { response, elapsedMs: performance.now() - started, listingId: listing.id };
+  const withoutRouting = await feed();
+  return { withRouting: withRouting.body as FeedPage, withoutRouting, elapsedMs: performance.now() - started };
 }
 
-function expectRankedWithoutTravelTimes({ response, listingId }: TimedFeed): void {
-  expect(response.status).toBe(200);
-  expect(response.body).toMatchObject({
-    matches: [{ post: { id: listingId }, travelMinutes: null }],
-    travelTimesAvailable: false,
-  });
+// The same 20 matches, in the same ranked order, as with a working routing service, but without travel times.
+// Each feed asks the routing service once, for the 20 results on the first page.
+function expectRankedWithoutTravelTimes({ withRouting, withoutRouting }: TimedFeed, fetchSpy: jest.SpyInstance): void {
+  expect(withoutRouting.status).toBe(200);
+  const page = withoutRouting.body as FeedPage;
+  expect(page).toMatchObject({ travelTimesAvailable: false, nextCursor: String(PAGE_SIZE) });
+  expect(page.matches.map((match) => match.post.id)).toEqual(withRouting.matches.map((match) => match.post.id));
+  const scores = page.matches.map((match) => match.score);
+  expect(scores).toEqual([...scores].sort((a, b) => b - a));
+  expect(page.matches.every((match) => match.travelMinutes === null)).toBe(true);
+
+  expect(fetchSpy).toHaveBeenCalledTimes(2);
+  for (const [, init] of fetchSpy.mock.calls as [unknown, { body: string }][]) {
+    expect((JSON.parse(init.body) as { destinations: number[] }).destinations).toHaveLength(PAGE_SIZE);
+  }
 }
 
 function logTime(failure: string, elapsedMs: number): void {
-  console.info(`NFR 2: routing service ${failure}: feed answered in ${elapsedMs.toFixed(0)} ms (limit ${FEED_LIMIT_MS} ms)`);
+  console.info(
+    `NFR 2: routing service ${failure}, ${CANDIDATES} candidates: feed answered in ${elapsedMs.toFixed(0)} ms (limit ${FEED_LIMIT_MS} ms)`
+  );
 }
 
 // Interface GET /api/feed
 describe('NFR 2: GET /api/feed without the routing service', () => {
   // Mocked behavior: OpenRouteService never answers
-  // Input: the id of my open request, which one listing matches
+  // Input: the id of my open request, which 1,000 of another user's open listings match
   // Expected status code: 200
   // Expected behavior: the routing request is abandoned after ROUTING_TIMEOUT_MS, and the feed answers within 3 seconds
-  // Expected output: the ranked match with travelMinutes null and travelTimesAvailable false
+  // Expected output: the same first page of 20 ranked matches as with a working routing service, with travelMinutes
+  // null and travelTimesAvailable false
   test('Routing Service Never Answers', async () => {
-    const fetchSpy = jest.spyOn(global, 'fetch').mockImplementation(hangUntilAborted);
+    const fetchSpy = jest.spyOn(global, 'fetch');
 
-    const timed = await timeFeed();
+    const timed = await timeFeed(fetchSpy, () => fetchSpy.mockImplementation(hangUntilAborted));
     logTime('never answers', timed.elapsedMs);
 
-    expectRankedWithoutTravelTimes(timed);
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expectRankedWithoutTravelTimes(timed, fetchSpy);
     expect(timed.elapsedMs).toBeGreaterThanOrEqual(ROUTING_TIMEOUT_MS - TIMER_SLACK_MS);
     expect(timed.elapsedMs).toBeLessThan(FEED_LIMIT_MS);
-  });
+  }, 30_000);
 
   // Mocked behavior: OpenRouteService answers 429 (rate-limited) or 500 (failed), or the connection is refused
-  // Input: the id of my open request, which one listing matches
+  // Input: the id of my open request, which 1,000 of another user's open listings match
   // Expected status code: 200
   // Expected behavior: the feed does not wait for the timeout, and answers within 3 seconds
-  // Expected output: the ranked match with travelMinutes null and travelTimesAvailable false
+  // Expected output: the same first page of 20 ranked matches as with a working routing service, with travelMinutes
+  // null and travelTimesAvailable false
   test.each([
-    { label: 'Is Rate-Limited', failure: 'is rate-limited (429)', install: (spy: jest.SpyInstance) => spy.mockResolvedValue(routingAnswer(429)) },
-    { label: 'Fails', failure: 'fails (500)', install: (spy: jest.SpyInstance) => spy.mockResolvedValue(routingAnswer(500)) },
+    { label: 'Is Rate-Limited', failure: 'is rate-limited (429)', install: (spy: jest.SpyInstance) => spy.mockResolvedValue(jsonResponse(429, { error: 'unavailable' })) },
+    { label: 'Fails', failure: 'fails (500)', install: (spy: jest.SpyInstance) => spy.mockResolvedValue(jsonResponse(500, { error: 'unavailable' })) },
     { label: 'Is Unreachable', failure: 'is unreachable', install: (spy: jest.SpyInstance) => spy.mockRejectedValue(new TypeError('fetch failed')) },
   ])('Routing Service $label', async ({ failure, install }: { label: string; failure: string; install: (spy: jest.SpyInstance) => void }) => {
     const fetchSpy = jest.spyOn(global, 'fetch');
-    install(fetchSpy);
 
-    const timed = await timeFeed();
+    const timed = await timeFeed(fetchSpy, () => {
+      install(fetchSpy);
+    });
     logTime(failure, timed.elapsedMs);
 
-    expectRankedWithoutTravelTimes(timed);
-    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expectRankedWithoutTravelTimes(timed, fetchSpy);
     expect(timed.elapsedMs).toBeLessThan(FEED_LIMIT_MS);
-  });
+  }, 30_000);
 });

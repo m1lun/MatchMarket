@@ -3,22 +3,17 @@ import type { Server } from 'node:http';
 import request from 'supertest';
 
 import { env } from '../../src/config/env';
-import { CONDITIONS, type PostField, type RequestField } from '../../src/models/common';
-import { ME, OTHER, bearer, clearDealData, makeListing, makeRequest } from '../helpers/dealFixtures';
+import { ME, bearer, clearDealData } from '../helpers/dealFixtures';
+import { CANDIDATES, saveFeedWorkload } from '../helpers/feedWorkload';
 import { startTestApp, stopTestApp } from '../helpers/testApp';
 import { createTestStore, type TestStore } from '../helpers/testStore';
 
 // NFR 1: the first page of the ranked feed returns within 1 second for 95% of requests,
 // with 1,000 open candidate posts in the same category, not counting the travel-time lookup.
-const CANDIDATES = 1000;
 const REQUESTS = 100;
 const PERCENTILE = 0.95;
 const LATENCY_LIMIT_MS = 1000;
 const PAGE_SIZE = 20;
-// Inserting in batches keeps the setup quick without opening 1,000 connections at once.
-const INSERT_BATCH = 100;
-const BRANDS = ['ikea', 'hay', 'muji', 'herman miller'];
-const COLOURS = ['oak', 'black', 'white', 'red', 'blue'];
 
 let mongo: TestStore;
 let app: Server;
@@ -43,34 +38,6 @@ afterEach(() => {
   jest.restoreAllMocks();
 });
 
-function soft(key: string, value: string | number, importance: number): RequestField {
-  return { key, label: key, kind: 'builtin', type: typeof value === 'number' ? 'number' : 'text', value, hard: false, importance };
-}
-
-function textField(key: string, value: string): PostField {
-  return { key, label: key, kind: 'builtin', type: 'text', value };
-}
-
-// Listing number i: every one meets the request's hard requirements, so all 1,000 are ranked,
-// but prices, conditions, places, brands and colours vary so the scores differ.
-function candidate(i: number): Parameters<typeof makeListing>[2] {
-  return {
-    price: 10 + (i % 90),
-    condition: CONDITIONS[i % CONDITIONS.length] ?? 'good',
-    // A grid about 3.6 km by 1.5 km around the request, inside its 10 km radius.
-    location: { type: 'Point', coordinates: [-123.25 + (i % 50) * 0.001, 49.26 + Math.floor(i / 50) * 0.0007] },
-    listingFields: [textField('brand', BRANDS[i % BRANDS.length] ?? 'ikea'), textField('colour', COLOURS[i % COLOURS.length] ?? 'oak')],
-  };
-}
-
-// A failed insert rejects the returned promise, which fails the test.
-const insertCandidates = async (): Promise<void> => {
-  for (let start = 0; start < CANDIDATES; start += INSERT_BATCH) {
-    const batch = Array.from({ length: INSERT_BATCH }, (_unused, offset) => makeListing(mongo.store, OTHER, candidate(start + offset)));
-    await Promise.all(batch);
-  }
-};
-
 function percentile(sortedMs: number[], fraction: number): number {
   const index = Math.min(sortedMs.length - 1, Math.ceil(fraction * sortedMs.length) - 1);
   return sortedMs.at(index) ?? Number.NaN;
@@ -78,22 +45,23 @@ function percentile(sortedMs: number[], fraction: number): number {
 
 // Interface GET /api/feed
 describe('NFR 1: GET /api/feed ranking latency', () => {
-  // Input: my request for a chair with a hard maximum of $100 and soft preferences for price, condition, brand and
+  // Input: my request for a chair with a hard maximum of $100 and soft preferences for condition, brand and
   // colour, and 1,000 of another user's open chair listings that all meet the hard requirements
   // Expected status code: 200 for each of 100 requests for the first page
   // Expected behavior: every candidate is filtered and ranked on each request, and 95% of requests finish within 1 second
-  // Expected output: 20 ranked matches per page, with nextCursor "20"
+  // Expected output: 20 ranked matches per page, with nextCursor "20", and a last page that ends at the 1,000th match
   test('First Page Within 1 Second For 95% Of Requests With 1,000 Candidates', async () => {
-    await insertCandidates();
-    const buyerRequest = await makeRequest(mongo.store, ME, {
-      requestFields: [
-        { key: 'price', label: 'price', kind: 'builtin', type: 'number', value: 100, hard: true },
-        soft('condition', 'good', 4),
-        soft('brand', 'ikea', 5),
-        soft('colour', 'oak', 2),
-      ],
-    });
-    const feed = (): request.Test => request(app).get(`/api/feed?postId=${buyerRequest.id}`).set('Authorization', bearer(ME));
+    const buyerRequest = await saveFeedWorkload(mongo.store);
+    const feed = (cursor?: string): request.Test =>
+      request(app)
+        .get(`/api/feed?postId=${buyerRequest.id}${cursor === undefined ? '' : `&cursor=${cursor}`}`)
+        .set('Authorization', bearer(ME));
+
+    // The last page shows that all 1,000 candidates met the hard requirements and were ranked.
+    const lastPage = await feed(String(CANDIDATES - PAGE_SIZE));
+    expect(lastPage.status).toBe(200);
+    expect(lastPage.body).toMatchObject({ nextCursor: null });
+    expect((lastPage.body as { matches: unknown[] }).matches).toHaveLength(PAGE_SIZE);
     // One request first, so start-up costs such as compiling the route are not counted as a slow request.
     await feed();
 
