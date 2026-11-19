@@ -52,6 +52,7 @@
 | 2026-11-18 | 4.2, 5 | Following TA feedback that Section 5 is not part of the template, the collections and data rules moved to Section 4.2, Databases, and Section 5 was removed. |
 | 2026-11-18 | 3.5 | Following peer-review feedback, Use Case 1 says which failures apply to requests and which to listings. The use case links now use `id` anchors, which more Markdown viewers support. |
 | 2026-11-19 | 4.7 | Following peer feedback that the NFR 2 test used only one candidate post, NFR 2 is now measured with the NFR 1 workload of 1,000 candidates, and checks that the feed keeps its ranked order without travel times. Updated the measured times of both NFRs. |
+| 2026-11-19 | 3.5, 4.1 | Following TA and peer-review feedback, Use Case 3 steps 3–5 now say what the system does for the user instead of how it ranks; the scoring details moved to the `rank` interface of Matching in 4.1. |
 
 ---
 
@@ -202,9 +203,9 @@ Each use case covers one goal, and the user starts each of them directly, so the
 **Main success scenario**:
 1. The user opens one of their open posts and taps "See recommendations", or picks the post under "Recommended for" in the feed filters. If the user has no open posts, the feed filters show "You have no open posts to get recommendations for" instead.
 2. The app shows "Recommended for: <post>".
-3. The system takes other users' open posts in the same category and keeps those that meet the request's hard requirements: within the request's radius (10 km if none was set) and every field the buyer marked Hard. Any feed filters (Use Case 5) also apply.
-4. The system scores each remaining post on price, condition, distance and preference match, weights the four scores equally, and orders the best first. In the preference match, each soft preference counts by its importance from 1 to 5, or 3 if it has none. A listing over a soft maximum price or below a soft minimum condition loses more score the further it misses; the price penalty stops growing at 50% over the maximum.
-5. The system requests walking travel times for the first 20 results from OpenRouteService.
+3. The system finds other users' open posts in the same category that meet every requirement the buyer marked Hard, within the request's search radius (10 km if none was set), and that match any feed filters (Use Case 5).
+4. The system puts the posts that best fit the buyer's soft preferences first. How they are scored is described under [Matching](#41-main-components).
+5. The system looks up the walking travel time to each of the first 20 results.
 6. The app shows the ranked list, 20 at a time; each item shows its price or budget, its condition (listings), and its distance, plus its travel time on the first page, such as "12 min walk". If no post fits, the app shows "Nothing here yet. Try changing the filters or check back soon." and a "Refresh" button.
 
 **Failure scenario(s)**:
@@ -338,7 +339,7 @@ Each use case covers one goal, and the user starts each of them directly, so the
         4. `boolean satisfies(Request request, Listing listing)`
             - **Purpose**: The single hard-requirement rule (category and straight-line distance within radius, plus price, condition, dimensions or any other field the buyer marked hard) used by both feed directions.
         5. `List<RankedMatch> rank(Post source, List<Post> candidates, Weights weights)`
-            - **Purpose**: Score each candidate on price, condition, distance, and brand/colour match, and order by the viewer's weights. Soft preferences count by their importance, and missing a soft maximum price or soft minimum condition lowers the score, which can go below 0.
+            - **Purpose**: Score each candidate on price, condition, distance and preference match, and order the best first by the viewer's weights, which count the four scores equally until users can save ranking preferences. In the preference match, each soft preference counts by its importance from 1 to 5, or 3 if it has none. A listing over a soft maximum price or below a soft minimum condition loses more score the further it misses, which can go below 0; the price penalty stops growing at 50% over the maximum.
         6. `List<Duration> travelTimes(Location origin, List<Location> destinations, TravelMode mode)`
             - **Purpose**: Get travel times from the external routing service for one page of results; returns empty when it is unavailable.
 
