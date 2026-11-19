@@ -25,7 +25,8 @@
 | 2026-11-18 | 4 | Following TA feedback that only Create Post was described, added the test steps and logs of the Edit post and Delete post tests (`ManagePostsTest.kt`) and of the Deals end-to-end tests: Use Case 2: Rate a Deal, Edit a rating and View deals. |
 | 2026-11-19 | 3 | Following peer feedback that the NFR 2 test used only one candidate, NFR 2 now runs every routing failure with the NFR 1 workload of 1,000 candidates and checks that the feed keeps the same ranked order as with a working routing service. NFR 1 now also checks that all 1,000 candidates are ranked. Replaced both logs with a new run. |
 | 2026-11-18 | 2 | Added the interface tests of the auth routes, `POST /api/auth/google`, `POST /api/auth/refresh` and `POST /api/auth/logout`, and of the session token that every protected route checks. Writing them showed that an auth body over 4 KB returned 500, so it now returns 413. Replaced the `app.ts` and `sessions.ts` coverage row with the reasons for their remaining branches and for `googleAuth.ts`. |
-| 2026-11-19 | 2 | Added the missing rows for the Posts routes, `/api/photos`, `/api/options`, `/api/custom-fields` and `/health` to the interface table, and pointed every test link at the describe group it names on main `8cd41ae`. |
+| 2026-11-19 | 2 | Added the missing rows for the Posts routes, `/api/photos`, `/api/options`, `/api/custom-fields` and `/health` to the interface table, and pointed every test link at the describe group it names on main `1c8c835`. |
+| 2026-11-19 | 2 | Re-ran the back-end tests at commit `1c8c835` (754 tests: 116 with mocks, 638 without) and replaced the coverage screenshots and figures. Every file below 100% is now listed with its reason, including the store files from splitting the Mongo store into one file per component. |
 
 ---
 
@@ -39,11 +40,11 @@ This section covers the Deals, Messaging and Matching components, and the auth a
 
 | **Interface** | **Describe Group Location, No Mocks** | **Describe Group Location, With Mocks** | **Mocked Components** |
 | ------------- | ------------------------------------- | --------------------------------------- | --------------------- |
-| **GET /api/deals** | [`tests/no-mock/getDeals.test.ts#L95`](https://github.com/m1lun/m1skeletonProject/blob/8cd41ae0b73cf702a637ebf06b30730a19278969/backend/tests/no-mock/getDeals.test.ts#L95) | [`tests/mock/getDeals.test.ts#L45`](https://github.com/m1lun/m1skeletonProject/blob/8cd41ae0b73cf702a637ebf06b30730a19278969/backend/tests/mock/getDeals.test.ts#L45) | Deals DB, Ratings DB, Reputations DB, Users DB, Listings DB, Requests DB |
-| **POST /api/deals/:id/ratings** | [`tests/no-mock/ratings.test.ts#L260`](https://github.com/m1lun/m1skeletonProject/blob/8cd41ae0b73cf702a637ebf06b30730a19278969/backend/tests/no-mock/ratings.test.ts#L260) | [`tests/mock/ratings.test.ts#L81`](https://github.com/m1lun/m1skeletonProject/blob/8cd41ae0b73cf702a637ebf06b30730a19278969/backend/tests/mock/ratings.test.ts#L81) | Deals DB, Ratings DB, Reputations DB |
-| **PUT /api/deals/:id/ratings** | [`tests/no-mock/ratings.test.ts#L348`](https://github.com/m1lun/m1skeletonProject/blob/8cd41ae0b73cf702a637ebf06b30730a19278969/backend/tests/no-mock/ratings.test.ts#L348) | [`tests/mock/ratings.test.ts#L116`](https://github.com/m1lun/m1skeletonProject/blob/8cd41ae0b73cf702a637ebf06b30730a19278969/backend/tests/mock/ratings.test.ts#L116) | Deals DB, Ratings DB, Reputations DB |
-| **GET /api/feed/listings/:id** | [`tests/no-mock/dealPost.test.ts#L97`](https://github.com/m1lun/m1skeletonProject/blob/8cd41ae0b73cf702a637ebf06b30730a19278969/backend/tests/no-mock/dealPost.test.ts#L97) | [`tests/mock/dealPost.test.ts#L34`](https://github.com/m1lun/m1skeletonProject/blob/8cd41ae0b73cf702a637ebf06b30730a19278969/backend/tests/mock/dealPost.test.ts#L34) | Listings DB |
-| **GET /api/feed/requests/:id** | [`tests/no-mock/dealPost.test.ts#L102`](https://github.com/m1lun/m1skeletonProject/blob/8cd41ae0b73cf702a637ebf06b30730a19278969/backend/tests/no-mock/dealPost.test.ts#L102) | [`tests/mock/dealPost.test.ts#L54`](https://github.com/m1lun/m1skeletonProject/blob/8cd41ae0b73cf702a637ebf06b30730a19278969/backend/tests/mock/dealPost.test.ts#L54) | Requests DB |
+| **GET /api/deals** | [`tests/no-mock/getDeals.test.ts#L95`](https://github.com/m1lun/m1skeletonProject/blob/1c8c835466defede4e51e26d018a35f9e444b9c0/backend/tests/no-mock/getDeals.test.ts#L95) | [`tests/mock/getDeals.test.ts#L45`](https://github.com/m1lun/m1skeletonProject/blob/1c8c835466defede4e51e26d018a35f9e444b9c0/backend/tests/mock/getDeals.test.ts#L45) | Deals DB, Ratings DB, Reputations DB, Users DB, Listings DB, Requests DB |
+| **POST /api/deals/:id/ratings** | [`tests/no-mock/ratings.test.ts#L260`](https://github.com/m1lun/m1skeletonProject/blob/1c8c835466defede4e51e26d018a35f9e444b9c0/backend/tests/no-mock/ratings.test.ts#L260) | [`tests/mock/ratings.test.ts#L81`](https://github.com/m1lun/m1skeletonProject/blob/1c8c835466defede4e51e26d018a35f9e444b9c0/backend/tests/mock/ratings.test.ts#L81) | Deals DB, Ratings DB, Reputations DB |
+| **PUT /api/deals/:id/ratings** | [`tests/no-mock/ratings.test.ts#L348`](https://github.com/m1lun/m1skeletonProject/blob/1c8c835466defede4e51e26d018a35f9e444b9c0/backend/tests/no-mock/ratings.test.ts#L348) | [`tests/mock/ratings.test.ts#L116`](https://github.com/m1lun/m1skeletonProject/blob/1c8c835466defede4e51e26d018a35f9e444b9c0/backend/tests/mock/ratings.test.ts#L116) | Deals DB, Ratings DB, Reputations DB |
+| **GET /api/feed/listings/:id** | [`tests/no-mock/dealPost.test.ts#L97`](https://github.com/m1lun/m1skeletonProject/blob/1c8c835466defede4e51e26d018a35f9e444b9c0/backend/tests/no-mock/dealPost.test.ts#L97) | [`tests/mock/dealPost.test.ts#L34`](https://github.com/m1lun/m1skeletonProject/blob/1c8c835466defede4e51e26d018a35f9e444b9c0/backend/tests/mock/dealPost.test.ts#L34) | Listings DB |
+| **GET /api/feed/requests/:id** | [`tests/no-mock/dealPost.test.ts#L102`](https://github.com/m1lun/m1skeletonProject/blob/1c8c835466defede4e51e26d018a35f9e444b9c0/backend/tests/no-mock/dealPost.test.ts#L102) | [`tests/mock/dealPost.test.ts#L54`](https://github.com/m1lun/m1skeletonProject/blob/1c8c835466defede4e51e26d018a35f9e444b9c0/backend/tests/mock/dealPost.test.ts#L54) | Requests DB |
 | **POST /api/conversations** | [`tests/no-mock/conversations.test.ts#L53`](../backend/tests/no-mock/conversations.test.ts#L53) | [`tests/mock/conversations.test.ts#L40`](../backend/tests/mock/conversations.test.ts#L40) | Listings DB, Requests DB, Conversations DB |
 | **GET /api/conversations** | [`tests/no-mock/conversations.test.ts#L247`](../backend/tests/no-mock/conversations.test.ts#L247) | [`tests/mock/conversations.test.ts#L65`](../backend/tests/mock/conversations.test.ts#L65) | Conversations DB, Users DB, Listings DB |
 | **GET /api/conversations/:id/messages** | [`tests/no-mock/conversations.test.ts#L353`](../backend/tests/no-mock/conversations.test.ts#L353) | [`tests/mock/conversations.test.ts#L86`](../backend/tests/mock/conversations.test.ts#L86) | Conversations DB, Messages DB |
@@ -106,11 +107,11 @@ How the Messaging conversation tests are organized:
 | **POST /api/e2e/partner/conversations/:id/proposal** | [`tests/no-mock/e2eConversations.test.ts#L260`](../backend/tests/no-mock/e2eConversations.test.ts#L260) | [`tests/mock/e2eConversations.test.ts#L70`](../backend/tests/mock/e2eConversations.test.ts#L70) | Conversations DB |
 | **POST /api/e2e/partner/conversations/:id/proposal/decline** | [`tests/no-mock/e2eConversations.test.ts#L282`](../backend/tests/no-mock/e2eConversations.test.ts#L282) | [`tests/mock/e2eConversations.test.ts#L70`](../backend/tests/mock/e2eConversations.test.ts#L70) | Conversations DB |
 
-Rules that the HTTP interfaces cannot reach or prove are tested directly in [`no-mock/dealStore.test.ts`](https://github.com/m1lun/m1skeletonProject/blob/8cd41ae0b73cf702a637ebf06b30730a19278969/backend/tests/no-mock/dealStore.test.ts): the database validators, the unique indexes, and the store methods behind the routes. `deals.insert`, which records a new deal, is tested there.
+Rules that the HTTP interfaces cannot reach or prove are tested directly in [`no-mock/dealStore.test.ts`](https://github.com/m1lun/m1skeletonProject/blob/1c8c835466defede4e51e26d018a35f9e444b9c0/backend/tests/no-mock/dealStore.test.ts): the database validators, the unique indexes, and the store methods behind the routes. `deals.insert`, which records a new deal, is tested there.
 
 #### 2.1.2. Commit Hash Where Tests Run
 
-`8cd41ae0b73cf702a637ebf06b30730a19278969`
+`1c8c835466defede4e51e26d018a35f9e444b9c0`
 
 #### 2.1.3. Explanation on How to Run the Tests
 
@@ -156,7 +157,7 @@ To run tests from an IDE or with `npx jest`, start the database first with `dock
 
 ### 2.3. Jest Coverage Report Screenshots With Mocks
 
-These are the Jest reports for every back-end file at the commit above: 629 tests in total, 95 with mocks and 534 without. Each image shows Jest's text report from the script.
+These are the Jest reports for every back-end file at the commit above: 754 tests in total, 116 with mocks and 638 without. Each image shows Jest's coverage report from the script.
 
 ![Coverage with mocks](images/deals_coverage_mock.png)
 
@@ -170,30 +171,29 @@ These are the Jest reports for every back-end file at the commit above: 629 test
 
 **Reasons for coverage below 100%:**
 
-These reports cover the whole back-end. Combined, the tests reach 91.29% of statements, 84.86% of branches, 89.6% of functions and 91.16% of lines.
+These reports cover the whole back-end. Combined, the tests reach 97.81% of statements, 96.27% of branches, 98.18% of functions and 97.75% of lines. Every file not listed below has 100% combined coverage of statements, branches, functions and lines.
 
-The Uncovered Line # column shows lines of the compiled JavaScript, not the TypeScript source. The line numbers below are the real source lines.
-
-Combined coverage is 100% for statements, lines, functions and branches in `models/deal.ts`, `models/rating.ts`, `models/reputation.ts`, `models/schema.ts`, `reputation/score.ts` and `routes/ratings.ts`.
-
-For Messaging, combined coverage is 100% for statements, lines, functions and branches in `events.ts`, `routes/proposals.ts` and `routes/e2e.ts`, and 100% for statements, lines and functions in `routes/conversations.ts` and `routes/paging.ts`, with one defensive branch each (below).
-
-For the profile routes, combined coverage is 100% for statements, lines, functions and branches in `routes/users.ts`.
-
-For Matching, combined coverage is 100% for statements, lines, functions and branches in `routes/feed.ts`, `routes/feedFilter.ts`, `matching/distance.ts` and `matching/travelTime.ts`.
+The Uncovered Line # column shows lines of the compiled JavaScript, not the TypeScript source. The line numbers below are the real source lines, with the report's line in brackets where they differ.
 
 | **File** | **Statements** | **Branches** | **Reason** |
 | -------- | -------------- | ------------ | ---------- |
+| `index.ts` | 0% | 0% | The start-up file: it loads the configuration and starts the HTTP or HTTPS server. The tests build the app with `createApp` and call it through Supertest without starting a server, as the course's example does, so this file never runs under Jest. |
+| `config/env.ts` | 81.81% | 65.51% | Start-up checks of the environment. The tests always set valid values (`tests/setup.ts`), so the four errors that stop the server on a bad configuration are not reached: an invalid `PORT` (line 10), a missing variable (16), no `GOOGLE_CLIENT_ID` (35) and a `JWT_SECRET` under 32 characters (47). Nor are the defaults for an unset `PORT` (5) and `MONGODB_DB` (62). |
+| `store/types.ts` | 0% | 100% | The file only declares TypeScript interfaces, which compile to nothing. The one line in the report (line 2) is the `__esModule` marker TypeScript adds to every module. |
+| `store/seed.ts` | 92% | 100% | Lines 34 and 55 (31 and 50 in the report) add context to an error when the categories cannot be converted or the built-in options cannot be saved at start-up. Both only run if MongoDB fails while the server starts, which stops the server. |
+| `app.ts` | 100% | 96.15% | One branch is code TypeScript adds, not ours. Line 3 of the compiled file is the `__importDefault` helper that `import express from 'express'` compiles to. It returns the module unchanged only for a package compiled from ES modules, and Express is a CommonJS package, so that side is never taken. |
+| `routes/photos.ts` | 100% | 96.66% | Line 3 (compiled) is the same `__importDefault` helper, for `import multer from 'multer'`, which is also a CommonJS package. |
+| `sessions.ts` | 100% | 90% | Line 3 (compiled) is the same `__importDefault` helper, for `import jwt from 'jsonwebtoken'`. Lines 96–97 (70–71 in the report): `verifySessionToken` reads no claims from a token whose payload is a plain string, but `jwt.verify` is called with an issuer and audience, and it rejects a string payload because it has neither, so a string never reaches those lines. They stay because `jwt.verify` returns `string \| JwtPayload`. |
+| `googleAuth.ts` | 100% | 91.66% | Line 40 (27 in the report): `payload.email ?? ''` is for a ticket without an email. The line before it rejects an account whose `email_verified` is not `true`, and Google only sends `email_verified` together with `email` (both come from the `email` scope), so a ticket that gets this far always has an email. |
+| `errors.ts` | 93.1% | 83.33% | Line 14 (17 in the report): `errorMessage` turns a thrown value that is not an `Error` into text, but every error in the back-end is an `Error`. Lines 21–23 (22–24): the handler passes an error on to Express when the response has already started, which only happens if a route fails after it began sending; no route writes part of a response and then throws. |
 | `routes/deals.ts` | 100% | 93.61% | Three defensive branches cannot be reached through the API. Line 41: a stored post always has an `id`. Line 71: Express always gives `req.query` as an object. Line 97: every listing has at least one photo, because the validator requires it. Each one keeps the code safe with the optional types, so removing it would not simplify the logic. |
 | `routes/conversations.ts` | 100% | 98.83% | One defensive branch cannot be reached through the API. Line 94: `byId` skips a post without an `id`, but the store's `findByIds` always returns each post's `id`; the check is there because the store's return type makes every field optional. |
 | `routes/paging.ts` | 100% | 95.83% | One defensive branch cannot be reached through the API. Line 41: `parsePageQuery` falls back to no parameters if the query is not an object, but Express always gives `req.query` as an object. The same check in `routes/deals.ts` is justified above. |
-| `store/mongoStore.ts` | 74.39% | 60.71% | The three Deals store classes (`MongoDealCollection`, `MongoRatingCollection` and `MongoReputationCollection`) reach every line and branch. The uncovered code belongs to other components: options, custom fields, users, sessions, and parts of the post collection. |
-| `matching/rank.ts` | 98.18% | 96.29% | One defensive branch cannot be reached through the API. Lines 59–60 (line 39 in the coverage report, which numbers the compiled JavaScript): `normaliseWeights` counts the four parts equally when every weight is 0, but the feed always ranks with `DEFAULT_WEIGHTS` (3, 3, 3, 3) until users can save ranking preferences. |
-| `matching/satisfies.ts` | 97.91% | 97.14% | One defensive branch cannot be reached through the API. Lines 87–88 (line 83 in the coverage report): `satisfies` rejects a listing in another category, but the feed only fetches candidates in the post's category (`listOpenInCategory`). The check keeps the rule complete on its own, so a listing is in a request's feed exactly when the request is in the listing's. |
-| `errors.ts` | 75.86% | 58.33% | The handler is shared by the whole back-end. Every path the Deals routes use is covered. The uncovered paths are the `errorMessage` log helper, a response that has already started, a duplicate field in a post, and a document the database validator rejects. Deals input is checked before it reaches the database, so the Deals routes do not reach them. |
-| `app.ts` | 100% | 96.15% | One branch is code TypeScript adds, not ours. Line 3 of the compiled file (the coverage report numbers the compiled JavaScript) is the `__importDefault` helper that `import express from 'express'` compiles to. It returns the module unchanged only for a package compiled from ES modules, and Express is a CommonJS package, so that side is never taken. |
-| `sessions.ts` | 100% | 90% | Line 3 (compiled) is the same `__importDefault` helper, for `import jwt from 'jsonwebtoken'`. Lines 96–97 (70–71 in the report): `verifySessionToken` reads no claims from a token whose payload is a plain string, but `jwt.verify` is called with an issuer and audience, and it rejects a string payload because it has neither, so a string never reaches those lines. They stay because `jwt.verify` returns `string \| JwtPayload`. |
-| `googleAuth.ts` | 100% | 91.66% | Line 40 (27 in the report): `payload.email ?? ''` is for a ticket without an email. The line before it rejects an account whose `email_verified` is not `true`, and Google only sends `email_verified` together with `email` (both come from the `email` scope), so a ticket that gets this far always has an email. |
+| `matching/rank.ts` | 98.18% | 96.29% | One defensive branch cannot be reached through the API. Lines 59–60 (39 in the report): `normaliseWeights` counts the four parts equally when every weight is 0, but the feed always ranks with `DEFAULT_WEIGHTS` (3, 3, 3, 3) until users can save ranking preferences. |
+| `matching/satisfies.ts` | 97.91% | 97.14% | One defensive branch cannot be reached through the API. Lines 87–88 (83 in the report): `satisfies` rejects a listing in another category, but the feed only fetches candidates in the post's category (`listOpenInCategory`). The check keeps the rule complete on its own, so a listing is in a request's feed exactly when the request is in the listing's. |
+| `store/postStore.ts` | 98.71% | 85% | Three branches. Line 49 (50 in the report): `listOpen` has a default of no filter, but its only caller, the browse feed, always passes one. Line 118 (107): `ensure` falls back to the option it was given if MongoDB returns nothing, which an upsert that returns the document after the write never does. Lines 122–123 (110–111): `ensureMany` returns early for an empty list, but its only caller saves the built-in options, which are never empty. |
+| `store/mongoHelpers.ts` | 95.45% | 80% | Lines 33–34 (31–32 in the report): `applySchema` updates the validator of a collection that already exists, which happens when the server restarts on an existing database. Each test file starts with a new, empty database, so the collections never exist yet. |
+| `store/matchingStore.ts` | 100% | 92.85% | Line 24 (19 in the report): the browse feed with a maximum price but no minimum price. The tests filter the browse feed by a price range and by a minimum price alone, which build the same query, but not by a maximum price alone. |
 
 ---
 
