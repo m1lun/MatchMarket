@@ -16,7 +16,7 @@ Evidence checked: 19 November 2026, Vancouver time.
 | 2026-11-18 | 3.3 | Updated the actions for the review findings on Use Case 1 and the Requirements_and_Design links, and recorded the code restructuring planned for M3. |
 | 2026-11-19 | 3.3 | Use Case 3 no longer describes the ranking algorithm. |
 | 2026-11-19 | 2 | Updated Section 2 for CP3 from the Codacy results on main at commit `1c8c835`: 0 issues, after PR #236 fixed the two dependency alerts. Updated the inspected commit. |
-| 2026-11-19 | 3.4 | Named the reviewers by first name, added author and reviewer columns, and reworded each review so it is clear what was asked and what happened. |
+| 2026-11-19 | 3.4 | Named the reviewers by first name, added author and reviewer columns, and reworded each review so it is clear what was asked and what happened. Removed PR #31, which was the author reviewing their own PR. |
 
 ## 2. Automated Code Review Results
 
@@ -142,10 +142,9 @@ Team members reviewed each other's pull requests on GitHub. Names below are the 
 | PR | Author | Reviewer | Review | Outcome |
 | :---- | :---- | :---- | :---- | :---- |
 | [PR \#29](https://github.com/m1lun/m1skeletonProject/pull/29#issuecomment-6185268836) Google sign-in | Milun | Nishim, Bradley | Nishim asked for the backend to issue its own session and refresh tokens. Bradley later summarized what was added: issuing tokens, the refresh and logout endpoints, and protected routes. | Merged |
-| [PR \#31](https://github.com/m1lun/m1skeletonProject/pull/31#discussion_r4300167547) Listing and request schema | Nishim | Nishim (own PR) | Asked to remove a comment in `backend/src/models/common.ts`; the thread was resolved. This was a self-review, not a review by another teammate. | Merged |
 | [PR \#35](https://github.com/m1lun/m1skeletonProject/pull/35) Listings feed screen | Milun | Nishim | Asked for the comments to be cleaned up, then replied "Thanks for fixing the comments. LGTM!" | Merged |
-| [PR \#46](https://github.com/m1lun/m1skeletonProject/pull/46#pullrequestreview-5579959981) Matching | Bradley | Milun | Comment review thanking Bradley for removing unit tests, ending "LGTM". A comment, not a formal approval. | Merged |
-| [PR \#53](https://github.com/m1lun/m1skeletonProject/pull/53#pullrequestreview-5593076708) Open a feed post | Bradley | Milun | Comment review: one function was made more readable, otherwise "LGTM". | Merged |
+| [PR \#46](https://github.com/m1lun/m1skeletonProject/pull/46#pullrequestreview-5579959981) Matching | Bradley | Milun | Comment review thanking Bradley for removing unit tests, ending "LGTM". | Merged |
+| [PR \#53](https://github.com/m1lun/m1skeletonProject/pull/53#pullrequestreview-5593076708) Open a feed post | Bradley | Milun | Milun pushed a commit to the PR that made the post detail screen's read-only checks easier to read by flattening them (`f3f2e8f`), then commented "LGTM". | Merged |
 | [PR \#54](https://github.com/m1lun/m1skeletonProject/pull/54#pullrequestreview-5593226561) Photo rule tests | Nishim | Milun | Approved: the tests are standalone, readable and clean up their data. | Merged |
 | [PR \#107](https://github.com/m1lun/m1skeletonProject/pull/107) Users collection | Terry | Nishim | Asked to remove unit tests not needed for CP2, to keep comments to the important parts of the code, and why the user model had both an address and a location; then approved. | Merged |
 | [PR \#161](https://github.com/m1lun/m1skeletonProject/pull/161) Use-case docs | Milun | Nishim | Approved the documentation update. | Merged |
