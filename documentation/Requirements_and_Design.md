@@ -53,7 +53,7 @@
 | 2026-11-18 | 3.5 | Following peer-review feedback, Use Case 1 says which failures apply to requests and which to listings. The use case links now use `id` anchors, which more Markdown viewers support. |
 | 2026-11-19 | 4.7 | Following peer feedback that the NFR 2 test used only one candidate post, NFR 2 is now measured with the NFR 1 workload of 1,000 candidates, and checks that the feed keeps its ranked order without travel times. Updated the measured times of both NFRs. |
 | 2026-11-19 | 3.5, 4.1 | Following TA and peer-review feedback, Use Case 3 steps 3–5 now say what the system does for the user instead of how it ranks; the scoring details moved to the `rank` interface of Matching in 4.1. |
-| 2026-11-19 | 3.4, 4.1, 4.2, 4.4 | Matched the document to the implementation: the Posts interfaces list their 400, 401, 403 and 404 responses; photos are stored in the GridFS `photos` bucket; the sessions collection lists all its fields; the Posts data rules no longer include review notes; dotenv is listed; and the Profile button is named "Sign Out" as in the app. |
+| 2026-11-19 | 3.4, 4.1, 4.2, 4.4 | Matched the document to the implementation: the Posts interfaces follow the same format as the other components, with each one's request body, return value and status, and errors; photos are stored in the GridFS `photos` bucket; the sessions collection lists all its fields; the Posts data rules no longer include review notes; dotenv is listed; and the Profile button is named "Sign Out" as in the app. |
 
 ---
 
@@ -301,21 +301,21 @@ Each use case covers one goal, and the user starts each of them directly, so the
     - **Purpose**: Owns buyer requests and seller listings, including their photos, validation, and ownership.
     - **Rationale**: Both post types share most fields and lifecycle, so one component avoids duplicate logic; alternative of separate Requests and Listings components was rejected because every matching and feed operation needs both.
     - **Lifecycle and ownership**: Newly created posts have status open. Only the authenticated owner may edit, close, reopen or delete a post. Closing changes the stored status to closed and keeps the post in the owner's My Posts; closed posts can still be edited and are excluded from feeds and recommendations. Reopening sets the status back to open, and deleting removes the post permanently.
-    - **Interfaces**: All routes use the `/api` prefix. Post operations require an authenticated session (401 without one). Invalid input returns 400 with `{ error, details }` listing every problem. On the routes under `/:id`, another user's post returns 403 and an unknown or malformed id returns 404.
+    - **Interfaces**: All routes use the `/api` prefix and require an authenticated session (401 without one). Failures return `{ error }`, and invalid input returns 400 with `{ error, details }` listing every problem.
         1. `POST /api/requests` and `POST /api/listings`
-            - **Purpose**: Create a post from JSON containing its fields, coordinates and photo IDs. Photos are uploaded separately before creating the post. Returns the created post with status 201.
+            - **Purpose**: Create a post from JSON `{ name, category, description?, address, location: { longitude, latitude }, photoIds }`, plus `price`, `condition` and `listingFields` for a listing or `requestFields` for a request. Photos are uploaded first with `POST /api/photos`. Returns 201 with the saved post, which is open and has its `id`, `ownerId`, `createdAt` and `updatedAt`. A new category or field value is added to the options list. 400 for a missing required field or a value out of range, such as a name over 80 characters, a description over 2,000, more than 10 photos (or none for a listing), more than 16 fields, or a negative price.
         2. `GET /api/requests` and `GET /api/listings`
-            - **Purpose**: Retrieve the authenticated user's own open and closed posts.
+            - **Purpose**: Return the caller's own open and closed posts, newest first.
         3. `GET /api/requests/:id` and `GET /api/listings/:id`
-            - **Purpose**: Retrieve an owned post. Returns 403 for another user's post or 404 if the post does not exist.
+            - **Purpose**: Return one of the caller's posts. 403 for another user's post, 404 for an unknown or malformed id.
         4. `PATCH /api/requests/:id` and `PATCH /api/listings/:id`
-            - **Purpose**: Update an owned post's fields or status. Setting `status=closed` closes it; `status=open` reopens it. Closed posts can also be edited.
+            - **Purpose**: Change one of the caller's posts from JSON with any of the fields of `POST`, plus `status`: `"closed"` closes the post and `"open"` reopens it. Closed posts can also be edited. The changes are merged into the stored post and the whole post is checked again. Returns 200 with the updated post. 400 if the result is invalid or `status` is anything else, 403 for another user's post, 404 for an unknown or malformed id.
         5. `DELETE /api/requests/:id` and `DELETE /api/listings/:id`
-            - **Purpose**: Permanently delete an owned post. Returns status 204.
+            - **Purpose**: Permanently delete one of the caller's posts. Returns 204. 403 for another user's post, 404 for an unknown or malformed id.
         6. `POST /api/photos`
-            - **Purpose**: Upload 1–10 photos using multipart form data. Accepted MIME types are JPEG, PNG, WebP and GIF, with a current limit of 5 MB per photo. Returns the uploaded photo IDs.
+            - **Purpose**: Upload 1–10 photos as multipart form data in the `photos` field: JPEG, PNG, WebP or GIF, at most 5 MB each. Returns 201 with `{ ids }`. 400 for no photos, more than 10, or a file that is not one of those image types; 413 for a photo over 5 MB.
         7. `GET /api/photos/:id`
-            - **Purpose**: Retrieve a photo from GridFS for any signed-in user; 401 without a valid session token, 404 if the photo does not exist. Only the user's own device may cache it.
+            - **Purpose**: Return a photo's image, with its type, to any signed-in user. 404 if the photo does not exist. Only the user's own device may cache it.
         8. `GET /api/options?field=<field>`
             - **Purpose**: Return the values users can pick for a field, such as category, brand, colour or a custom text field, as `[{ field, key, label, builtin, createdBy, createdAt }]`, sorted by label. 400 without `field`.
         9. `POST /api/options`
