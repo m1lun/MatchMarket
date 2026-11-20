@@ -75,7 +75,7 @@ Set at least:
 - `MONGODB_URI` (required): where sessions (and listings) are stored. The default in `.env.example` assumes MongoDB on `localhost:27017`; Docker Compose overrides it with its own `mongo` service. The server waits for MongoDB before it starts listening.
 - `PORT` (optional): defaults to `3000` if unset.
 - `ENABLE_HTTPS` (optional): `true` serves HTTPS using `backend/certs/server.crt` and `backend/certs/server.key` (see [HTTPS](#https)). Leave unset for local HTTP.
-- `ORS_API_KEY` (optional): an [OpenRouteService](https://account.heigit.org/signup) API key, used for travel times on the first page of recommendations. Without it, the feed works but shows "Travel time unavailable".
+- `ORS_API_KEY` (optional): an [OpenRouteService](https://openrouteservice.org/dev/) API key, used for travel times on the first page of recommendations. Without it, the feed works but shows "Travel time unavailable".
 
 ### API
 
