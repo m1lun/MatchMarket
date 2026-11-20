@@ -54,6 +54,7 @@
 | 2026-11-19 | 4.7 | Following peer feedback that the NFR 2 test used only one candidate post, NFR 2 is now measured with the NFR 1 workload of 1,000 candidates, and checks that the feed keeps its ranked order without travel times. Updated the measured times of both NFRs. |
 | 2026-11-19 | 3.5, 4.1 | Following TA and peer-review feedback, Use Case 3 steps 3–5 now say what the system does for the user instead of how it ranks; the scoring details moved to the `rank` interface of Matching in 4.1. |
 | 2026-11-19 | 3.4, 4.1, 4.2, 4.4 | Matched the document to the implementation: the Posts interfaces follow the same format as the other components, with each one's request body, return value and status, and errors, and a JSON body over 1 MB returns 413; photos are stored in the GridFS `photos` bucket; the sessions collection lists all its fields; the Posts data rules no longer include review notes; dotenv is listed; and the Profile button is named "Sign Out" as in the app. |
+| 2026-11-19 | 4.6 | The sequence diagrams name the database call each step makes, in Java style, instead of describing it in English. |
 
 ---
 
@@ -546,7 +547,7 @@ sequenceDiagram
         FE--)U: "Could not reach the server. Check your connection."
     else
         activate P
-        P->>DB: find the user's posts
+        P->>DB: listings.listByOwner(userId) (or requests)
         activate DB
         DB--)P: posts
         deactivate DB
@@ -568,7 +569,7 @@ sequenceDiagram
         opt the post has new photos
             FE->>P: POST /api/photos (multipart photos)
             activate P
-            P->>DB: store the photos in GridFS
+            P->>DB: photos.save(data, mimeType, userId) for each photo
             activate DB
             DB--)P: photo ids
             deactivate DB
@@ -581,7 +582,7 @@ sequenceDiagram
             P--)FE: 400 with the error messages
             FE--)U: the message, such as "max price must be at least 0", and nothing is saved
         else
-            P->>DB: insert the post
+            P->>DB: listings.insert(post) (or requests)
             activate DB
             DB--)P: saved post
             deactivate DB
@@ -607,7 +608,7 @@ sequenceDiagram
         FE--)U: "Could not reach the server. Check your connection." and "Retry"
     else
         activate D
-        D->>DB: find the user's deals, ratings, reputations and posts
+        D->>DB: deals.listByUser(userId, 21), then ratings.listByDeals(dealIds),<br/>reputations.findMany(otherUserIds), users.findPublicByIds(otherUserIds),<br/>listings.findByIds(listingIds, fields), requests.findByIds(requestIds, fields)
         activate DB
         DB--)D: deals
         deactivate DB
@@ -626,23 +627,23 @@ sequenceDiagram
             FE--)U: "Could not reach the server. Check your connection." in the dialog, and the rating is not saved
         else
             activate D
-            D->>DB: find the deal
+            D->>DB: deals.findById(dealId)
             activate DB
             DB--)D: deal
             deactivate DB
             alt the user has not rated this deal
-                D->>DB: insert the rating (one transaction with the reputation update)
+                D->>DB: in one transaction: ratings.insert(rating)
                 activate DB
                 DB--)D: saved rating
                 deactivate DB
-                D->>DB: add the stars to the other user's reputation
+                D->>DB: reputations.addRating(ratedUserId, stars, now)
                 activate DB
                 DB--)D: updated reputation
                 deactivate DB
                 D--)FE: 201 rating and the other user's new score
                 FE--)U: show the rating and the other user's new score on the deal
             else 6a. the user already rated this deal on another device
-                D->>DB: insert the rating (one transaction with the reputation update)
+                D->>DB: in one transaction: ratings.insert(rating)
                 activate DB
                 DB--)D: duplicate key error, nothing saved
                 deactivate DB
@@ -668,7 +669,7 @@ sequenceDiagram
     U->>FE: Open the feed filters
     FE->>P: GET /api/requests or /api/listings (the user's own posts)
     activate P
-    P->>DB: find the user's posts
+    P->>DB: requests.listByOwner(userId) (or listings)
     activate DB
     DB--)P: posts
     deactivate DB
@@ -683,14 +684,14 @@ sequenceDiagram
             FE--)U: "Couldn't load the feed. Check your connection and try again." and "Retry"
         else
             activate M
-            M->>DB: find the post by postId
+            M->>DB: requests.findById(postId), else listings.findById(postId)
             activate DB
             DB--)M: source post
             deactivate DB
             alt 1a. the post is closed (the app shows no "See recommendations" button for it)
                 M--)FE: 409 "Closed posts have no feed"
             else
-                M->>DB: find other users' open posts in the same category
+                M->>DB: listings.listOpenInCategory(category, userId) (requests for a listing)
                 activate DB
                 DB--)M: candidates
                 deactivate DB
@@ -735,7 +736,7 @@ sequenceDiagram
         FE--)U: "Could not reach the server. Check your connection." and "Retry"
     else
         activate MS
-        MS->>DB: find the user's conversations, their posts and the other users
+        MS->>DB: conversations.listByUser(userId), then users.findPublicByIds(otherUserIds),<br/>listings.findByIds(listingIds, fields), requests.findByIds(requestIds, fields)
         activate DB
         DB--)MS: conversations
         deactivate DB
@@ -749,7 +750,7 @@ sequenceDiagram
         FE--)U: "Could not reach the server. Check your connection." and "Retry"
     else
         activate MS
-        MS->>DB: find the 30 newest messages
+        MS->>DB: messages.listByConversation(conversationId, 31)
         activate DB
         DB--)MS: messages
         deactivate DB
@@ -759,7 +760,7 @@ sequenceDiagram
         opt there are older messages and the user taps "Load earlier messages"
             FE->>MS: GET /api/conversations/:id/messages?before=cursor
             activate MS
-            MS->>DB: find the 30 messages before the cursor
+            MS->>DB: messages.listByConversation(conversationId, 31, before)
             activate DB
             DB--)MS: messages
             deactivate DB
@@ -776,11 +777,11 @@ sequenceDiagram
             FE--)U: "Could not send the message. Try again.", and the message stays in the box
         else
             activate MS
-            MS->>DB: insert the message
+            MS->>DB: messages.insert(message)
             activate DB
             DB--)MS: saved message
             deactivate DB
-            MS->>DB: set the conversation's last message
+            MS->>DB: conversations.recordMessage(conversationId, lastMessage)
             activate DB
             DB--)MS: updated
             deactivate DB
@@ -815,7 +816,7 @@ sequenceDiagram
     U->>FE: Open the Feed tab, choose "I'm buying" or "I'm selling"
     FE->>UA: GET /api/users/me
     activate UA
-    UA->>DB: find the user
+    UA->>DB: users.findById(userId)
     activate DB
     DB--)UA: user, with the home address if set
     deactivate DB
@@ -826,7 +827,7 @@ sequenceDiagram
         FE--)U: "Couldn't load the feed. Check your connection and try again." and "Retry"
     else
         activate M
-        M->>DB: find other users' open posts, newest first
+        M->>DB: listings.listOpen(userId, 21, filter) (or requests),<br/>filter: within 50 km of the home address, if set
         activate DB
         DB--)M: posts
         deactivate DB
@@ -849,7 +850,7 @@ sequenceDiagram
             FE--)U: "Couldn't load the feed. Check your connection and try again." and "Retry"
         else
             activate M
-            M->>DB: find other users' open posts that match the filters, newest first
+            M->>DB: listings.listOpen(userId, 21, filter) (or requests),<br/>filter: the category, price and distance
             activate DB
             DB--)M: matching posts
             deactivate DB
