@@ -53,6 +53,7 @@
 | 2026-11-18 | 3.5 | Following peer-review feedback, Use Case 1 says which failures apply to requests and which to listings. The use case links now use `id` anchors, which more Markdown viewers support. |
 | 2026-11-19 | 4.7 | Following peer feedback that the NFR 2 test used only one candidate post, NFR 2 is now measured with the NFR 1 workload of 1,000 candidates, and checks that the feed keeps its ranked order without travel times. Updated the measured times of both NFRs. |
 | 2026-11-19 | 3.5, 4.1 | Following TA and peer-review feedback, Use Case 3 steps 3–5 now say what the system does for the user instead of how it ranks; the scoring details moved to the `rank` interface of Matching in 4.1. |
+| 2026-11-19 | 3.4, 4.1, 4.2, 4.4 | Matched the document to the implementation: the Posts interfaces follow the same format as the other components, with each one's request body, return value and status, and errors, and a JSON body over 1 MB returns 413; photos are stored in the GridFS `photos` bucket; the sessions collection lists all its fields; the Posts data rules no longer include review notes; dotenv is listed; and the Profile button is named "Sign Out" as in the app. |
 
 ---
 
@@ -99,7 +100,7 @@ Each use case covers one goal, and the user starts each of them directly, so the
 **Authentication and Profile** (baseline requirement, not counted as a feature)
 
 1. **Sign in with Google**: The user signs in with their Google account and gains access to their posts and the feed.
-2. **Sign out**: The user taps "Sign out" on the Profile tab, which ends their session on the device and the backend.
+2. **Sign out**: The user taps "Sign Out" on the Profile tab, which ends their session on the device and the backend.
 3. **Manage profile**: The user opens the Profile tab and sees their Google name, email and photo, their reputation score, when they joined, and how many requests and listings they have; tapping a count opens those posts in My Posts. They can set, change or remove their home address, picked from the address suggestions. When a home address is set, the feed starts filtered to posts within 50 km of it (see Filter feed).
 
 **Feature 1: Buyer Requests and Seller Listings**
@@ -300,21 +301,21 @@ Each use case covers one goal, and the user starts each of them directly, so the
     - **Purpose**: Owns buyer requests and seller listings, including their photos, validation, and ownership.
     - **Rationale**: Both post types share most fields and lifecycle, so one component avoids duplicate logic; alternative of separate Requests and Listings components was rejected because every matching and feed operation needs both.
     - **Lifecycle and ownership**: Newly created posts have status open. Only the authenticated owner may edit, close, reopen or delete a post. Closing changes the stored status to closed and keeps the post in the owner's My Posts; closed posts can still be edited and are excluded from feeds and recommendations. Reopening sets the status back to open, and deleting removes the post permanently.
-    - **Interfaces**: All routes use the `/api` prefix. Post operations require an authenticated session.
+    - **Interfaces**: All routes use the `/api` prefix and require an authenticated session (401 without one). Failures return `{ error }`, and invalid input returns 400 with `{ error, details }` listing every problem. A JSON body over 1 MB returns 413.
         1. `POST /api/requests` and `POST /api/listings`
-            - **Purpose**: Create a post from JSON containing its fields, coordinates and photo IDs. Photos are uploaded separately before creating the post. Returns the created post with status 201.
+            - **Purpose**: Create a post from JSON `{ name, category, description?, address, location: { longitude, latitude }, photoIds }`, plus `price`, `condition` and `listingFields` for a listing or `requestFields` for a request. Photos are uploaded first with `POST /api/photos`. Returns 201 with the saved post, which is open and has its `id`, `ownerId`, `createdAt` and `updatedAt`. A new category or field value is added to the options list. 400 for a missing required field or a value out of range, such as a name over 80 characters, a description over 2,000, more than 10 photos (or none for a listing), more than 16 fields, or a negative price.
         2. `GET /api/requests` and `GET /api/listings`
-            - **Purpose**: Retrieve the authenticated user's own open and closed posts.
+            - **Purpose**: Return the caller's own open and closed posts, newest first.
         3. `GET /api/requests/:id` and `GET /api/listings/:id`
-            - **Purpose**: Retrieve an owned post. Returns 403 for another user's post or 404 if the post does not exist.
+            - **Purpose**: Return one of the caller's posts. 403 for another user's post, 404 for an unknown or malformed id.
         4. `PATCH /api/requests/:id` and `PATCH /api/listings/:id`
-            - **Purpose**: Update an owned post's fields or status. Setting `status=closed` closes it; `status=open` reopens it. Closed posts can also be edited.
+            - **Purpose**: Change one of the caller's posts from JSON with any of the fields of `POST`, plus `status`: `"closed"` closes the post and `"open"` reopens it. Closed posts can also be edited. The changes are merged into the stored post and the whole post is checked again. Returns 200 with the updated post. 400 if the result is invalid or `status` is anything else, 403 for another user's post, 404 for an unknown or malformed id.
         5. `DELETE /api/requests/:id` and `DELETE /api/listings/:id`
-            - **Purpose**: Permanently delete an owned post. Returns status 204.
+            - **Purpose**: Permanently delete one of the caller's posts. Returns 204. 403 for another user's post, 404 for an unknown or malformed id.
         6. `POST /api/photos`
-            - **Purpose**: Upload 1–10 photos using multipart form data. Accepted MIME types are JPEG, PNG, WebP and GIF, with a current limit of 5 MB per photo. Returns the uploaded photo IDs.
+            - **Purpose**: Upload 1–10 photos as multipart form data in the `photos` field: JPEG, PNG, WebP or GIF, at most 5 MB each. Returns 201 with `{ ids }`. 400 for no photos, more than 10, or a file that is not one of those image types; 413 for a photo over 5 MB.
         7. `GET /api/photos/:id`
-            - **Purpose**: Retrieve a photo from GridFS for any signed-in user; 401 without a valid session token, 404 if the photo does not exist. Only the user's own device may cache it.
+            - **Purpose**: Return a photo's image, with its type, to any signed-in user. 404 if the photo does not exist. Only the user's own device may cache it.
         8. `GET /api/options?field=<field>`
             - **Purpose**: Return the values users can pick for a field, such as category, brand, colour or a custom text field, as `[{ field, key, label, builtin, createdBy, createdAt }]`, sorted by label. 400 without `field`.
         9. `POST /api/options`
@@ -403,7 +404,7 @@ Each use case covers one goal, and the user starts each of them directly, so the
 ### **4.2. Databases**
 
 1. **MongoDB** (self-hosted in Docker on the cloud VM)
-    - **Purpose**: Stores users, requests, listings, options, custom fields, sessions, deals, ratings, reputations, conversations and messages. Photos for requests and listings are stored in the same database using GridFS (fs.files and fs.chunks), and each post keeps the ids of its photos. Geospatial index on post locations.
+    - **Purpose**: Stores users, requests, listings, options, custom fields, sessions, deals, ratings, reputations, conversations and messages. Photos for requests and listings are stored in the same database using GridFS, in the `photos` bucket (photos.files and photos.chunks), and each post keeps the ids of its photos. Geospatial index on post locations.
 
     **Collections and data rules:**
 
@@ -414,7 +415,7 @@ Each use case covers one goal, and the user starts each of them directly, so the
     | listings | ownerId, name, category, description, price, condition, listingFields[] (built-in brand, dimensions {width, height, depth}, colour, plus custom fields), address, location, photoIds[] (GridFS file ids), status (open, closed) |
     | options | field, key, label, builtin, createdBy |
     | customFields | ownerId, key, label, type (text, number, bool) |
-    | sessions | tokenHash, familyId, userId, expiresAt, usedAt |
+    | sessions | tokenHash, familyId, userId, email, firstName, lastName, createdAt, expiresAt, usedAt |
     | conversations | listingId, requestId (either may be null, not both), sellerId, buyerId, postKind (the post that was tapped: listing or request), lastMessage {senderId, text, createdAt} or null, proposal {proposerId, price, note (up to 300 characters), status (pending, accepted, declined), createdAt} (absent until the first proposal), createdAt, updatedAt |
     | messages | conversationId, senderId, text (1 to 1000 characters), createdAt |
     | deals | listingId, requestId (either may be null, not both), sellerId, buyerId, agreedPrice, createdAt |
@@ -425,8 +426,8 @@ Each use case covers one goal, and the user starts each of them directly, so the
 
     **Posts data rules:**
     - The backend obtains ownerId from the authenticated session. New posts start open. Closing retains a record; the current API also supports reopening and permanent deletion.
-    - Both post types require name, category, address and coordinates. Requests require a built-in price field. Listings require non-negative top-level price, a valid condition and at least one photo ID. Request price, radius and size cannot be negative. The 1–50 km radius rule is not enforced by the inspected request-field validation; it must not be claimed as completed validation.
-    - Requests allow 0–10 photo IDs and listings 1–10. Actual upload size is at most 5 MB per file. Post validation checks ID format/count; photo existence and ownership checks are not established by that validation.
+    - Both post types require name, category, address and coordinates. Requests require a built-in price field. Listings require non-negative top-level price, a valid condition and at least one photo ID. Request price, radius and size cannot be negative.
+    - Requests allow 0–10 photo IDs and listings 1–10. Each uploaded photo is at most 5 MB.
     - Categories are normalized, extendable option values rather than a fixed list. They are saved in the singular, so desks is saved as desk, except words that only look plural, such as glass and electronics. Existing posts and category options are converted when the backend starts. Description is supported, up to 2,000 characters. The name, up to 80 characters, is the post's title; posts saved before names were added use their category as the name. Dimensions use cm and radius uses km; CAD remains the intended currency.
     - Unfilled optional editor rows are omitted. Existing post addresses and coordinates are saved with each post. The post editor does not pre-fill the profile address. The feed starts filtered to 50 km around the profile address when one is set. Closed listings are excluded from the current open-listings feed.
 
@@ -484,6 +485,9 @@ Each use case covers one goal, and the user starts each of them directly, so the
 10. **Multer** (backend)
     - **Purpose**: Parses multipart photo uploads and enforces the photo count and size limits.
     - **Reason**: Standard Express middleware for multipart uploads.
+11. **dotenv** (backend)
+    - **Purpose**: Loads the backend's configuration and secrets, such as `MONGODB_URI`, `GOOGLE_CLIENT_ID` and `JWT_SECRET`, from `backend/.env` at startup.
+    - **Reason**: Keeps secrets in a gitignored file instead of in the code or the shell.
 
 ### **4.5. Dependencies Diagram**
 
