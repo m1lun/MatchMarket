@@ -37,6 +37,7 @@ const UNKNOWN_ID = '6ad40b88e74dd3678bfef8ff';
 const MALFORMED_ID = 'not-an-id';
 const CONDITIONS_ERROR = 'new, like new, good, fair, poor';
 const MAX_PRICE_WITHOUT_HARD = { kind: 'builtin', key: 'price', value: 100 };
+const BODY_LIMIT = 1024 * 1024;
 
 const TOKEN_CASES: TokenCase[] = [
   { label: 'No Token', header: undefined, error: 'Missing Authorization: Bearer <session token> header' },
@@ -50,6 +51,12 @@ const NOT_FOUND_CASES: IdCase[] = [
 
 function as(call: request.Test, userId = ME): request.Test {
   return call.set('Authorization', bearer(userId));
+}
+
+// The body as JSON, padded with spaces to one byte over the body limit.
+function oversized(body: unknown): string {
+  const json = JSON.stringify(body);
+  return json + ' '.repeat(BODY_LIMIT + 1 - json.length);
 }
 
 function withHeader(call: request.Test, header: string | undefined): request.Test {
@@ -246,6 +253,18 @@ function createTests(kind: PostKind, kindCases: InvalidCase[]): void {
     expect(response.body).toStrictEqual({ error: 'Malformed request body' });
     expect(await storedCount(kind)).toBe(0);
   });
+
+  // Input: a valid body padded with spaces to 1 MB + 1 byte, one byte over the limit
+  // Expected status code: 413
+  // Expected behavior: nothing is saved
+  // Expected output: { error: 'Request body too large' }
+  test('Body Over 1 MB: 413', async () => {
+    const response = await as(request(app).post(kind.path)).set('Content-Type', 'application/json').send(oversized(kind.body()));
+
+    expect(response.status).toBe(413);
+    expect(response.body).toStrictEqual({ error: 'Request body too large' });
+    expect(await storedCount(kind)).toBe(0);
+  });
 }
 
 function listTests(kind: PostKind): void {
@@ -373,6 +392,22 @@ function patchTests(kind: PostKind): void {
     expect(rest).toStrictEqual({ ...oldRest, name: 'Renamed' });
     expect(new Date(updatedAt as string).getTime()).toBeGreaterThanOrEqual(new Date(oldUpdatedAt as string).getTime());
     expect(asJson(await stored(kind, post.id))).toStrictEqual(response.body);
+  });
+
+  // Input: PATCH /:id of the caller's post with { name: 'Renamed' } padded with spaces to 1 MB + 1 byte
+  // Expected status code: 413
+  // Expected behavior: the post is unchanged
+  // Expected output: { error: 'Request body too large' }
+  test('Body Over 1 MB: 413', async () => {
+    const post = await kind.make(mongo.store, ME);
+
+    const response = await as(request(app).patch(`${kind.path}/${post.id}`))
+      .set('Content-Type', 'application/json')
+      .send(oversized({ name: 'Renamed' }));
+
+    expect(response.status).toBe(413);
+    expect(response.body).toStrictEqual({ error: 'Request body too large' });
+    expect(await stored(kind, post.id)).toStrictEqual(post);
   });
 
   // Input: PATCH /:id with { status } to close an open post or reopen a closed one (see table)
