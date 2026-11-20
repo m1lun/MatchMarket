@@ -35,6 +35,10 @@ export const errorHandler: ErrorRequestHandler = (error: unknown, _req, res, nex
     res.status(400).json({ error: 'Malformed request body' });
     return;
   }
+  if (status === 413) {
+    res.status(413).json({ error: 'Request body too large' });
+    return;
+  }
   if (code === DOCUMENT_VALIDATION_FAILED) {
     res.status(400).json({ error: 'Invalid request', details: ['a field is outside its allowed values or length'] });
     return;
