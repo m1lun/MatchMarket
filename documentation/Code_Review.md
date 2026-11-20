@@ -145,8 +145,8 @@ Team members reviewed each other's pull requests on GitHub. Names below are the 
 | [PR \#35](https://github.com/m1lun/m1skeletonProject/pull/35) Listings feed screen | Milun | Nishim | Asked for the comments to be cleaned up, then replied "Thanks for fixing the comments. LGTM!" | Merged |
 | [PR \#46](https://github.com/m1lun/m1skeletonProject/pull/46#pullrequestreview-5579959981) Matching | Bradley | Milun | Comment review thanking Bradley for removing unit tests, ending "LGTM". | Merged |
 | [PR \#53](https://github.com/m1lun/m1skeletonProject/pull/53#pullrequestreview-5593076708) Open a feed post | Bradley | Milun | Milun pushed a commit to the PR that made the post detail screen's read-only checks easier to read by flattening them (`f3f2e8f`), then commented "LGTM". | Merged |
-| [PR \#54](https://github.com/m1lun/m1skeletonProject/pull/54#pullrequestreview-5593226561) Photo rule tests | Nishim | Milun | Approved: the tests are standalone, readable and clean up their data. | Merged |
-| [PR \#107](https://github.com/m1lun/m1skeletonProject/pull/107) Users collection | Terry | Nishim | Asked to remove unit tests not needed for CP2, to keep comments to the important parts of the code, and why the user model had both an address and a location; then approved. | Merged |
+| [PR \#54](https://github.com/m1lun/m1skeletonProject/pull/54#pullrequestreview-5593226561) Photo rule tests | Nishim | Milun | Milun approved the PR, noting that the tests are standalone and readable and that they clean up their data. | Merged |
+| [PR \#107](https://github.com/m1lun/m1skeletonProject/pull/107) Users collection | Terry | Nishim | Nishim asked Terry to remove the unit tests that were not needed for CP2, to keep comments only on the important parts of the code, and to explain why the user model had both an address and a location. He then approved the PR. | Merged |
 | [PR \#161](https://github.com/m1lun/m1skeletonProject/pull/161) Use-case docs | Milun | Nishim | Approved the documentation update. | Merged |
 
 ### Additional Internal Findings and Fixes
