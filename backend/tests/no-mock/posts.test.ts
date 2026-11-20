@@ -37,7 +37,6 @@ const UNKNOWN_ID = '6ad40b88e74dd3678bfef8ff';
 const MALFORMED_ID = 'not-an-id';
 const CONDITIONS_ERROR = 'new, like new, good, fair, poor';
 const MAX_PRICE_WITHOUT_HARD = { kind: 'builtin', key: 'price', value: 100 };
-// The post routes' JSON body limit, 1 MB.
 const BODY_LIMIT = 1024 * 1024;
 
 const TOKEN_CASES: TokenCase[] = [
