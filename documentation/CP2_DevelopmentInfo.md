@@ -2,7 +2,7 @@
 
 ## 1. Repository and submission version
 
-| Repository | https\://github.com/m1lun/m1skeletonProject  |
+| Repository | https\://github.com/m1lun/MatchMarket  |
 | :---- | :---- |
 | Submission branch | main |
 | Submission commit SHA | 149f16a96f8931a37c0b1c8f2affbebcb3c4cc6d |
@@ -49,8 +49,8 @@ Backend (only to run it yourself locally): Docker Compose 2.24+ with the supplie
 1. **Get the code.** Clone the repository and check out the submission commit from Section 1:
 
    ```bash
-   git clone https://github.com/m1lun/m1skeletonProject.git
-   cd m1skeletonProject
+   git clone https://github.com/m1lun/MatchMarket.git
+   cd MatchMarket
    git checkout <submission commit SHA>
    ```
 

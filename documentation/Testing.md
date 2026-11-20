@@ -40,11 +40,11 @@ This section covers the Deals, Messaging and Matching components, and the auth a
 
 | **Interface** | **Describe Group Location, No Mocks** | **Describe Group Location, With Mocks** | **Mocked Components** |
 | ------------- | ------------------------------------- | --------------------------------------- | --------------------- |
-| **GET /api/deals** | [`tests/no-mock/getDeals.test.ts#L95`](https://github.com/m1lun/m1skeletonProject/blob/1c8c835466defede4e51e26d018a35f9e444b9c0/backend/tests/no-mock/getDeals.test.ts#L95) | [`tests/mock/getDeals.test.ts#L45`](https://github.com/m1lun/m1skeletonProject/blob/1c8c835466defede4e51e26d018a35f9e444b9c0/backend/tests/mock/getDeals.test.ts#L45) | Deals DB, Ratings DB, Reputations DB, Users DB, Listings DB, Requests DB |
-| **POST /api/deals/:id/ratings** | [`tests/no-mock/ratings.test.ts#L260`](https://github.com/m1lun/m1skeletonProject/blob/1c8c835466defede4e51e26d018a35f9e444b9c0/backend/tests/no-mock/ratings.test.ts#L260) | [`tests/mock/ratings.test.ts#L81`](https://github.com/m1lun/m1skeletonProject/blob/1c8c835466defede4e51e26d018a35f9e444b9c0/backend/tests/mock/ratings.test.ts#L81) | Deals DB, Ratings DB, Reputations DB |
-| **PUT /api/deals/:id/ratings** | [`tests/no-mock/ratings.test.ts#L348`](https://github.com/m1lun/m1skeletonProject/blob/1c8c835466defede4e51e26d018a35f9e444b9c0/backend/tests/no-mock/ratings.test.ts#L348) | [`tests/mock/ratings.test.ts#L116`](https://github.com/m1lun/m1skeletonProject/blob/1c8c835466defede4e51e26d018a35f9e444b9c0/backend/tests/mock/ratings.test.ts#L116) | Deals DB, Ratings DB, Reputations DB |
-| **GET /api/feed/listings/:id** | [`tests/no-mock/dealPost.test.ts#L97`](https://github.com/m1lun/m1skeletonProject/blob/1c8c835466defede4e51e26d018a35f9e444b9c0/backend/tests/no-mock/dealPost.test.ts#L97) | [`tests/mock/dealPost.test.ts#L34`](https://github.com/m1lun/m1skeletonProject/blob/1c8c835466defede4e51e26d018a35f9e444b9c0/backend/tests/mock/dealPost.test.ts#L34) | Listings DB |
-| **GET /api/feed/requests/:id** | [`tests/no-mock/dealPost.test.ts#L102`](https://github.com/m1lun/m1skeletonProject/blob/1c8c835466defede4e51e26d018a35f9e444b9c0/backend/tests/no-mock/dealPost.test.ts#L102) | [`tests/mock/dealPost.test.ts#L54`](https://github.com/m1lun/m1skeletonProject/blob/1c8c835466defede4e51e26d018a35f9e444b9c0/backend/tests/mock/dealPost.test.ts#L54) | Requests DB |
+| **GET /api/deals** | [`tests/no-mock/getDeals.test.ts#L95`](https://github.com/m1lun/MatchMarket/blob/1c8c835466defede4e51e26d018a35f9e444b9c0/backend/tests/no-mock/getDeals.test.ts#L95) | [`tests/mock/getDeals.test.ts#L45`](https://github.com/m1lun/MatchMarket/blob/1c8c835466defede4e51e26d018a35f9e444b9c0/backend/tests/mock/getDeals.test.ts#L45) | Deals DB, Ratings DB, Reputations DB, Users DB, Listings DB, Requests DB |
+| **POST /api/deals/:id/ratings** | [`tests/no-mock/ratings.test.ts#L260`](https://github.com/m1lun/MatchMarket/blob/1c8c835466defede4e51e26d018a35f9e444b9c0/backend/tests/no-mock/ratings.test.ts#L260) | [`tests/mock/ratings.test.ts#L81`](https://github.com/m1lun/MatchMarket/blob/1c8c835466defede4e51e26d018a35f9e444b9c0/backend/tests/mock/ratings.test.ts#L81) | Deals DB, Ratings DB, Reputations DB |
+| **PUT /api/deals/:id/ratings** | [`tests/no-mock/ratings.test.ts#L348`](https://github.com/m1lun/MatchMarket/blob/1c8c835466defede4e51e26d018a35f9e444b9c0/backend/tests/no-mock/ratings.test.ts#L348) | [`tests/mock/ratings.test.ts#L116`](https://github.com/m1lun/MatchMarket/blob/1c8c835466defede4e51e26d018a35f9e444b9c0/backend/tests/mock/ratings.test.ts#L116) | Deals DB, Ratings DB, Reputations DB |
+| **GET /api/feed/listings/:id** | [`tests/no-mock/dealPost.test.ts#L97`](https://github.com/m1lun/MatchMarket/blob/1c8c835466defede4e51e26d018a35f9e444b9c0/backend/tests/no-mock/dealPost.test.ts#L97) | [`tests/mock/dealPost.test.ts#L34`](https://github.com/m1lun/MatchMarket/blob/1c8c835466defede4e51e26d018a35f9e444b9c0/backend/tests/mock/dealPost.test.ts#L34) | Listings DB |
+| **GET /api/feed/requests/:id** | [`tests/no-mock/dealPost.test.ts#L102`](https://github.com/m1lun/MatchMarket/blob/1c8c835466defede4e51e26d018a35f9e444b9c0/backend/tests/no-mock/dealPost.test.ts#L102) | [`tests/mock/dealPost.test.ts#L54`](https://github.com/m1lun/MatchMarket/blob/1c8c835466defede4e51e26d018a35f9e444b9c0/backend/tests/mock/dealPost.test.ts#L54) | Requests DB |
 | **POST /api/conversations** | [`tests/no-mock/conversations.test.ts#L53`](../backend/tests/no-mock/conversations.test.ts#L53) | [`tests/mock/conversations.test.ts#L40`](../backend/tests/mock/conversations.test.ts#L40) | Listings DB, Requests DB, Conversations DB |
 | **GET /api/conversations** | [`tests/no-mock/conversations.test.ts#L247`](../backend/tests/no-mock/conversations.test.ts#L247) | [`tests/mock/conversations.test.ts#L65`](../backend/tests/mock/conversations.test.ts#L65) | Conversations DB, Users DB, Listings DB |
 | **GET /api/conversations/:id/messages** | [`tests/no-mock/conversations.test.ts#L353`](../backend/tests/no-mock/conversations.test.ts#L353) | [`tests/mock/conversations.test.ts#L86`](../backend/tests/mock/conversations.test.ts#L86) | Conversations DB, Messages DB |
@@ -107,7 +107,7 @@ How the Messaging conversation tests are organized:
 | **POST /api/e2e/partner/conversations/:id/proposal** | [`tests/no-mock/e2eConversations.test.ts#L260`](../backend/tests/no-mock/e2eConversations.test.ts#L260) | [`tests/mock/e2eConversations.test.ts#L70`](../backend/tests/mock/e2eConversations.test.ts#L70) | Conversations DB |
 | **POST /api/e2e/partner/conversations/:id/proposal/decline** | [`tests/no-mock/e2eConversations.test.ts#L282`](../backend/tests/no-mock/e2eConversations.test.ts#L282) | [`tests/mock/e2eConversations.test.ts#L70`](../backend/tests/mock/e2eConversations.test.ts#L70) | Conversations DB |
 
-Rules that the HTTP interfaces cannot reach or prove are tested directly in [`no-mock/dealStore.test.ts`](https://github.com/m1lun/m1skeletonProject/blob/1c8c835466defede4e51e26d018a35f9e444b9c0/backend/tests/no-mock/dealStore.test.ts): the database validators, the unique indexes, and the store methods behind the routes. `deals.insert`, which records a new deal, is tested there.
+Rules that the HTTP interfaces cannot reach or prove are tested directly in [`no-mock/dealStore.test.ts`](https://github.com/m1lun/MatchMarket/blob/1c8c835466defede4e51e26d018a35f9e444b9c0/backend/tests/no-mock/dealStore.test.ts): the database validators, the unique indexes, and the store methods behind the routes. `deals.insert`, which records a new deal, is tested there.
 
 #### 2.1.2. Commit Hash Where Tests Run
 
@@ -119,8 +119,8 @@ Rules that the HTTP interfaces cannot reach or prove are tested directly in [`no
 
    - Open your terminal and run:
      ```
-     git clone https://github.com/m1lun/m1skeletonProject.git
-     cd m1skeletonProject
+     git clone https://github.com/m1lun/MatchMarket.git
+     cd MatchMarket
      git checkout 653306006d853609a66c1bd4d9bfe8f031008a4f
      ```
 
