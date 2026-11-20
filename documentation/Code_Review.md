@@ -1,7 +1,7 @@
 # **Code Review**
 
-Repository:  [m1lun/m1skeletonProject](https://github.com/m1lun/m1skeletonProject)  
-Inspected main commit: [1c8c835466defede4e51e26d018a35f9e444b9c0](https://github.com/m1lun/m1skeletonProject/commit/1c8c835466defede4e51e26d018a35f9e444b9c0)  
+Repository:  [m1lun/MatchMarket](https://github.com/m1lun/MatchMarket)  
+Inspected main commit: the commit on main that this document was submitted from; its hash is given in the submitted PDF.  
 Evidence checked: 19 November 2026, Vancouver time.
 
 ## 1. Change History
@@ -16,6 +16,7 @@ Evidence checked: 19 November 2026, Vancouver time.
 | 2026-11-18 | 3.3 | Updated the actions for the review findings on Use Case 1 and the Requirements_and_Design links, and recorded the code restructuring planned for M3. |
 | 2026-11-19 | 3.3 | Use Case 3 no longer describes the ranking algorithm. |
 | 2026-11-19 | 2 | Updated Section 2 for CP3 from the Codacy results on main at commit `1c8c835`: 0 issues, after PR #236 fixed the two dependency alerts. Updated the inspected commit. |
+| 2026-11-19 | 3.4 | Named the reviewers by first name, added author and reviewer columns, and reworded each review so it is clear what was asked and what happened. Removed PR #31, which was the author reviewing their own PR. |
 
 ## 2. Automated Code Review Results
 
@@ -23,7 +24,7 @@ Codacy reports 0 issues on main. ESLint, detekt and Trivy are the only enabled t
 
 ### 2.1 Commit Hash Where Codacy Ran
 
-[1c8c835466defede4e51e26d018a35f9e444b9c0](https://github.com/m1lun/m1skeletonProject/commit/1c8c835466defede4e51e26d018a35f9e444b9c0), analysed on 19 November 2026.
+[1c8c835466defede4e51e26d018a35f9e444b9c0](https://github.com/m1lun/MatchMarket/commit/1c8c835466defede4e51e26d018a35f9e444b9c0), analysed on 19 November 2026.
 
 ### 2.2 Unfixed Issues per Codacy Category
 
@@ -49,16 +50,16 @@ PR \#51:
 
 Since CP1:
 
-* **Kotlin**: [PR \#160](https://github.com/m1lun/m1skeletonProject/pull/160) removed the labeled return from sendOffer.
-* **TypeScript**: [PR \#158](https://github.com/m1lun/m1skeletonProject/pull/158) gave the stored categories list a type.
-* **TypeScript**: [PR \#107](https://github.com/m1lun/m1skeletonProject/pull/107) named a caught error so that Codacy sees it as handled.
+* **Kotlin**: [PR \#160](https://github.com/m1lun/MatchMarket/pull/160) removed the labeled return from sendOffer.
+* **TypeScript**: [PR \#158](https://github.com/m1lun/MatchMarket/pull/158) gave the stored categories list a type.
+* **TypeScript**: [PR \#107](https://github.com/m1lun/MatchMarket/pull/107) named a caught error so that Codacy sees it as handled.
 
 Since CP2:
 
-* **TypeScript**: [PR \#184](https://github.com/m1lun/m1skeletonProject/pull/184) typed the MongoDB results that Codacy flagged in the E2E seed code.
-* **TypeScript**: [PR \#187](https://github.com/m1lun/m1skeletonProject/pull/187) resolved the Codacy issues in the accept retry code (untyped driver results, a dynamic object key and an unhandled async error).
-* **TypeScript**: [PR \#200](https://github.com/m1lun/m1skeletonProject/pull/200) awaited and typed the stored address test helper.
-* **Dependencies**: [PR \#236](https://github.com/m1lun/m1skeletonProject/pull/236) updated `multer` from 2.4.0 to 2.5.0 and `body-parser` from 2.3.0 to 2.4.0, which fixed the two high-severity Trivy alerts on `backend/package-lock.json` (CVE-2026-113872 and CVE-2026-111181).
+* **TypeScript**: [PR \#184](https://github.com/m1lun/MatchMarket/pull/184) typed the MongoDB results that Codacy flagged in the E2E seed code.
+* **TypeScript**: [PR \#187](https://github.com/m1lun/MatchMarket/pull/187) resolved the Codacy issues in the accept retry code (untyped driver results, a dynamic object key and an unhandled async error).
+* **TypeScript**: [PR \#200](https://github.com/m1lun/MatchMarket/pull/200) awaited and typed the stored address test helper.
+* **Dependencies**: [PR \#236](https://github.com/m1lun/MatchMarket/pull/236) updated `multer` from 2.4.0 to 2.5.0 and `body-parser` from 2.3.0 to 2.4.0, which fixed the two high-severity Trivy alerts on `backend/package-lock.json` (CVE-2026-113872 and CVE-2026-111181).
 
 ## 3. Manual Code Review Results
 
@@ -85,7 +86,7 @@ Main findings:
 | | |
 | :---- | :---- |
 | **Reviewing group** | SportsNow |
-| **Commit reviewed** | [`1fba57f837b2ea16f32ac258ef019d8f29002898`](https://github.com/m1lun/m1skeletonProject/commit/1fba57f837b2ea16f32ac258ef019d8f29002898) |
+| **Commit reviewed** | [`1fba57f837b2ea16f32ac258ef019d8f29002898`](https://github.com/m1lun/MatchMarket/commit/1fba57f837b2ea16f32ac258ef019d8f29002898) |
 | **Report** | `CP3_MatchMarket_Review.pdf` |
 
 Main findings:
@@ -111,19 +112,19 @@ Main findings:
 
 | Finding from SportsNow | Action | Status |
 | :---- | :---- | :---- |
-| "Create deal" reads like a user action | Removed it as a use case: recording the deal is now a step of "Respond to a proposal" ([PR \#196](https://github.com/m1lun/m1skeletonProject/pull/196)). | Fixed |
-| Sequence diagrams show only one failure each | Every sequence diagram now shows each failure of its formal use case: Send a Message in [PR \#212](https://github.com/m1lun/m1skeletonProject/pull/212), the other four in the pull request that adds this section. | Fixed |
+| "Create deal" reads like a user action | Removed it as a use case: recording the deal is now a step of "Respond to a proposal" ([PR \#196](https://github.com/m1lun/MatchMarket/pull/196)). | Fixed |
+| Sequence diagrams show only one failure each | Every sequence diagram now shows each failure of its formal use case: Send a Message in [PR \#212](https://github.com/m1lun/MatchMarket/pull/212), the other four in the pull request that adds this section. | Fixed |
 | UC2 checks for an existing rating only after the rating is written; activation box with no arrow | The Rate a Deal diagram now starts from the Deals tab, where an already-rated deal shows "Edit rating" instead of "Rate", and every activation box starts at an incoming arrow. | Fixed |
-| Database writes with no reply | Every database write in the sequence diagrams now has a reply ([PR \#212](https://github.com/m1lun/m1skeletonProject/pull/212) and this pull request). | Fixed |
-| The address must be typed from memory | The Profile tab now searches addresses as the user types and saves the picked suggestion ([PR \#198](https://github.com/m1lun/m1skeletonProject/pull/198)). | Fixed |
-| Accepting a proposal rewrites both posts to close them | The posts are closed with a status-only update ([PR \#213](https://github.com/m1lun/m1skeletonProject/pull/213)). | Fixed |
-| A mocked rating test expects a half-finished write | A rating and its reputation update are saved in one transaction, and the tests now check that a failure saves neither ([PR \#204](https://github.com/m1lun/m1skeletonProject/pull/204)). | Fixed |
-| Fixed `Thread.sleep(2_000)` after airplane mode | The tests now wait until the server answers again instead of a fixed time ([PR \#208](https://github.com/m1lun/m1skeletonProject/pull/208)). | Fixed |
-| Testing.md has an old commit, test counts and coverage screenshots | Refreshed the commit, test counts and coverage screenshots ([PR \#202](https://github.com/m1lun/m1skeletonProject/pull/202)). | Fixed |
-| Testing.md's back-end table lists only Deals; Messaging has no back-end tests | Added interface tests, both mocked and unmocked, for the post, photo, option and custom field routes ([PR \#173](https://github.com/m1lun/m1skeletonProject/pull/173), [\#174](https://github.com/m1lun/m1skeletonProject/pull/174), [\#179](https://github.com/m1lun/m1skeletonProject/pull/179)), the Messaging routes ([PR \#186](https://github.com/m1lun/m1skeletonProject/pull/186), [\#187](https://github.com/m1lun/m1skeletonProject/pull/187), [\#191](https://github.com/m1lun/m1skeletonProject/pull/191), [\#197](https://github.com/m1lun/m1skeletonProject/pull/197)), the profile routes ([PR \#200](https://github.com/m1lun/m1skeletonProject/pull/200)) and the Matching feed ([PR \#209](https://github.com/m1lun/m1skeletonProject/pull/209)), each listed in Testing.md. | Fixed |
-| Use Cases 2–5 have no end-to-end tests | Added end-to-end tests for the Deals use cases ([PR \#167](https://github.com/m1lun/m1skeletonProject/pull/167)) and the Messaging use cases ([PR \#185](https://github.com/m1lun/m1skeletonProject/pull/185)). | Fixed |
-| NFR 1 has no test | Added the feed ranking latency test and its results ([PR \#209](https://github.com/m1lun/m1skeletonProject/pull/209)). | Fixed |
-| Coverage gaps are justified only for Deals | Testing.md now justifies every file below 100% across the back end ([PR \#202](https://github.com/m1lun/m1skeletonProject/pull/202), [\#209](https://github.com/m1lun/m1skeletonProject/pull/209)). | Fixed |
+| Database writes with no reply | Every database write in the sequence diagrams now has a reply ([PR \#212](https://github.com/m1lun/MatchMarket/pull/212) and this pull request). | Fixed |
+| The address must be typed from memory | The Profile tab now searches addresses as the user types and saves the picked suggestion ([PR \#198](https://github.com/m1lun/MatchMarket/pull/198)). | Fixed |
+| Accepting a proposal rewrites both posts to close them | The posts are closed with a status-only update ([PR \#213](https://github.com/m1lun/MatchMarket/pull/213)). | Fixed |
+| A mocked rating test expects a half-finished write | A rating and its reputation update are saved in one transaction, and the tests now check that a failure saves neither ([PR \#204](https://github.com/m1lun/MatchMarket/pull/204)). | Fixed |
+| Fixed `Thread.sleep(2_000)` after airplane mode | The tests now wait until the server answers again instead of a fixed time ([PR \#208](https://github.com/m1lun/MatchMarket/pull/208)). | Fixed |
+| Testing.md has an old commit, test counts and coverage screenshots | Refreshed the commit, test counts and coverage screenshots ([PR \#202](https://github.com/m1lun/MatchMarket/pull/202)). | Fixed |
+| Testing.md's back-end table lists only Deals; Messaging has no back-end tests | Added interface tests, both mocked and unmocked, for the post, photo, option and custom field routes ([PR \#173](https://github.com/m1lun/MatchMarket/pull/173), [\#174](https://github.com/m1lun/MatchMarket/pull/174), [\#179](https://github.com/m1lun/MatchMarket/pull/179)), the Messaging routes ([PR \#186](https://github.com/m1lun/MatchMarket/pull/186), [\#187](https://github.com/m1lun/MatchMarket/pull/187), [\#191](https://github.com/m1lun/MatchMarket/pull/191), [\#197](https://github.com/m1lun/MatchMarket/pull/197)), the profile routes ([PR \#200](https://github.com/m1lun/MatchMarket/pull/200)) and the Matching feed ([PR \#209](https://github.com/m1lun/MatchMarket/pull/209)), each listed in Testing.md. | Fixed |
+| Use Cases 2–5 have no end-to-end tests | Added end-to-end tests for the Deals use cases ([PR \#167](https://github.com/m1lun/MatchMarket/pull/167)) and the Messaging use cases ([PR \#185](https://github.com/m1lun/MatchMarket/pull/185)). | Fixed |
+| NFR 1 has no test | Added the feed ranking latency test and its results ([PR \#209](https://github.com/m1lun/MatchMarket/pull/209)). | Fixed |
+| Coverage gaps are justified only for Deals | Testing.md now justifies every file below 100% across the back end ([PR \#202](https://github.com/m1lun/MatchMarket/pull/202), [\#209](https://github.com/m1lun/MatchMarket/pull/209)). | Fixed |
 | Major fault: no photos load on a physical device with the deployed back end | Could not reproduce: photos loaded throughout the app on our physical device, a Samsung Galaxy S20 FE running Android 13, with the deployed back end. | Could not reproduce |
 | Links in Requirements_and_Design.md do not work | Every link target exists and the links work on GitHub, so we could not reproduce it in the repository. The use case anchors now use `id` instead of the older `name`, which more Markdown viewers and PDF converters support. | Fixed |
 | Use Case 1 mixes the request and listing flows | Kept as one use case, since both kinds of post share the same screens and steps. Its description now says that, and failure 5a1 lists which messages apply to requests and which to listings. | Fixed |
@@ -136,19 +137,20 @@ Main findings:
 
 ### 3.4 Additional Internal Team Review
 
-| PR | Activity and status |
-| :---- | :---- |
-| [PR \#29](https://github.com/m1lun/m1skeletonProject/pull/29#issuecomment-6185268836)  | Nishim12 requested backend-issued session and refresh tokens. Bwong99 later summarized token issuance, refresh/logout endpoints and protected routes. PR merged.  |
-| [PR \#31](https://github.com/m1lun/m1skeletonProject/pull/31#discussion_r4300167547)  | Nishim12 submitted a COMMENTED review requesting removal of a comment in backend/src/models/common.ts. The thread is resolved and outdated. Nishim12 is also the PR author, so this is recorded as author self-review, not independent teammate review. PR merged. |
-| [PR \#35](https://github.com/m1lun/m1skeletonProject/pull/35) | Nishim12 requested comment cleanup in the listings-feed work and later wrote “Thanks for fixing the comments. LGTM\!” PR merged. |
-| [PR \#46](https://github.com/m1lun/m1skeletonProject/pull/46#pullrequestreview-5579959981) | m1lun submitted a COMMENTED review thanking the author for removing unit tests and stating LGTM. This records a review comment, not an APPROVED review or evidence of test completeness. PR merged. |
-| [PR \#53](https://github.com/m1lun/m1skeletonProject/pull/53#pullrequestreview-5593076708) | m1lun submitted a COMMENTED review stating that one function had been made more readable and otherwise LGTM. PR merged. |
-| [PR \#54](https://github.com/m1lun/m1skeletonProject/pull/54#pullrequestreview-5593226561) | m1lun submitted an APPROVED review, stating that the tests are standalone, readable and clean up data. PR merged. |
-| [PR \#107](https://github.com/m1lun/m1skeletonProject/pull/107) | Nishim12 left review comments asking to remove unit tests that were not needed for CP2, to keep comments to the important parts of the code, and why the user model had both an address and a location, then submitted an APPROVED review. PR merged. |
-| [PR \#161](https://github.com/m1lun/m1skeletonProject/pull/161) | Nishim12 submitted an APPROVED review of the documentation update. PR merged. |
+Team members reviewed each other's pull requests on GitHub. Names below are the team members' GitHub accounts: Milun (`m1lun`), Nishim (`Nishim12`), Bradley (`Bwong99`) and Terry (`darkcentaur`).
+
+| PR | Author | Reviewer | Review | Outcome |
+| :---- | :---- | :---- | :---- | :---- |
+| [PR \#29](https://github.com/m1lun/MatchMarket/pull/29#issuecomment-6185268836) Google sign-in | Milun | Nishim, Bradley | Nishim asked for the backend to issue its own session and refresh tokens. Bradley later summarized what was added: issuing tokens, the refresh and logout endpoints, and protected routes. | Merged |
+| [PR \#35](https://github.com/m1lun/MatchMarket/pull/35) Listings feed screen | Milun | Nishim | Asked for the comments to be cleaned up, then replied "Thanks for fixing the comments. LGTM!" | Merged |
+| [PR \#46](https://github.com/m1lun/MatchMarket/pull/46#pullrequestreview-5579959981) Matching | Bradley | Milun | Comment review thanking Bradley for removing unit tests, ending "LGTM". | Merged |
+| [PR \#53](https://github.com/m1lun/MatchMarket/pull/53#pullrequestreview-5593076708) Open a feed post | Bradley | Milun | Milun pushed a commit to the PR that made the post detail screen's read-only checks easier to read by flattening them (`f3f2e8f`), then commented "LGTM". | Merged |
+| [PR \#54](https://github.com/m1lun/MatchMarket/pull/54#pullrequestreview-5593226561) Photo rule tests | Nishim | Milun | Milun approved the PR, noting that the tests are standalone and readable and that they clean up their data. | Merged |
+| [PR \#107](https://github.com/m1lun/MatchMarket/pull/107) Users collection | Terry | Nishim | Nishim asked Terry to remove the unit tests that were not needed for CP2, to keep comments only on the important parts of the code, and to explain why the user model had both an address and a location. He then approved the PR. | Merged |
+| [PR \#161](https://github.com/m1lun/MatchMarket/pull/161) Use-case docs | Milun | Nishim | Approved the documentation update. | Merged |
 
 ### Additional Internal Findings and Fixes
 
-Internal testing also identified issues addressed through subsequent pull requests. [PR \#43](https://github.com/m1lun/m1skeletonProject/pull/43) documents a fix preventing negative values in built-in numeric and dimension fields, following a failure identified during Feature 1 end-to-end testing. [PR \#56](https://github.com/m1lun/m1skeletonProject/pull/56) improved the reliability of oversized-photo end-to-end tests by updating photo selection and test-file cleanup.
+Internal testing also identified issues addressed through subsequent pull requests. [PR \#43](https://github.com/m1lun/MatchMarket/pull/43) documents a fix preventing negative values in built-in numeric and dimension fields, following a failure identified during Feature 1 end-to-end testing. [PR \#56](https://github.com/m1lun/MatchMarket/pull/56) improved the reliability of oversized-photo end-to-end tests by updating photo selection and test-file cleanup.
 
 These changes were recorded as part of internal development and testing, independently of the formal peer-group review.
