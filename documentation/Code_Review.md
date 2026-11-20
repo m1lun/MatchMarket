@@ -1,7 +1,7 @@
 # **Code Review**
 
-Repository:  [m1lun/m1skeletonProject](https://github.com/m1lun/m1skeletonProject)  
-Inspected main commit: [1c8c835466defede4e51e26d018a35f9e444b9c0](https://github.com/m1lun/m1skeletonProject/commit/1c8c835466defede4e51e26d018a35f9e444b9c0)  
+Repository:  [m1lun/MatchMarket](https://github.com/m1lun/MatchMarket)  
+Inspected main commit: the commit on main that this document was submitted from; its hash is given in the submitted PDF.  
 Evidence checked: 19 November 2026, Vancouver time.
 
 ## 1. Change History
