@@ -6,6 +6,7 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.net.Uri
+import android.os.SystemClock
 import android.provider.MediaStore
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.hasSetTextAction
@@ -66,9 +67,9 @@ val device: UiDevice get() = UiDevice.getInstance(InstrumentationRegistry.getIns
 // Waits until the backend is really unreachable (on) or reachable again (off), not a fixed time.
 fun setAirplaneMode(on: Boolean) {
     device.executeShellCommand("cmd connectivity airplane-mode ${if (on) "enable" else "disable"}")
-    val deadline = System.currentTimeMillis() + NETWORK_WAIT_MS
+    val deadline = SystemClock.elapsedRealtime() + NETWORK_WAIT_MS
     while (backendReachable() == on) {
-        check(System.currentTimeMillis() < deadline) { "The network did not turn ${if (on) "off" else "on"}" }
+        check(SystemClock.elapsedRealtime() < deadline) { "The network did not turn ${if (on) "off" else "on"}" }
         Thread.sleep(NETWORK_POLL_MS)
     }
 }
@@ -211,12 +212,12 @@ private val api by lazy {
 }
 
 private suspend fun <T> whenOnline(block: suspend () -> T): T {
-    val deadline = System.currentTimeMillis() + ONLINE_WAIT_MS
+    val deadline = SystemClock.elapsedRealtime() + ONLINE_WAIT_MS
     while (true) {
         try {
             return block()
         } catch (e: ApiException) {
-            if (System.currentTimeMillis() > deadline) throw e
+            if (SystemClock.elapsedRealtime() > deadline) throw e
             delay(RETRY_DELAY_MS)
         }
     }

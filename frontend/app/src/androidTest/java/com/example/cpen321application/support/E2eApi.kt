@@ -1,5 +1,6 @@
 package com.example.cpen321application.support
 
+import android.os.SystemClock
 import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.test.platform.app.InstrumentationRegistry
@@ -18,12 +19,12 @@ private val sessions by lazy { SessionManager.get(InstrumentationRegistry.getIns
 
 // Retries while the emulator comes back online.
 internal fun send(method: String, path: String, body: JSONObject? = null): HttpResult {
-    val deadline = System.currentTimeMillis() + ONLINE_WAIT_MS
+    val deadline = SystemClock.elapsedRealtime() + ONLINE_WAIT_MS
     while (true) {
         try {
             return runBlocking { sessions.authorizedRequest(method, path, body) }
         } catch (e: IOException) {
-            if (System.currentTimeMillis() > deadline) throw e
+            if (SystemClock.elapsedRealtime() > deadline) throw e
             Thread.sleep(RETRY_DELAY_MS)
         }
     }
