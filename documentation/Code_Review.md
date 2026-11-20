@@ -1,8 +1,8 @@
 # **Code Review**
 
 Repository:  [m1lun/m1skeletonProject](https://github.com/m1lun/m1skeletonProject)  
-Inspected main commit: [149f16a96f8931a37c0b1c8f2affbebcb3c4cc6d](https://github.com/m1lun/m1skeletonProject/commit/149f16a96f8931a37c0b1c8f2affbebcb3c4cc6d)  
-Evidence checked: 2 November 2026, Vancouver time.
+Inspected main commit: [1c8c835466defede4e51e26d018a35f9e444b9c0](https://github.com/m1lun/m1skeletonProject/commit/1c8c835466defede4e51e26d018a35f9e444b9c0)  
+Evidence checked: 19 November 2026, Vancouver time.
 
 ## 1. Change History
 
@@ -15,14 +15,15 @@ Evidence checked: 2 November 2026, Vancouver time.
 | 2026-11-18 | 2.5, 3 | Completed Section 3 for CP3: the review we performed of SportsNow, the review we received from SportsNow with its scores, and the action taken on each finding. Added the pull requests since CP2 that responded to Codacy findings. |
 | 2026-11-18 | 3.3 | Updated the actions for the review findings on Use Case 1 and the Requirements_and_Design links, and recorded the code restructuring planned for M3. |
 | 2026-11-19 | 3.3 | Use Case 3 no longer describes the ranking algorithm. |
+| 2026-11-19 | 2 | Updated Section 2 for CP3 from the Codacy results on main at commit `1c8c835`: 0 issues, after PR #236 fixed the two dependency alerts. Updated the inspected commit. |
 
 ## 2. Automated Code Review Results
 
-Codacy reports 0 issues on main, with grade A. ESLint, detekt and Trivy are the only enabled tools, and ESLint and detekt use the repository's .eslintrc.json and detekt.yml, which have not changed since M1. The code has no inline comments that suppress issues.
+Codacy reports 0 issues on main. ESLint, detekt and Trivy are the only enabled tools, and ESLint and detekt use the repository's .eslintrc.json and detekt.yml, which have not changed since M1. The code has no inline comments that suppress issues.
 
 ### 2.1 Commit Hash Where Codacy Ran
 
-[149f16a96f8931a37c0b1c8f2affbebcb3c4cc6d](https://github.com/m1lun/m1skeletonProject/commit/149f16a96f8931a37c0b1c8f2affbebcb3c4cc6d), analysed on 2 November 2026 at 04:52 UTC. All 41 pull requests merged since CP1 also finished with 0 new issues.
+[1c8c835466defede4e51e26d018a35f9e444b9c0](https://github.com/m1lun/m1skeletonProject/commit/1c8c835466defede4e51e26d018a35f9e444b9c0), analysed on 19 November 2026.
 
 ### 2.2 Unfixed Issues per Codacy Category
 
@@ -57,6 +58,7 @@ Since CP2:
 * **TypeScript**: [PR \#184](https://github.com/m1lun/m1skeletonProject/pull/184) typed the MongoDB results that Codacy flagged in the E2E seed code.
 * **TypeScript**: [PR \#187](https://github.com/m1lun/m1skeletonProject/pull/187) resolved the Codacy issues in the accept retry code (untyped driver results, a dynamic object key and an unhandled async error).
 * **TypeScript**: [PR \#200](https://github.com/m1lun/m1skeletonProject/pull/200) awaited and typed the stored address test helper.
+* **Dependencies**: [PR \#236](https://github.com/m1lun/m1skeletonProject/pull/236) updated `multer` from 2.4.0 to 2.5.0 and `body-parser` from 2.3.0 to 2.4.0, which fixed the two high-severity Trivy alerts on `backend/package-lock.json` (CVE-2026-113872 and CVE-2026-111181).
 
 ## 3. Manual Code Review Results
 
