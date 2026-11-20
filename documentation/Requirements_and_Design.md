@@ -53,6 +53,7 @@
 | 2026-11-18 | 3.5 | Following peer-review feedback, Use Case 1 says which failures apply to requests and which to listings. The use case links now use `id` anchors, which more Markdown viewers support. |
 | 2026-11-19 | 4.7 | Following peer feedback that the NFR 2 test used only one candidate post, NFR 2 is now measured with the NFR 1 workload of 1,000 candidates, and checks that the feed keeps its ranked order without travel times. Updated the measured times of both NFRs. |
 | 2026-11-19 | 3.5, 4.1 | Following TA and peer-review feedback, Use Case 3 steps 3–5 now say what the system does for the user instead of how it ranks; the scoring details moved to the `rank` interface of Matching in 4.1. |
+| 2026-11-19 | 3.4, 4.1, 4.2, 4.4 | Matched the document to the implementation: the Posts interfaces list their 400, 401, 403 and 404 responses; photos are stored in the GridFS `photos` bucket; the sessions collection lists all its fields; the Posts data rules no longer include review notes; dotenv is listed; and the Profile button is named "Sign Out" as in the app. |
 
 ---
 
@@ -99,7 +100,7 @@ Each use case covers one goal, and the user starts each of them directly, so the
 **Authentication and Profile** (baseline requirement, not counted as a feature)
 
 1. **Sign in with Google**: The user signs in with their Google account and gains access to their posts and the feed.
-2. **Sign out**: The user taps "Sign out" on the Profile tab, which ends their session on the device and the backend.
+2. **Sign out**: The user taps "Sign Out" on the Profile tab, which ends their session on the device and the backend.
 3. **Manage profile**: The user opens the Profile tab and sees their Google name, email and photo, their reputation score, when they joined, and how many requests and listings they have; tapping a count opens those posts in My Posts. They can set, change or remove their home address, picked from the address suggestions. When a home address is set, the feed starts filtered to posts within 50 km of it (see Filter feed).
 
 **Feature 1: Buyer Requests and Seller Listings**
@@ -300,7 +301,7 @@ Each use case covers one goal, and the user starts each of them directly, so the
     - **Purpose**: Owns buyer requests and seller listings, including their photos, validation, and ownership.
     - **Rationale**: Both post types share most fields and lifecycle, so one component avoids duplicate logic; alternative of separate Requests and Listings components was rejected because every matching and feed operation needs both.
     - **Lifecycle and ownership**: Newly created posts have status open. Only the authenticated owner may edit, close, reopen or delete a post. Closing changes the stored status to closed and keeps the post in the owner's My Posts; closed posts can still be edited and are excluded from feeds and recommendations. Reopening sets the status back to open, and deleting removes the post permanently.
-    - **Interfaces**: All routes use the `/api` prefix. Post operations require an authenticated session.
+    - **Interfaces**: All routes use the `/api` prefix. Post operations require an authenticated session (401 without one). Invalid input returns 400 with `{ error, details }` listing every problem. On the routes under `/:id`, another user's post returns 403 and an unknown or malformed id returns 404.
         1. `POST /api/requests` and `POST /api/listings`
             - **Purpose**: Create a post from JSON containing its fields, coordinates and photo IDs. Photos are uploaded separately before creating the post. Returns the created post with status 201.
         2. `GET /api/requests` and `GET /api/listings`
@@ -403,7 +404,7 @@ Each use case covers one goal, and the user starts each of them directly, so the
 ### **4.2. Databases**
 
 1. **MongoDB** (self-hosted in Docker on the cloud VM)
-    - **Purpose**: Stores users, requests, listings, options, custom fields, sessions, deals, ratings, reputations, conversations and messages. Photos for requests and listings are stored in the same database using GridFS (fs.files and fs.chunks), and each post keeps the ids of its photos. Geospatial index on post locations.
+    - **Purpose**: Stores users, requests, listings, options, custom fields, sessions, deals, ratings, reputations, conversations and messages. Photos for requests and listings are stored in the same database using GridFS, in the `photos` bucket (photos.files and photos.chunks), and each post keeps the ids of its photos. Geospatial index on post locations.
 
     **Collections and data rules:**
 
@@ -414,7 +415,7 @@ Each use case covers one goal, and the user starts each of them directly, so the
     | listings | ownerId, name, category, description, price, condition, listingFields[] (built-in brand, dimensions {width, height, depth}, colour, plus custom fields), address, location, photoIds[] (GridFS file ids), status (open, closed) |
     | options | field, key, label, builtin, createdBy |
     | customFields | ownerId, key, label, type (text, number, bool) |
-    | sessions | tokenHash, familyId, userId, expiresAt, usedAt |
+    | sessions | tokenHash, familyId, userId, email, firstName, lastName, createdAt, expiresAt, usedAt |
     | conversations | listingId, requestId (either may be null, not both), sellerId, buyerId, postKind (the post that was tapped: listing or request), lastMessage {senderId, text, createdAt} or null, proposal {proposerId, price, note (up to 300 characters), status (pending, accepted, declined), createdAt} (absent until the first proposal), createdAt, updatedAt |
     | messages | conversationId, senderId, text (1 to 1000 characters), createdAt |
     | deals | listingId, requestId (either may be null, not both), sellerId, buyerId, agreedPrice, createdAt |
@@ -425,8 +426,8 @@ Each use case covers one goal, and the user starts each of them directly, so the
 
     **Posts data rules:**
     - The backend obtains ownerId from the authenticated session. New posts start open. Closing retains a record; the current API also supports reopening and permanent deletion.
-    - Both post types require name, category, address and coordinates. Requests require a built-in price field. Listings require non-negative top-level price, a valid condition and at least one photo ID. Request price, radius and size cannot be negative. The 1–50 km radius rule is not enforced by the inspected request-field validation; it must not be claimed as completed validation.
-    - Requests allow 0–10 photo IDs and listings 1–10. Actual upload size is at most 5 MB per file. Post validation checks ID format/count; photo existence and ownership checks are not established by that validation.
+    - Both post types require name, category, address and coordinates. Requests require a built-in price field. Listings require non-negative top-level price, a valid condition and at least one photo ID. Request price, radius and size cannot be negative.
+    - Requests allow 0–10 photo IDs and listings 1–10. Each uploaded photo is at most 5 MB.
     - Categories are normalized, extendable option values rather than a fixed list. They are saved in the singular, so desks is saved as desk, except words that only look plural, such as glass and electronics. Existing posts and category options are converted when the backend starts. Description is supported, up to 2,000 characters. The name, up to 80 characters, is the post's title; posts saved before names were added use their category as the name. Dimensions use cm and radius uses km; CAD remains the intended currency.
     - Unfilled optional editor rows are omitted. Existing post addresses and coordinates are saved with each post. The post editor does not pre-fill the profile address. The feed starts filtered to 50 km around the profile address when one is set. Closed listings are excluded from the current open-listings feed.
 
@@ -484,6 +485,9 @@ Each use case covers one goal, and the user starts each of them directly, so the
 10. **Multer** (backend)
     - **Purpose**: Parses multipart photo uploads and enforces the photo count and size limits.
     - **Reason**: Standard Express middleware for multipart uploads.
+11. **dotenv** (backend)
+    - **Purpose**: Loads the backend's configuration and secrets, such as `MONGODB_URI`, `GOOGLE_CLIENT_ID` and `JWT_SECRET`, from `backend/.env` at startup.
+    - **Reason**: Keeps secrets in a gitignored file instead of in the code or the shell.
 
 ### **4.5. Dependencies Diagram**
 
