@@ -1,10 +1,11 @@
 import type { Db } from 'mongodb';
 
-import { CUSTOM_FIELDS_COLLECTION } from '../../src/models/customField';
-import { LISTINGS_COLLECTION } from '../../src/models/listing';
-import { OPTIONS_COLLECTION } from '../../src/models/option';
-import { REQUESTS_COLLECTION } from '../../src/models/request';
-import type { PostCollection, PostDoc, Store } from '../../src/store/types';
+import { CUSTOM_FIELDS_COLLECTION } from '../../src/components/posts/models/customField';
+import { LISTINGS_COLLECTION } from '../../src/components/posts/models/listing';
+import { OPTIONS_COLLECTION } from '../../src/components/posts/models/option';
+import { REQUESTS_COLLECTION } from '../../src/components/posts/models/request';
+import type { PostCollection, PostDoc } from '../../src/components/posts/store/types';
+import type { Store } from '../../src/shared/store/types';
 import { PHOTO_ID, makeListing, makeRequest } from './dealFixtures';
 
 type Body = Record<string, unknown>;

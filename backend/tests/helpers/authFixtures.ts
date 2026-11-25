@@ -5,10 +5,10 @@ import type { Db } from 'mongodb';
 import request from 'supertest';
 
 import { createApp } from '../../src/app';
-import type { GoogleUser } from '../../src/googleAuth';
-import { SESSIONS_COLLECTION, type RefreshSession } from '../../src/models/session';
-import { startSession, type AuthResponse } from '../../src/sessions';
-import type { Store } from '../../src/store/types';
+import type { GoogleUser } from '../../src/components/users/logic/googleAuth';
+import { SESSIONS_COLLECTION, type RefreshSession } from '../../src/components/users/models/session';
+import { startSession, type AuthResponse } from '../../src/components/users/logic/sessions';
+import type { Store } from '../../src/shared/store/types';
 
 // The auth routes' body limit in src/app.ts.
 export const AUTH_BODY_LIMIT = 4 * 1024;

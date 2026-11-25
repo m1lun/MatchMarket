@@ -2,7 +2,7 @@ import type { Server } from 'node:http';
 
 import request from 'supertest';
 
-import { MAX_LABEL_LENGTH } from '../../src/models/common';
+import { MAX_LABEL_LENGTH } from '../../src/shared/models/common';
 import { ME, OTHER, bearer } from '../helpers/dealFixtures';
 import { clearPostData, countIn } from '../helpers/postFixtures';
 import { startTestApp, stopTestApp } from '../helpers/testApp';

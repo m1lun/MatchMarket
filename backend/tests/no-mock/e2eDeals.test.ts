@@ -2,7 +2,7 @@ import type { Server } from 'node:http';
 
 import request from 'supertest';
 
-import { E2E_DEAL_PRICE, E2E_REQUEST_NAME, e2eBuyerId } from '../../src/routes/e2e';
+import { E2E_DEAL_PRICE, E2E_REQUEST_NAME, e2eBuyerId } from '../../src/testSupport/e2e';
 import { ME, OTHER, bearer, clearDealData, makeDeal, makeRating, makeRequest } from '../helpers/dealFixtures';
 import { startTestApp, stopTestApp } from '../helpers/testApp';
 import { createTestStore, type TestStore } from '../helpers/testStore';

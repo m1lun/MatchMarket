@@ -1,6 +1,6 @@
 import type { Server } from 'node:http';
 
-import type { Store } from '../../src/store/types';
+import type { Store } from '../../src/shared/store/types';
 import { ME, OTHER, clearDealData, makeDeal, makeListing, makeRating, makeReputation, storedRatings } from '../helpers/dealFixtures';
 import { rate, type Method } from '../helpers/ratingApi';
 import { startTestApp, stopTestApp } from '../helpers/testApp';

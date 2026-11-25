@@ -2,7 +2,7 @@ import type { Server } from 'node:http';
 
 import { ObjectId } from 'mongodb';
 
-import { MAX_NOTE_LENGTH, type Conversation, type ProposalStatus } from '../../src/models/conversation';
+import { MAX_NOTE_LENGTH, type Conversation, type ProposalStatus } from '../../src/components/messaging/models/conversation';
 import {
   ACCESS_CASES,
   BODY_ERROR,

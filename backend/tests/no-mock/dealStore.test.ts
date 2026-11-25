@@ -1,5 +1,5 @@
-import { BadRequestError } from '../../src/errors';
-import { assertHasPost } from '../../src/models/deal';
+import { BadRequestError } from '../../src/shared/errors';
+import { assertHasPost } from '../../src/components/deals/models/deal';
 import {
   ME,
   OTHER,

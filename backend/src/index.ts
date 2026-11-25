@@ -3,11 +3,11 @@ import { createServer as createHttpServer } from 'node:http';
 import { createServer as createHttpsServer } from 'node:https';
 
 import { createApp } from './app';
-import { env } from './config/env';
-import { errorMessage } from './errors';
-import { createMongoStore } from './store/mongoStore';
-import { normaliseStoredCategories, seedOptions } from './store/seed';
-import type { Store } from './store/types';
+import { env } from './shared/config/env';
+import { errorMessage } from './shared/errors';
+import { createMongoStore } from './shared/store/mongoStore';
+import { normaliseStoredCategories, seedOptions } from './components/posts/store/seed';
+import type { Store } from './shared/store/types';
 
 // Certificate paths are string literals so Codacy's
 // security/detect-non-literal-fs-filename rule passes. They resolve against

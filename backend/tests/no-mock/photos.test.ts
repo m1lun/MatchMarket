@@ -2,7 +2,7 @@ import type { Server } from 'node:http';
 
 import request from 'supertest';
 
-import { MAX_PHOTOS, MAX_PHOTO_BYTES } from '../../src/models/common';
+import { MAX_PHOTOS, MAX_PHOTO_BYTES } from '../../src/shared/models/common';
 import { ME, bearer } from '../helpers/dealFixtures';
 import { countIn } from '../helpers/postFixtures';
 import { startTestApp, stopTestApp } from '../helpers/testApp';

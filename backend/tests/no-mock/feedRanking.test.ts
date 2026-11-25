@@ -2,8 +2,8 @@ import type { Server } from 'node:http';
 
 import request from 'supertest';
 
-import { env } from '../../src/config/env';
-import type { FieldValue, PostField, RequestField } from '../../src/models/common';
+import { env } from '../../src/shared/config/env';
+import type { FieldValue, PostField, RequestField } from '../../src/shared/models/common';
 import { ME, OTHER, bearer, clearDealData, makeListing, makeRequest } from '../helpers/dealFixtures';
 import { startTestApp, stopTestApp } from '../helpers/testApp';
 import { createTestStore, type TestStore } from '../helpers/testStore';

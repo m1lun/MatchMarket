@@ -1,6 +1,6 @@
 import type { Server } from 'node:http';
 
-import type { Conversation } from '../../src/models/conversation';
+import type { Conversation } from '../../src/components/messaging/models/conversation';
 import {
   clearConversationData,
   makeConversation,

@@ -79,7 +79,7 @@ Set at least:
 
 ### API
 
-Google is asked only once, at sign-in. The backend then issues its own tokens (`backend/src/sessions.ts`):
+Google is asked only once, at sign-in. The backend then issues its own tokens (`backend/src/components/users/logic/sessions.ts`):
 
 - **Session token**: a JWT signed with `JWT_SECRET`, valid for 15 minutes. Sent as `Authorization: Bearer <session token>` on every data request.
 - **Refresh token**: 256 random bits, valid for 30 days. Only its SHA-256 hash is stored, in the `sessions` collection; MongoDB deletes it once expired. Each refresh replaces it with a new one, and presenting an already-used refresh token revokes every token from that sign-in (it means two parties hold it).

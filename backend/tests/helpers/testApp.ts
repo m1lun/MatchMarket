@@ -2,7 +2,7 @@ import { once } from 'node:events';
 import { createServer, type Server } from 'node:http';
 
 import { createApp } from '../../src/app';
-import type { Store } from '../../src/store/types';
+import type { Store } from '../../src/shared/store/types';
 import { MemorySessionRepo } from './memorySessionRepo';
 
 // request(app) listens on every address, so on macOS its 127.0.0.1 calls can reach another program on that port.

@@ -1,8 +1,8 @@
 import type { Db } from 'mongodb';
 import request from 'supertest';
 
-import type { Conversation, Message, Proposal } from '../../src/models/conversation';
-import type { Store } from '../../src/store/types';
+import type { Conversation, Message, Proposal } from '../../src/components/messaging/models/conversation';
+import type { Store } from '../../src/shared/store/types';
 import { ME, OTHER, STRANGER, bearer, makeListing } from './dealFixtures';
 
 type App = Parameters<typeof request>[0];

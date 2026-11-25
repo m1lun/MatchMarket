@@ -2,8 +2,8 @@ import type { Server } from 'node:http';
 
 import request from 'supertest';
 
-import { env } from '../../src/config/env';
-import { ROUTING_TIMEOUT_MS } from '../../src/matching/travelTime';
+import { env } from '../../src/shared/config/env';
+import { ROUTING_TIMEOUT_MS } from '../../src/components/matching/logic/travelTime';
 import { ME, bearer, clearDealData } from '../helpers/dealFixtures';
 import { CANDIDATES, saveFeedWorkload } from '../helpers/feedWorkload';
 import { startTestApp, stopTestApp } from '../helpers/testApp';

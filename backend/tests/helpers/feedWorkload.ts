@@ -1,6 +1,6 @@
-import { CONDITIONS, type PostField, type RequestField } from '../../src/models/common';
-import type { BuyerRequest } from '../../src/models/request';
-import type { Store } from '../../src/store/types';
+import { CONDITIONS, type PostField, type RequestField } from '../../src/shared/models/common';
+import type { BuyerRequest } from '../../src/components/posts/models/request';
+import type { Store } from '../../src/shared/store/types';
 import { ME, OTHER, makeListing, makeRequest } from './dealFixtures';
 
 // The NFR workload: 1,000 open candidate posts in the same category as my request.
