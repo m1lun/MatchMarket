@@ -54,6 +54,7 @@
 | 2026-11-19 | 4.7 | Following peer feedback that the NFR 2 test used only one candidate post, NFR 2 is now measured with the NFR 1 workload of 1,000 candidates, and checks that the feed keeps its ranked order without travel times. Updated the measured times of both NFRs. |
 | 2026-11-19 | 3.5, 4.1 | Following TA and peer-review feedback, Use Case 3 steps 3–5 now say what the system does for the user instead of how it ranks; the scoring details moved to the `rank` interface of Matching in 4.1. |
 | 2026-11-19 | 3.4, 4.1, 4.2, 4.4 | Matched the document to the implementation: the Posts interfaces follow the same format as the other components, with each one's request body, return value and status, and errors, and a JSON body over 1 MB returns 413; photos are stored in the GridFS `photos` bucket; the sessions collection lists all its fields; the Posts data rules no longer include review notes; dotenv is listed; and the Profile button is named "Sign Out" as in the app. |
+| 2026-11-25 | 4.1, 4.5, 4.6 | Renamed the Users and Auth component to Users, matching the backend's `components/users` folder. It still verifies Google sign-in, issues session tokens and protects every route with `requireAuth`. |
 
 ---
 
@@ -344,7 +345,7 @@ Each use case covers one goal, and the user starts each of them directly, so the
         6. `List<Duration> travelTimes(Location origin, List<Location> destinations, TravelMode mode)`
             - **Purpose**: Get travel times from the external routing service for one page of results; returns empty when it is unavailable.
 
-3. **Users and Auth**
+3. **Users**
     - **Purpose**: Verifies Google sign-in, issues session tokens, and stores each user's profile, which is created at their first sign-in.
     - **Rationale**: Keeps identity and per-user settings in one place so Posts and Matching only depend on a user id; alternative of storing settings on each post was rejected because settings apply across all of a user's posts.
     - **Interfaces**:
@@ -491,13 +492,13 @@ Each use case covers one goal, and the user starts each of them directly, so the
 
 ### **4.5. Dependencies Diagram**
 
-Every backend route except `/health` calls `requireAuth` in Users and Auth. The frontend's calls to Messaging include `GET /api/events`, the live updates stream: the backend writes events to that response while the app keeps it open, so the link stays one-way. Messaging records deals through the Deals component's store when a proposal is accepted.
+Every backend route except `/health` calls `requireAuth` in Users. The frontend's calls to Messaging include `GET /api/events`, the live updates stream: the backend writes events to that response while the app keeps it open, so the link stays one-way. Messaging records deals through the Deals component's store when a proposal is accepted.
 
 ```mermaid
 flowchart LR
     FE[Frontend Android app]
     subgraph BE["Backend"]
-        UA[Users and Auth]
+        UA[Users]
         P[Posts]
         M[Matching]
         MS[Messaging]
@@ -808,7 +809,7 @@ sequenceDiagram
     actor U as User
     participant FE as Frontend
     participant GEO as Android Geocoder
-    participant UA as Users and Auth
+    participant UA as Users
     participant M as Matching
     participant DB as MongoDB
     Note over U,FE: Precondition: the user is signed in
