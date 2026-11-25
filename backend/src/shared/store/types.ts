@@ -6,7 +6,6 @@ import type { PhotoStorage } from '../../components/posts/store/photoStorage';
 import type { CustomFieldCollection, OptionCollection, PostCollection } from '../../components/posts/store/types';
 import type { SessionRepo, UserCollection } from '../../components/users/store/types';
 
-// Every component's collections in one object, which the app passes to the routes.
 export interface Store {
   listings: PostCollection<Listing>;
   requests: PostCollection<BuyerRequest>;

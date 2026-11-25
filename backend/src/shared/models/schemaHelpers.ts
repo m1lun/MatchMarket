@@ -1,6 +1,5 @@
 // MongoDB $jsonSchema validators: the database rejects documents that miss a
 // required field, have the wrong type, or use a value outside the allowed set.
-// These are the building blocks each component's models/schema.ts uses.
 import type { Document } from 'mongodb';
 
 import { MAX_LABEL_LENGTH, NORMALISED_PATTERN } from './common';

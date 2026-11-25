@@ -1,4 +1,3 @@
-// MongoDB $jsonSchema validators for the Messaging collections.
 import { date, object, text } from '../../../shared/models/schemaHelpers';
 import { MAX_MESSAGE_LENGTH, MAX_NOTE_LENGTH, POST_KINDS, PROPOSAL_STATUSES } from './conversation';
 

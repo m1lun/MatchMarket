@@ -1,4 +1,3 @@
-// MongoDB $jsonSchema validators for the Posts collections.
 import type { Document } from 'mongodb';
 
 import {

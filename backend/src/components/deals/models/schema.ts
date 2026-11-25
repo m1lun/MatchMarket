@@ -1,4 +1,3 @@
-// MongoDB $jsonSchema validators for the Deals collections.
 import { MAX_COMMENT_LENGTH, MAX_STARS, MIN_STARS } from '../../../shared/models/common';
 import { date, object, text } from '../../../shared/models/schemaHelpers';
 

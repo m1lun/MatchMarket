@@ -1,4 +1,3 @@
-// MongoDB $jsonSchema validators for the Users and Auth collections.
 import { MAX_ADDRESS_LENGTH } from '../../../shared/models/common';
 import { date, location, object, text } from '../../../shared/models/schemaHelpers';
 
