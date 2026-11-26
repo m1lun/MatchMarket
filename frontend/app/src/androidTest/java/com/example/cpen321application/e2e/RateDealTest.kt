@@ -6,8 +6,8 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
-import com.example.cpen321application.deals.DealsTags
-import com.example.cpen321application.deals.RateTags
+import com.example.cpen321application.components.deals.view.DealsTags
+import com.example.cpen321application.components.deals.view.RateTags
 import com.example.cpen321application.support.clearSeededDeals
 import com.example.cpen321application.support.mainRule
 import com.example.cpen321application.support.myStars

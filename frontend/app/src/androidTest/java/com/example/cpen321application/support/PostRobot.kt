@@ -30,11 +30,11 @@ import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.Until
 import com.example.cpen321application.BuildConfig
 import com.example.cpen321application.MainActivity
-import com.example.cpen321application.auth.SessionManager
-import com.example.cpen321application.post.ApiException
-import com.example.cpen321application.post.Mode
-import com.example.cpen321application.post.PostApi
-import com.example.cpen321application.post.PostSummary
+import com.example.cpen321application.components.users.model.SessionManager
+import com.example.cpen321application.components.posts.model.ApiException
+import com.example.cpen321application.components.posts.model.Mode
+import com.example.cpen321application.components.posts.model.PostApi
+import com.example.cpen321application.components.posts.model.PostSummary
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.runBlocking
 import java.io.ByteArrayOutputStream

@@ -11,10 +11,10 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.text.AnnotatedString
-import com.example.cpen321application.feed.FeedTags
-import com.example.cpen321application.messages.MessagesTags
-import com.example.cpen321application.messages.ProposalTags
-import com.example.cpen321application.post.PostDetailTags
+import com.example.cpen321application.components.matching.view.FeedTags
+import com.example.cpen321application.components.messaging.view.MessagesTags
+import com.example.cpen321application.components.messaging.view.ProposalTags
+import com.example.cpen321application.components.posts.view.PostDetailTags
 import org.json.JSONArray
 import org.json.JSONObject
 

@@ -5,7 +5,7 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
-import com.example.cpen321application.messages.ProposalTags
+import com.example.cpen321application.components.messaging.view.ProposalTags
 import com.example.cpen321application.support.SeededConversation
 import com.example.cpen321application.support.clearSeededConversations
 import com.example.cpen321application.support.enterProposalPrice
