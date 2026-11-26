@@ -3,7 +3,7 @@ package com.example.cpen321application.e2e
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextReplacement
-import com.example.cpen321application.deals.RateTags
+import com.example.cpen321application.deals.view.RateTags
 import com.example.cpen321application.support.SavedRating
 import com.example.cpen321application.support.clearSeededDeals
 import com.example.cpen321application.support.mainRule

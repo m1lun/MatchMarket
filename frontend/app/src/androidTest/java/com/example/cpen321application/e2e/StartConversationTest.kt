@@ -6,8 +6,8 @@ import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
-import com.example.cpen321application.messages.ProposalTags
-import com.example.cpen321application.post.PostDetailTags
+import com.example.cpen321application.messaging.view.ProposalTags
+import com.example.cpen321application.posts.view.PostDetailTags
 import com.example.cpen321application.support.PARTNER_NAME
 import com.example.cpen321application.support.SEEDED_LISTING
 import com.example.cpen321application.support.clearSeededConversations
