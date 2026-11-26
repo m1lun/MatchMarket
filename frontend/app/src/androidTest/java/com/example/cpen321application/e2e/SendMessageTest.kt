@@ -1,5 +1,6 @@
 package com.example.cpen321application.e2e
 
+import android.util.Log
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasScrollAction
@@ -118,7 +119,7 @@ class SendMessageTest {
 
         setAirplaneMode(false)
         waitUntilOnline()
-        rule.onNodeWithTag(MessagesTags.RETRY).performClick()
+        tapRetryUnlessReloading()
         rule.waitForTag(MessagesTags.CONVERSATION_PREFIX + seeded.conversationId)
     }
 
@@ -134,7 +135,7 @@ class SendMessageTest {
         rule.waitForText("Could not reach the server", substring = true)
         setAirplaneMode(false)
         waitUntilOnline()
-        rule.onNodeWithTag(MessagesTags.RETRY).performClick()
+        tapRetryUnlessReloading()
         rule.waitForText(FIRST_MESSAGE)
     }
 
@@ -244,7 +245,18 @@ class SendMessageTest {
         waitUntil(DOT_WAIT_MS) { onAllNodesWithTag(tag, useUnmergedTree = true).fetchSemanticsNodes().isEmpty() }
     }
 
+    // Back online, the app reloads by itself if its live connection broke and reconnects, which removes Retry, but
+    // not if the connection lasted through the outage. Retry is only gone once a reload has started.
+    private fun tapRetryUnlessReloading() {
+        try {
+            rule.onNodeWithTag(MessagesTags.RETRY).performClick()
+        } catch (expected: AssertionError) {
+            Log.i(TAG, "Retry was already gone: the app is reloading by itself", expected)
+        }
+    }
+
     private companion object {
+        const val TAG = "SendMessageTest"
         const val FIRST_MESSAGE = "Message 1"
         const val MY_MESSAGE = "Is it still available?"
         const val LIVE_MESSAGE = "Yes, still available"
