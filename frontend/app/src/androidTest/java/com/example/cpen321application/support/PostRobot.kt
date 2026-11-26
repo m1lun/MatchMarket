@@ -60,7 +60,10 @@ private const val NETWORK_WAIT_MS = 30_000L
 private const val NETWORK_POLL_MS = 250L
 private const val HEALTH_TIMEOUT_MS = 1_000
 
-fun mainRule(): MainRule = createAndroidComposeRule<MainActivity>()
+fun mainRule(): MainRule {
+    PhotoIdling.install(InstrumentationRegistry.getInstrumentation().targetContext)
+    return createAndroidComposeRule<MainActivity>()
+}
 
 val device: UiDevice get() = UiDevice.getInstance(InstrumentationRegistry.getInstrumentation())
 
