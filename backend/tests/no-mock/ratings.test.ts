@@ -1,6 +1,6 @@
 import type { Server } from 'node:http';
 
-import type { Deal } from '../../src/models/deal';
+import type { Deal } from '../../src/components/deals/models/deal';
 import {
   ME,
   OTHER,

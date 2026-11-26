@@ -2,7 +2,7 @@ import type { Server } from 'node:http';
 
 import request from 'supertest';
 
-import { env } from '../../src/config/env';
+import { env } from '../../src/shared/config/env';
 import { ME, bearer, clearDealData } from '../helpers/dealFixtures';
 import { CANDIDATES, saveFeedWorkload } from '../helpers/feedWorkload';
 import { startTestApp, stopTestApp } from '../helpers/testApp';

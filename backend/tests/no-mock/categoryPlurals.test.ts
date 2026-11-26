@@ -3,10 +3,10 @@ import type { Server } from 'node:http';
 import { ObjectId } from 'mongodb';
 import request from 'supertest';
 
-import { env } from '../../src/config/env';
-import { LISTINGS_COLLECTION } from '../../src/models/listing';
-import { OPTIONS_COLLECTION, type Option } from '../../src/models/option';
-import { normaliseStoredCategories, seedOptions } from '../../src/store/seed';
+import { env } from '../../src/shared/config/env';
+import { LISTINGS_COLLECTION } from '../../src/components/posts/models/listing';
+import { OPTIONS_COLLECTION, type Option } from '../../src/components/posts/models/option';
+import { normaliseStoredCategories, seedOptions } from '../../src/components/posts/store/seed';
 import { ME, OTHER, PHOTO_ID, bearer, clearDealData, makeListing, makeRequest } from '../helpers/dealFixtures';
 import { startTestApp, stopTestApp } from '../helpers/testApp';
 import { createTestStore, type TestStore } from '../helpers/testStore';

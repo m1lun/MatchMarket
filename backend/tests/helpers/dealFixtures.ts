@@ -1,12 +1,12 @@
 import jwt from 'jsonwebtoken';
 import type { Db } from 'mongodb';
 
-import type { Conversation } from '../../src/models/conversation';
-import type { Deal } from '../../src/models/deal';
-import type { Listing } from '../../src/models/listing';
-import type { Rating } from '../../src/models/rating';
-import type { BuyerRequest } from '../../src/models/request';
-import type { Store } from '../../src/store/types';
+import type { Conversation } from '../../src/components/messaging/models/conversation';
+import type { Deal } from '../../src/components/deals/models/deal';
+import type { Listing } from '../../src/components/posts/models/listing';
+import type { Rating } from '../../src/components/deals/models/rating';
+import type { BuyerRequest } from '../../src/components/posts/models/request';
+import type { Store } from '../../src/shared/store/types';
 
 export const ME = 'user-me';
 export const OTHER = 'user-other';

@@ -1,5 +1,5 @@
-import type { RefreshSession } from '../../src/models/session';
-import type { SessionRepo } from '../../src/store/types';
+import type { RefreshSession } from '../../src/components/users/models/session';
+import type { SessionRepo } from '../../src/components/users/store/types';
 
 // Stands in for MongoSessionRepo with the same rules, so auth flows can be
 // tested without a database. `rows` is exposed so tests can inspect or age it.

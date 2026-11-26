@@ -1,4 +1,4 @@
-import type { Store } from '../../src/store/types';
+import type { Store } from '../../src/shared/store/types';
 
 export const FAILURE = new Error('MongoDB is unreachable');
 

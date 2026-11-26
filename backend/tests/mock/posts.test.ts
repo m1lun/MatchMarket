@@ -2,7 +2,7 @@ import type { Server } from 'node:http';
 
 import request from 'supertest';
 
-import type { PostDoc } from '../../src/store/types';
+import type { PostDoc } from '../../src/components/posts/store/types';
 import { ME, bearer } from '../helpers/dealFixtures';
 import { LISTING, REQUEST, asJson, clearPostData, countIn, fieldsWith, withFields, type PostKind } from '../helpers/postFixtures';
 import { startTestApp, stopTestApp } from '../helpers/testApp';

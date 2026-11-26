@@ -2,9 +2,9 @@ import type { Server } from 'node:http';
 
 import { LoginTicket, OAuth2Client, type TokenPayload } from 'google-auth-library';
 
-import { env } from '../../src/config/env';
-import { SESSION_TTL_SECONDS } from '../../src/sessions';
-import type { Store } from '../../src/store/types';
+import { env } from '../../src/shared/config/env';
+import { SESSION_TTL_SECONDS } from '../../src/components/users/logic/sessions';
+import type { Store } from '../../src/shared/store/types';
 import { GOOGLE_USER, clearAuthData, getMe, postAuth, sessionRows, signIn, startAuthApp } from '../helpers/authFixtures';
 import { expectServerError, rejecting } from '../helpers/storeFailures';
 import { stopTestApp } from '../helpers/testApp';

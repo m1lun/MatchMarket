@@ -2,10 +2,10 @@ import type { Server } from 'node:http';
 
 import request from 'supertest';
 
-import { env } from '../../src/config/env';
-import * as travelTime from '../../src/matching/travelTime';
-import { ORS_MATRIX_URL, orsProfile, type TravelMode } from '../../src/matching/travelTime';
-import type { GeoPoint } from '../../src/models/common';
+import { env } from '../../src/shared/config/env';
+import * as travelTime from '../../src/components/matching/logic/travelTime';
+import { ORS_MATRIX_URL, orsProfile, type TravelMode } from '../../src/components/matching/logic/travelTime';
+import type { GeoPoint } from '../../src/shared/models/common';
 import { ME, OTHER, bearer, clearDealData, makeListing, makeRequest } from '../helpers/dealFixtures';
 import { expectServerError, rejecting } from '../helpers/storeFailures';
 import { startTestApp, stopTestApp } from '../helpers/testApp';

@@ -2,7 +2,7 @@ import type { Server } from 'node:http';
 
 import request from 'supertest';
 
-import type { GeoPoint } from '../../src/models/common';
+import type { GeoPoint } from '../../src/shared/models/common';
 import { ME, bearer, clearDealData, makeUser } from '../helpers/dealFixtures';
 import { expectServerError, rejecting } from '../helpers/storeFailures';
 import { startTestApp, stopTestApp } from '../helpers/testApp';

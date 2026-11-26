@@ -2,8 +2,8 @@ import type { Server } from 'node:http';
 
 import request from 'supertest';
 
-import { MAX_NAME_LENGTH, MAX_PHOTOS } from '../../src/models/common';
-import type { PostDoc } from '../../src/store/types';
+import { MAX_NAME_LENGTH, MAX_PHOTOS } from '../../src/shared/models/common';
+import type { PostDoc } from '../../src/components/posts/store/types';
 import { ME, OTHER, PHOTO_ID, bearer } from '../helpers/dealFixtures';
 import { LISTING, REQUEST, asJson, clearPostData, countIn, fieldsWith, withFields, type PostKind } from '../helpers/postFixtures';
 import { startTestApp, stopTestApp } from '../helpers/testApp';

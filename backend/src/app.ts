@@ -1,23 +1,25 @@
 import express, { type Express, type Response } from 'express';
 
-import { errorHandler, errorMessage } from './errors';
-import { EventHub } from './events';
-import { verifyGoogleIdToken } from './googleAuth';
-import { isText } from './routes/checks';
-import { createConversationsRouter } from './routes/conversations';
-import { createCustomFieldsRouter } from './routes/customFields';
-import { createDealsRouter } from './routes/deals';
-import { actAsE2ePartner, createE2eRouter } from './routes/e2e';
-import { createFeedRouter } from './routes/feed';
-import { createListingsRouter } from './routes/listings';
-import { createPhotosRouter } from './routes/photos';
-import { createRatingsRouter, createReputationRouter, ratingBodyTooLarge } from './routes/ratings';
-import { createOptionsRouter } from './routes/options';
-import { createProposalsRouter } from './routes/proposals';
-import { createRequestsRouter } from './routes/requests';
-import { createUsersRouter } from './routes/users';
-import { currentUser, endSession, refreshSession, requireAuth, startSession, type AuthResponse } from './sessions';
-import type { SessionRepo, Store } from './store/types';
+import { errorHandler, errorMessage } from './shared/errors';
+import { EventHub } from './components/messaging/routes/events';
+import { verifyGoogleIdToken } from './components/users/logic/googleAuth';
+import { isText } from './shared/http/checks';
+import { createConversationsRouter } from './components/messaging/routes/conversations';
+import { createCustomFieldsRouter } from './components/posts/routes/customFields';
+import { createDealsRouter } from './components/deals/routes/deals';
+import { actAsE2ePartner, createE2eRouter } from './testSupport/e2e';
+import { createFeedRouter } from './components/matching/routes/feed';
+import { createListingsRouter } from './components/posts/routes/listings';
+import { createPhotosRouter } from './components/posts/routes/photos';
+import { createRatingsRouter, createReputationRouter, ratingBodyTooLarge } from './components/deals/routes/ratings';
+import { createOptionsRouter } from './components/posts/routes/options';
+import { createProposalsRouter } from './components/messaging/routes/proposals';
+import { createRequestsRouter } from './components/posts/routes/requests';
+import { createUsersRouter } from './components/users/routes/users';
+import { currentUser, requireAuth } from './components/users/routes/requireAuth';
+import { endSession, refreshSession, startSession, type AuthResponse } from './components/users/logic/sessions';
+import type { SessionRepo } from './components/users/store/types';
+import type { Store } from './shared/store/types';
 
 export interface AppDeps {
   sessions: SessionRepo;

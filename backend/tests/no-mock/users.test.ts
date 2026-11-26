@@ -2,7 +2,7 @@ import type { Server } from 'node:http';
 
 import request from 'supertest';
 
-import { MAX_ADDRESS_LENGTH, type GeoPoint } from '../../src/models/common';
+import { MAX_ADDRESS_LENGTH, type GeoPoint } from '../../src/shared/models/common';
 import { TOKEN_CASES, type TokenCase } from '../helpers/conversationFixtures';
 import { ME, STRANGER, bearer, clearDealData, makeUser } from '../helpers/dealFixtures';
 import { startTestApp, stopTestApp } from '../helpers/testApp';

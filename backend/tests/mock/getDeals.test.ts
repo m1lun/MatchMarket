@@ -2,7 +2,7 @@ import type { Server } from 'node:http';
 
 import request from 'supertest';
 
-import type { Store } from '../../src/store/types';
+import type { Store } from '../../src/shared/store/types';
 import { ME, OTHER, bearer, clearDealData, makeDeal, makeListing, makeRequest } from '../helpers/dealFixtures';
 import { startTestApp, stopTestApp } from '../helpers/testApp';
 import { createTestStore, type TestStore } from '../helpers/testStore';

@@ -2,9 +2,9 @@ import { ObjectId } from 'mongodb';
 import request from 'supertest';
 
 import { createApp } from '../../src/app';
-import { MAX_NAME_LENGTH } from '../../src/models/common';
-import { LISTINGS_COLLECTION } from '../../src/models/listing';
-import { REQUESTS_COLLECTION } from '../../src/models/request';
+import { MAX_NAME_LENGTH } from '../../src/shared/models/common';
+import { LISTINGS_COLLECTION } from '../../src/components/posts/models/listing';
+import { REQUESTS_COLLECTION } from '../../src/components/posts/models/request';
 import { ME, OTHER, PHOTO_ID, bearer, makeListing } from '../helpers/dealFixtures';
 import { MemorySessionRepo } from '../helpers/memorySessionRepo';
 import { createTestStore, type TestStore } from '../helpers/testStore';

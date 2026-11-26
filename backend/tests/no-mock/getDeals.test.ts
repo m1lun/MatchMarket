@@ -2,10 +2,10 @@ import type { Server } from 'node:http';
 
 import request from 'supertest';
 
-import type { Deal } from '../../src/models/deal';
-import type { Listing } from '../../src/models/listing';
-import type { Rating } from '../../src/models/rating';
-import type { BuyerRequest } from '../../src/models/request';
+import type { Deal } from '../../src/components/deals/models/deal';
+import type { Listing } from '../../src/components/posts/models/listing';
+import type { Rating } from '../../src/components/deals/models/rating';
+import type { BuyerRequest } from '../../src/components/posts/models/request';
 import {
   ME,
   OTHER,

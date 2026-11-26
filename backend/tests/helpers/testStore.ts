@@ -3,8 +3,8 @@ import os from 'node:os';
 
 import { MongoClient, type Db, type MongoClientOptions } from 'mongodb';
 
-import { createMongoStore } from '../../src/store/mongoStore';
-import type { Store } from '../../src/store/types';
+import { createMongoStore } from '../../src/shared/store/mongoStore';
+import type { Store } from '../../src/shared/store/types';
 
 const TEST_MONGODB_URI: string = process.env.TEST_MONGODB_URI ?? 'mongodb://127.0.0.1:27018/?directConnection=true';
 const REACH_TIMEOUT_MS = 3000;
