@@ -142,8 +142,8 @@ class MessagesViewModel(app: Application) : AndroidViewModel(app) {
             }
             viewModelScope.launch {
                 loadInbox()
-                val conversation = inbox.conversations.firstOrNull { it.id == id } ?: return@launch
-                live.arrived(LiveNotice(conversation, message?.text, proposal))
+                inbox.conversations.firstOrNull { it.id == id }
+                    ?.let { live.arrived(LiveNotice(it, message?.text, proposal)) }
             }
         } catch (e: JSONException) {
             Log.w(TAG, "Unexpected live event: ${event.type}", e)

@@ -187,9 +187,10 @@ class MainActivity : ComponentActivity() {
             }
         }
         LaunchedEffect(live.dealsMade) {
-            if (live.dealsMade == 0) return@LaunchedEffect
-            viewModel.refresh()
-            if (viewModel.tab == AppTab.DEALS) dealsViewModel.refresh()
+            if (live.dealsMade > 0) {
+                viewModel.refresh()
+                if (viewModel.tab == AppTab.DEALS) dealsViewModel.refresh()
+            }
         }
     }
 
