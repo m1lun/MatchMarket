@@ -92,7 +92,7 @@ app.get('/api/listings/mine', requireAuth, (req, res) => {
 });
 ```
 
-On the app side, call `SessionManager.get(context).authorizedRequest(...)` (`frontend/.../users/model/SessionManager.kt`). It attaches the session token, refreshes it when it expires or the backend answers `401`, and throws `SessionExpiredException` when the user has to sign in again.
+On the app side, call `SessionManager.get(context).authorizedRequest(...)` (`frontend/.../components/users/model/SessionManager.kt`). It attaches the session token, refreshes it when it expires or the backend answers `401`, and throws `SessionExpiredException` when the user has to sign in again.
 
 - `POST /api/auth/google`: body `{ "idToken": "..." }`. Verifies the token with Google and starts a session: `{ "firstName", "lastName", "email", "sessionToken", "sessionExpiresIn", "refreshToken" }`. `400` with no token, `401` if it fails verification.
 - `POST /api/auth/refresh`: body `{ "refreshToken": "..." }`. Same response as sign-in, with new tokens; the old refresh token stops working. Google is not called. `401` means the user has to sign in again.
@@ -254,16 +254,17 @@ Tests stay in `backend/tests/` (`mock/`, `no-mock/`, `nfr/`), as the course requ
 
 ### Frontend (`frontend/app/src/main/java/com/example/cpen321application/`)
 
-The app follows **MVVM (Model–View–ViewModel)**:
+The app follows **MVVM (Model–View–ViewModel)** and mirrors the backend's top level: the components under `components/`, shared code in `shared/`, and the entry point beside them:
 
 ```
 cpen321application/
 ├── MainActivity.kt        # app entry point: bottom tabs, creates the ViewModels
-├── posts/                 # My Posts, the post editor and post details
-├── matching/              # Feed, filters and recommendations
-├── users/                 # sign-in (LoginActivity), session tokens, Profile
-├── deals/                 # Deals tab and ratings
-├── messaging/             # Messages, chat, proposals, live updates
+├── components/
+│   ├── posts/             # My Posts, the post editor and post details
+│   ├── matching/          # Feed, filters and recommendations
+│   ├── users/             # sign-in (LoginActivity), session tokens, Profile
+│   ├── deals/             # Deals tab and ratings
+│   └── messaging/         # Messages, chat, proposals, live updates
 └── shared/                # HTTP client, photos, address search, theme
 ```
 
