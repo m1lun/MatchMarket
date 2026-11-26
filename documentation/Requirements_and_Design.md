@@ -493,7 +493,7 @@ Each use case covers one goal, and the user starts each of them directly, so the
 
 ### **4.5. Dependencies Diagram**
 
-Every backend route except `/health` and the sign-in routes under `/api/auth` calls `requireAuth` in Users. The frontend's calls to Messaging include `GET /api/events`, the live updates stream: the backend writes events to that response while the app keeps it open, so the link stays one-way. Messaging records deals through the Deals component's store when a proposal is accepted. In the same way, Matching, Deals and Messaging read listings and requests through the Posts component's store: Matching to build the feeds, Deals to show each deal's posts, and Messaging to show a conversation's posts and close them when a proposal is accepted.
+Every backend route except `/health` and the sign-in routes under `/api/auth` calls `requireAuth` in Users. Live updates (`GET /api/events`) stay a one-way link: the backend writes events to a response the app keeps open. Messaging records deals through the Deals store, and Matching, Deals and Messaging read posts through the Posts store.
 
 ```mermaid
 flowchart LR
