@@ -56,6 +56,7 @@
 | 2026-11-19 | 3.4, 4.1, 4.2, 4.4 | Matched the document to the implementation: the Posts interfaces follow the same format as the other components, with each one's request body, return value and status, and errors, and a JSON body over 1 MB returns 413; photos are stored in the GridFS `photos` bucket; the sessions collection lists all its fields; the Posts data rules no longer include review notes; dotenv is listed; and the Profile button is named "Sign Out" as in the app. |
 | 2026-11-25 | 4.1, 4.5, 4.6 | Renamed the Users and Auth component to Users, matching the backend's `components/users` folder. It still verifies Google sign-in, issues session tokens and protects every route with `requireAuth`. |
 | 2026-11-25 | 4.5 | Matched the dependencies diagram to the code: Matching, Deals and Messaging call the Posts component's store, so the diagram now shows those three links, and the sign-in routes under `/api/auth` are named as the routes that do not call `requireAuth`. |
+| 2026-11-26 | 3.1, 3.4, 3.5, 4.1, 4.6 | Following TA feedback that live updates matter, live updates now reach the whole app, not only an open conversation: the app keeps `GET /api/events` open while it is on screen; new messages and proposal changes update the inbox, mark the conversation and the Messages tab unread, and show a banner with "View" on the other tabs; and an accepted proposal updates the proposer's Deals and My Posts tabs. Use Case 4 and its sequence diagram describe the new steps, and failure 2a also covers a reload that fails while conversations are shown. |
 
 ---
 
@@ -78,7 +79,7 @@ The primary audience is buyers who know what they want and would rather be match
 1. **Buyer Requests and Seller Listings**: Signed-in users create persistent buyer requests and seller listings, view their own posts, edit them, close and reopen them, and delete them. Listings include 1–10 item photos and requests may include up to 10 reference photos. Closed posts stay in the owner's list and are excluded from the feeds.
 2. **Two-Sided Matching and Recommended Feeds**: Users browse other users' open listings or requests, newest first, and narrow them by category, price and distance. For each of their own open posts they also get recommendations: hard-requirement filtering and soft-preference ranking produce a buyer feed of listings for each request and a seller feed of requests for each listing, with the distance to each. Addresses are picked through the Android Geocoder, and travel times are computed with the OpenRouteService API.
 3. **Deals, Ratings and Reputation**: Users see their deals in a Deals tab, with the agreed price, the listing and request behind each deal, and the other user's score. Either side of a deal can rate the other from 1 to 5 stars with an optional comment, and can edit that rating later. A user's reputation is the average of the ratings they have received. A deal is recorded when one user accepts the other user's proposed price in a conversation (Feature 4).
-4. **Messaging**: Buyers and sellers message each other in the app about a listing or a request, to ask about the item and arrange collection. Either side can propose a price, which the other side accepts or declines; accepting records the deal (Feature 3) and closes the posts. New messages and proposal changes appear in the other user's open conversation without refreshing.
+4. **Messaging**: Buyers and sellers message each other in the app about a listing or a request, to ask about the item and arrange collection. Either side can propose a price, which the other side accepts or declines; accepting records the deal (Feature 3) and closes the posts. New messages and proposal changes reach the other user without refreshing: in their open conversation, in their inbox, as an unread dot on the conversation and the Messages tab, and as a banner while they are on another tab. When a proposal is accepted, the proposer's Deals and My Posts tabs update too.
 
 Authentication is a baseline requirement of the app rather than a feature: users sign in with Google, and the backend verifies the Google ID token and issues its own session token.
 
@@ -128,10 +129,10 @@ Each use case covers one goal, and the user starts each of them directly, so the
 **Feature 4: Messaging**
 
 15. **Start a conversation**: On another user's open post, a user taps "Message" and sends a proposal (a price with an optional note), and the conversation with the post's owner opens. A post opened from the recommendations for one of the user's posts also links that post to the conversation.
-16. **View conversations**: A user opens the Messages tab and sees their conversations, newest activity first, each with the other user, the listing and request, and the last message.
-17. **Send a message** ([Use Case 4](#uc4)): A user sends a message in a conversation, and it appears in the other user's open conversation without refreshing.
-18. **Send a proposal**: A user proposes a price, with an optional note, in a conversation that has no pending or accepted proposal. The proposal appears in the other user's open conversation without refreshing.
-19. **Respond to a proposal**: A user accepts or declines the other user's pending proposal. Accepting records the deal between the two users at that price, closes both posts, and shows the deal in both users' Deals tabs. After a decline, either user can propose again.
+16. **View conversations**: A user opens the Messages tab and sees their conversations, newest activity first, each with the other user, the listing and request, and the last message. Conversations with news the user has not seen yet have an unread dot, and the list updates without refreshing.
+17. **Send a message** ([Use Case 4](#uc4)): A user sends a message in a conversation, and it reaches the other user without refreshing.
+18. **Send a proposal**: A user proposes a price, with an optional note, in a conversation that has no pending or accepted proposal. The proposal reaches the other user without refreshing, in the same ways as a message.
+19. **Respond to a proposal**: A user accepts or declines the other user's pending proposal. Accepting records the deal between the two users at that price, closes both posts, and shows the deal in both users' Deals tabs; the proposer's Deals and My Posts tabs update without refreshing. After a decline, either user can propose again.
 
 ### **3.5. Formal Use Case Specifications (5 Most Major Use Cases)**
 
@@ -225,7 +226,7 @@ Each use case covers one goal, and the user starts each of them directly, so the
 
 #### Use Case 4: Send a Message
 
-**Description**: A user sends a message in one of their conversations, and it appears in the other user's open conversation without refreshing.
+**Description**: A user sends a message in one of their conversations, and it reaches the other user without refreshing.
 
 **Primary actor(s)**: Buyer, Seller
 
@@ -236,11 +237,12 @@ Each use case covers one goal, and the user starts each of them directly, so the
 4. The app shows its messages with the newest at the bottom, 30 at a time, with "Load earlier messages" when there are older ones.
 5. The user types a message of up to 1000 characters and taps "Send".
 6. The system saves the message, and the app shows it on the right and clears the message box.
-7. The message appears in the other user's open conversation without refreshing.
+7. The message reaches the other user without refreshing. If they have the conversation open, it appears there. Otherwise the conversation moves to the top of their inbox with the message, its card and the Messages tab show an unread dot, and, if they are on another tab, a banner shows the user's name and the message with "View", which opens the conversation.
+8. When the other user opens the conversation, its unread dot goes away, and so does the Messages tab's once no conversation is unread.
 
 **Failure scenario(s)**:
 - 2a. The network or server is unavailable when the conversations are loaded.
-    - 2a1. The app shows "Could not reach the server. Check your connection." and a "Retry" button.
+    - 2a1. The app shows "Could not reach the server. Check your connection." and a "Retry" button, above the conversations it already shows, if any.
 - 4a. The network or server is unavailable when the messages are loaded.
     - 4a1. The app shows "Could not reach the server. Check your connection." and a "Retry" button.
 - 5a. The message is empty or only spaces.
@@ -248,7 +250,7 @@ Each use case covers one goal, and the user starts each of them directly, so the
 - 6a. The network or server is unavailable when the message is sent.
     - 6a1. The app shows "Could not send the message. Try again." and the message stays in the message box.
 - 7a. The other user's connection to the server was lost.
-    - 7a1. Their app reconnects and reloads the conversation, which then shows the message. A connection that fails with an error is replaced within a few seconds; one that stops without an error is noticed by the app's 60-second read timeout, so the message can take up to about a minute to appear.
+    - 7a1. Their app reconnects and reloads their inbox and the conversation they have open, which then show the message, without an unread dot or a banner. A connection that fails with an error is replaced within a few seconds; one that stops without an error is noticed by the app's 60-second read timeout, so the message can take up to about a minute to appear.
 
 <a id="uc5"></a>
 
@@ -401,7 +403,7 @@ Each use case covers one goal, and the user starts each of them directly, so the
         7. `POST /api/conversations/:id/proposal/decline`
             - **Purpose**: Decline the other user's pending proposal, after which either user can propose again. Returns 200 with the proposal and sends `proposal.updated`. 403 for the caller's own proposal; 409 if no proposal is pending.
         8. `GET /api/events`
-            - **Purpose**: The caller's live updates as Server-Sent Events (`Content-Type: text/event-stream`). The response stays open, and the backend writes an event to every open stream of the other user whenever a user acts: `message.created` with the message, or `proposal.updated` with `{ conversationId, proposal }`. The user who acted, and users outside the conversation, get nothing. A comment line every 25 seconds keeps a quiet stream from being dropped. Events sent while the app is disconnected are not replayed, so the app reloads the open conversation after it reconnects. 401 without a valid session token.
+            - **Purpose**: The caller's live updates as Server-Sent Events (`Content-Type: text/event-stream`). The response stays open, and the backend writes an event to every open stream of the other user whenever a user acts: `message.created` with the message, or `proposal.updated` with `{ conversationId, proposal }`. The user who acted, and users outside the conversation, get nothing. A comment line every 25 seconds keeps a quiet stream from being dropped. Events sent while the app is disconnected are not replayed, so the app reloads the inbox and the open conversation after it reconnects. 401 without a valid session token.
 
 ### **4.2. Databases**
 
@@ -733,7 +735,7 @@ sequenceDiagram
     participant MS as Messaging
     participant DB as MongoDB
     participant O as Other user's frontend
-    Note over U,O: Precondition: the user is signed in and has a conversation, and the other user's app<br/>keeps GET /api/events open while their conversation is on screen
+    Note over U,O: Precondition: the user is signed in and has a conversation, and the other user's app<br/>keeps GET /api/events open while the app is on screen
     U->>FE: Open the Messages tab
     FE->>MS: GET /api/conversations
     alt 2a. the network or server is unavailable
@@ -794,13 +796,27 @@ sequenceDiagram
             MS-)O: message.created (message) on the events stream
             deactivate MS
             alt the other user's connection is open
-                O--)O: show the message without refreshing
+                alt the conversation is open
+                    O--)O: show the message without refreshing
+                else the conversation is not open
+                    O--)O: move the conversation to the top of the inbox with the message,<br/>and show an unread dot on its card and on the Messages tab
+                    opt the other user is on another tab
+                        O--)O: banner with the user's name, the message and "View"
+                    end
+                    O--)O: 8. the other user opens the conversation: hide its unread dot,<br/>and the Messages tab's once no conversation is unread
+                end
             else 7a. the other user's connection was lost
                 O->>MS: GET /api/events (reconnect)
-                O->>MS: GET /api/conversations/:id/messages (reload)
+                O->>MS: GET /api/conversations (reload the inbox)
                 activate MS
-                MS--)O: 200 messages, including the new one
+                MS--)O: 200 conversations, with the new last message
                 deactivate MS
+                opt the conversation is open
+                    O->>MS: GET /api/conversations/:id/messages (reload)
+                    activate MS
+                    MS--)O: 200 messages, including the new one
+                    deactivate MS
+                end
             end
         end
     end
