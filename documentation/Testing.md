@@ -29,12 +29,11 @@
 | 2026-11-19 | 2 | Re-ran the back-end tests at commit `1c8c835` (754 tests: 116 with mocks, 638 without) and replaced the coverage screenshots and figures. Every file below 100% is now listed with its reason, including the store files from splitting the Mongo store into one file per component. |
 | 2026-11-25 | 2 | Re-ran the back-end interface tests at commit `17542fb`, after the back end was reorganised by component ([PR #242](https://github.com/m1lun/MatchMarket/pull/242)): updated the commit hash, the test counts (758 tests: 116 with mocks, 642 without), the combined coverage, and the paths and line numbers in the coverage table. The five type-only `types.ts` files share one row. |
 | 2026-11-26 | 4 | Live updates now reach the whole app, so added tests to `SendMessageTest.kt` for Use Case 4: Send a Message steps 7 and 8 (the inbox, the unread dots and the banner). Failure 2a1 also checks a failed reload while conversations are shown. Replaced the Messaging test logs with a run of all 24 Messaging tests after the frontend was reorganised by component. |
+| 2026-11-26 | 2, 4 | Removed content the course does not ask for: the notes on how the back-end tests are organized, the `dealStore.test.ts` and IDE notes, the out-of-date sentence that more tests would be added, the list of `support/` files, five of the front-end setup notes, and the repeated `ManagePostsTest` results in the Use Case 1 log. The Rate a Deal tests now describe the deal they start with. |
 
 ---
 
 ## 2. Back-end Test Specification: APIs
-
-This section covers the Deals, Messaging and Matching components, and the auth and profile routes of the Users component ([Section 4.1](Requirements_and_Design.md#41-main-components)). Tests for the other components will be added here as they are written.
 
 ### 2.1. Locations of Back-end Tests and Instructions to Run Them
 
@@ -85,18 +84,7 @@ This section covers the Deals, Messaging and Matching components, and the auth a
 
 The mocked tests use `jest.spyOn` on one store method at a time, so each database failure is forced on its own. Both groups otherwise run against a real MongoDB.
 
-How the Messaging conversation tests are organized:
-
-- **Unmocked groups** cover every success and every failure the API can cause. Requests every conversation route must refuse share two tables in `tests/helpers/conversationFixtures.ts`: `ACCESS_CASES` (a user outside the conversation, an unknown or malformed id, no token or an invalid one) and `unreadableBodies` (malformed JSON and a body over 16 KB). Each route runs them alongside its own table of invalid bodies, so one comment block describes all the cases in a table.
-- **Mocked groups** make each store method the route calls reject in turn, through the helpers in `tests/helpers/storeFailures.ts`, and check for a handled 500.
-- **Accepting a proposal** writes in steps: it records the deal, closes the posts, then marks the proposal accepted. In the mocked group, each of its eight store calls fails once, and the test then accepts again without the mock and checks that the retry finishes the deal: exactly one deal, both posts closed and the proposal accepted. The unmocked group sets up an accept that stopped partway directly in the database and checks that accepting again finishes it, and that a deal on the same posts with someone else, or at another price, still returns 409. MongoDB rejecting a deal because another accept saved one first is mocked, since the API cannot time two accepts that precisely.
-- **Live updates.** `GET /api/events` keeps its response open, so `tests/helpers/eventStream.ts` opens it as a real HTTP client and records what the server writes. The unmocked group checks that each new message and each proposal change reaches every open stream of the other user, and never the sender or users outside the conversation. The mocked group fakes `setInterval` with Jest, so 25 seconds pass at once, to check the heartbeat and that closing a stream clears its timer: time is the one dependency these tests cannot control.
-- **Profile routes.** `GET /api/users/me` and `PATCH /api/users/me` are tested in `tests/no-mock/users.test.ts` and `tests/mock/users.test.ts`. Every rejected address change, including a body over the 4 KB limit, also checks that the saved address is unchanged. The `Body Over 4 KB: 413` test was written first, failed with a 500, and passes since `/api/users` uses the same body-size handler as the ratings and conversation routes.
-- **Matching feed.** The unmocked `GET /api/feed` group runs without an OpenRouteService key, so it never calls the routing service. It checks every hard requirement (category, radius, price, condition, dimensions in any orientation, text ignoring case, yes/no fields), that a listing's feed holds exactly the requests it meets, paging in rank order, the feed filters (a filter looser than the post's own requirement is ignored), and every 400, 403, 404 and 409. `feedRanking.test.ts` checks the scores. The mocked group fakes OpenRouteService with `jest.spyOn(global, 'fetch')` to check travel times, each travel mode, and that the feed still returns its ranked matches when the service fails, is rate-limited or answers with something unusable; it also makes each store method the feed calls reject in turn. `GET /api/feed/listings` and `GET /api/feed/requests` share their code, so `browseTests` in `tests/no-mock/feed.test.ts` runs the same cases for both, and each has its own price test.
-- **Auth routes.** These tests start the app with the MongoDB session store, as in production, instead of the in-memory one in `tests/helpers/testApp.ts`. The unmocked groups get refresh tokens by starting a session directly, since only Google can issue a real ID token. They cover every unreadable body (missing or blank token, malformed JSON, over 4 KB), a token Google rejects, refresh-token rotation, reuse of an exchanged token revoking the whole sign-in, expiry, and sign-out of every token from a sign-in. `Unmocked: session token on protected routes` checks the session token that `requireAuth` reads on every route except `/health` and `/api/auth`: a missing or non-Bearer header, and expired, wrongly signed, wrong-audience and incomplete tokens. The mocked group for `POST /api/auth/google` replaces Google's `verifyIdToken` to sign in an account with and without names and a photo, and to reject the token, an unverified email and a ticket with no payload; the other mocked groups make each session store method fail in turn. The `Body Over 4 KB: 413` tests were written first, failed with a 500, and pass since `/api/auth` uses the same body-size handler as `/api/users`.
-- **Known limitation.** If saving a message works but updating the conversation's last message fails, the conversations list shows the previous message until the next one is sent. Fixing it needs a MongoDB transaction, which needs a replica set. The mocked test `recordMessage Throws, Next Message Repairs The Last Message` checks that the next message corrects it.
-
-**Test-only routes for the end-to-end tests.** The front-end tests in Section 4 create their data through these routes. They exist only when the backend runs with `ENABLE_E2E_ROUTES=true`, and only touch made-up users tied to the caller: an "E2E Buyer" for deals and an "E2E Seller" for conversations. The `/api/e2e/partner/conversations` routes are the real conversation and proposal routes run as the E2E Seller, so the tests can play the second user through the same code; their full behaviour is tested with the Messaging routes.
+**Test-only routes for the end-to-end tests.** They exist only when the backend runs with `ENABLE_E2E_ROUTES=true`, and the front-end tests in Section 4 create their data through them.
 
 | **Interface** | **Describe Group Location, No Mocks** | **Describe Group Location, With Mocks** | **Mocked Components** |
 | ------------- | ------------------------------------- | --------------------------------------- | --------------------- |
@@ -108,8 +96,6 @@ How the Messaging conversation tests are organized:
 | **POST /api/e2e/partner/conversations/:id/messages** | [`tests/no-mock/e2eConversations.test.ts#L212`](../backend/tests/no-mock/e2eConversations.test.ts#L212) | [`tests/mock/e2eConversations.test.ts#L70`](../backend/tests/mock/e2eConversations.test.ts#L70) | Conversations DB |
 | **POST /api/e2e/partner/conversations/:id/proposal** | [`tests/no-mock/e2eConversations.test.ts#L260`](../backend/tests/no-mock/e2eConversations.test.ts#L260) | [`tests/mock/e2eConversations.test.ts#L70`](../backend/tests/mock/e2eConversations.test.ts#L70) | Conversations DB |
 | **POST /api/e2e/partner/conversations/:id/proposal/decline** | [`tests/no-mock/e2eConversations.test.ts#L282`](../backend/tests/no-mock/e2eConversations.test.ts#L282) | [`tests/mock/e2eConversations.test.ts#L70`](../backend/tests/mock/e2eConversations.test.ts#L70) | Conversations DB |
-
-Rules that the HTTP interfaces cannot reach or prove are tested directly in [`no-mock/dealStore.test.ts`](https://github.com/m1lun/MatchMarket/blob/17542fbf895af16ab5f5f8637bbd79467b4a9bf9/backend/tests/no-mock/dealStore.test.ts): the database validators, the unique indexes, and the store methods behind the routes. `deals.insert`, which records a new deal, is tested there.
 
 #### 2.1.2. Commit Hash Where Tests Run
 
@@ -148,8 +134,6 @@ Rules that the HTTP interfaces cannot reach or prove are tested directly in [`no
      On Windows, run `scripts\run-backend-interface-tests.ps1`.
 
 The script starts a throwaway MongoDB on port 27018 and runs the tests three times: `tests/mock/`, `tests/no-mock/`, then both together. It writes each coverage report to `backend/coverage/mock/`, `backend/coverage/no-mock/` and `backend/coverage/interface/`, and removes the database when it finishes.
-
-To run tests from an IDE or with `npx jest`, start the database first with `docker compose -f docker-compose.test.yml up -d --wait` from the project root.
 
 **Known issue on macOS:** `tests/no-mock/postName.test.ts` and `tests/no-mock/health.test.ts` use `request(app)`, which listens on all addresses. macOS can give that server a port another program already holds on `127.0.0.1`, such as Android Studio, so a request occasionally gets an unexpected response and the script stops. If this happens, run the script again. The Deals tests bind to `127.0.0.1` through `tests/helpers/testApp.ts` to avoid it.
 
@@ -254,18 +238,11 @@ Tests:       5 passed, 5 total
 | [`SendProposalTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/SendProposalTest.kt) | Send a proposal ([Section 3.4](Requirements_and_Design.md#34-use-case-description)) |
 | [`RespondToProposalTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/RespondToProposalTest.kt) | Respond to a proposal, including recording the deal when it is accepted ([Section 3.4](Requirements_and_Design.md#34-use-case-description)) |
 
-Shared test steps are in `support/PostRobot.kt`, and the differences between the request and listing forms are in `support/PostForm.kt`. The Messaging tests' steps are in `support/MessagingSeed.kt`, and `support/E2eApi.kt` holds the backend calls shared by the Deals and Messaging tests.
-
 **How the tests are set up.** Following the course rules, each test starts from the app's main screen with the user already signed in, and assumes no existing data:
 
 - **Stand-alone tests.** Every post a test creates uses the category `e2e chair`. Before and after each test, `deleteTestPosts()` deletes every post in that category through the back-end API, so each test starts from an empty state and a failed test leaves nothing behind. The tester's posts in other categories are never touched. Tests that need an existing post create it through the UI first (`createPost`).
-- **Both post types.** Requests and listings share the same screens, so both test classes are parameterized over `PostForm` and run every test once for requests (`[REQUEST]`) and once for listings (`[LISTING]`).
 - **No mocking.** The tests talk to the real back-end. For failure scenarios 2a and 6a ("the network or server is unavailable"), the test switches on the emulator's airplane mode, and switches it off again in `@After` even if the test fails.
-- **Results checked on the server.** When a scenario says nothing is saved, the test asks the back-end with `testPosts()` and checks the list is empty, instead of trusting the screen.
-- **System UI.** The Android photo picker is not part of the app, so it is driven with UI Automator. `TestPhotos` adds small JPEGs to the emulator's gallery before each test and deletes them afterwards.
-- **A deal for the Deals tests.** Before each Deals test, `POST /api/e2e/deals` (Section 2) gives the signed-in tester a deal in which they sold the made-up "E2E Buyer" the request "E2E desk" for $45, and `DELETE /api/e2e/deals` removes it afterwards.
 - **A second user for Messaging.** Every conversation needs another user. Before each Messaging test, `POST /api/e2e/listings` or `POST /api/e2e/conversations` (Section 2) gives the signed-in tester a made-up partner, "E2E Seller", with an open listing "E2E lamp" and, if needed, a conversation with up to 40 messages. During a test, the E2E Seller replies, proposes and declines through the real conversation routes, so live updates reach the app exactly as they would from a second phone, and no manual tester is needed. `DELETE /api/e2e/conversations` removes everything afterwards, including a deal made by accepting a proposal. The tester's real conversations and deals are never touched.
-- **Back online after airplane mode.** The emulator needs several seconds to reconnect after airplane mode is turned off, so the tests call `waitUntilOnline()` before a step that needs the network again.
 
 **How to run them.**
 
@@ -345,30 +322,10 @@ Shared test steps are in `support/PostRobot.kt`, and the differences between the
       photoIsRequiredOnlyOnListings[LISTING]           PASSED   6.15 s
       rejectsPhotoOverFiveMegabytes[LISTING]           PASSED   9.25 s
 
-    com.example.cpen321application.e2e.ManagePostsTest
-      editsPost[REQUEST]                               PASSED   6.75 s
-      deletesPost[REQUEST]                             PASSED   6.21 s
-      keepsPostClosedWhenReopenFails[REQUEST]          PASSED  12.35 s
-      keepsPostWhenDeleteFails[REQUEST]                PASSED  26.07 s
-      keepsPostWhenServerIsUnreachable[REQUEST]        PASSED  25.11 s
-      rejectsInvalidEditAndKeepsPost[REQUEST]          PASSED  22.57 s
-      showsErrorWhenPostsCannotLoad[REQUEST]           PASSED   7.10 s
-      keepsPostWhenEditCannotBeSaved[REQUEST]          PASSED  25.85 s
-      managesPostFromItsDetailScreen[REQUEST]          PASSED  22.45 s
-      closesAndReopensPost[REQUEST]                    PASSED   6.67 s
-      editsPost[LISTING]                               PASSED   9.68 s
-      deletesPost[LISTING]                             PASSED   8.25 s
-      keepsPostClosedWhenReopenFails[LISTING]          PASSED  14.13 s
-      keepsPostWhenDeleteFails[LISTING]                PASSED  27.81 s
-      keepsPostWhenServerIsUnreachable[LISTING]        PASSED  27.02 s
-      rejectsInvalidEditAndKeepsPost[LISTING]          PASSED  24.12 s
-      showsErrorWhenPostsCannotLoad[LISTING]           PASSED   7.24 s
-      keepsPostWhenEditCannotBeSaved[LISTING]          PASSED  27.57 s
-      managesPostFromItsDetailScreen[LISTING]          PASSED  25.14 s
-      closesAndReopensPost[LISTING]                    PASSED   8.48 s
-
     Finished 42 tests on Pixel_9(AVD) - 16: 42 passed, 0 failed, 0 skipped (550.4 s)
     ```
+
+    The other 20 tests of this run are `ManagePostsTest`. Their log, from a later run, is under Edit post and Delete post below, including `showsErrorWhenPostsCannotLoad` for failure 2a.
 
 - **Edit post and Delete post** ([`ManagePostsTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/ManagePostsTest.kt), each test run once as `[REQUEST]` and once as `[LISTING]`). These use cases have no formal specification. Each test first creates a post through the form, as in Use Case 1 (category "e2e chair", price 150), unless noted.
 
@@ -415,7 +372,7 @@ Shared test steps are in `support/PostRobot.kt`, and the differences between the
     20 tests: 20 passed, 0 failed, 0 skipped (357.0 s)
     ```
 
-- **Use Case 2: Rate a Deal** ([`RateDealTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/RateDealTest.kt)). Each test starts with the seeded deal, which the tester has not rated.
+- **Use Case 2: Rate a Deal** ([`RateDealTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/RateDealTest.kt)). Each test starts with a deal seeded through `POST /api/e2e/deals` (Section 2), in which the tester sold the made-up "E2E Buyer" the request "E2E desk" for $45, and which the tester has not rated.
 
   - **Expected Behaviors:**
 
