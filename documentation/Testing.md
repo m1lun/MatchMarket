@@ -28,7 +28,7 @@
 | 2026-11-19 | 2 | Added the missing rows for the Posts routes, `/api/photos`, `/api/options`, `/api/custom-fields` and `/health` to the interface table, and pointed every test link at the describe group it names on main `1c8c835`. |
 | 2026-11-19 | 2 | Re-ran the back-end tests at commit `1c8c835` (754 tests: 116 with mocks, 638 without) and replaced the coverage screenshots and figures. Every file below 100% is now listed with its reason, including the store files from splitting the Mongo store into one file per component. |
 | 2026-11-25 | 2 | Re-ran the back-end interface tests at commit `17542fb`, after the back end was reorganised by component ([PR #242](https://github.com/m1lun/MatchMarket/pull/242)): updated the commit hash, the test counts (758 tests: 116 with mocks, 642 without), the combined coverage, and the paths and line numbers in the coverage table. The five type-only `types.ts` files share one row. |
-| 2026-11-26 | 4 | Live updates now reach the whole app, so added `LiveUpdatesTest.kt` to Use Case 4: Send a Message (steps 7 and 8: the inbox, the unread dots and the banner) and to Respond to a proposal (the proposer's Deals tab). Failure 2a1 also checks a failed reload while conversations are shown. Replaced the Messaging test logs with a run of all 24 Messaging tests after the frontend was reorganised by component. |
+| 2026-11-26 | 4 | Live updates now reach the whole app, so added tests to `SendMessageTest.kt` for Use Case 4: Send a Message steps 7 and 8 (the inbox, the unread dots and the banner). Failure 2a1 also checks a failed reload while conversations are shown. Replaced the Messaging test logs with a run of all 24 Messaging tests after the frontend was reorganised by component. |
 
 ---
 
@@ -249,8 +249,7 @@ Tests:       5 passed, 5 total
 | [`RateDealTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/RateDealTest.kt) | [Use Case 2: Rate a Deal](Requirements_and_Design.md#uc2), steps 1–7 and failures 2a, 5a, 6a and 6b |
 | [`EditRatingTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/EditRatingTest.kt) | Edit a rating ([Section 3.4](Requirements_and_Design.md#34-use-case-description)) |
 | [`ViewDealsTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/ViewDealsTest.kt) | View deals ([Section 3.4](Requirements_and_Design.md#34-use-case-description)) |
-| [`SendMessageTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/SendMessageTest.kt) | [Use Case 4: Send a Message](Requirements_and_Design.md#uc4), steps 1–7 and failures 2a, 4a, 5a, 6a and 7a. Steps 1–2 and 2a are also the View conversations use case. |
-| [`LiveUpdatesTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/LiveUpdatesTest.kt) | [Use Case 4: Send a Message](Requirements_and_Design.md#uc4), steps 7 and 8 outside an open conversation, and Respond to a proposal ([Section 3.4](Requirements_and_Design.md#34-use-case-description)) for the proposer's Deals tab |
+| [`SendMessageTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/SendMessageTest.kt) | [Use Case 4: Send a Message](Requirements_and_Design.md#uc4), steps 1–8 and failures 2a, 4a, 5a, 6a and 7a. Steps 1–2 and 2a are also the View conversations use case. |
 | [`StartConversationTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/StartConversationTest.kt) | Start a conversation ([Section 3.4](Requirements_and_Design.md#34-use-case-description)) |
 | [`SendProposalTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/SendProposalTest.kt) | Send a proposal ([Section 3.4](Requirements_and_Design.md#34-use-case-description)) |
 | [`RespondToProposalTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/RespondToProposalTest.kt) | Respond to a proposal, including recording the deal when it is accepted ([Section 3.4](Requirements_and_Design.md#34-use-case-description)) |
@@ -286,10 +285,8 @@ Shared test steps are in `support/PostRobot.kt`, and the differences between the
 **Without Docker on Windows** (for example, with Docker installed only in WSL), the script cannot start the backend. Start MongoDB and run `npm run dev` in `backend/` instead, start the `Pixel_9` emulator and sign in inside the app, then run the tests from `frontend/`:
 
 ```powershell
-.\gradlew.bat connectedDebugAndroidTest "-Pandroid.testInstrumentationRunnerArguments.class=com.example.cpen321application.e2e.SendMessageTest,com.example.cpen321application.e2e.LiveUpdatesTest,com.example.cpen321application.e2e.StartConversationTest,com.example.cpen321application.e2e.SendProposalTest,com.example.cpen321application.e2e.RespondToProposalTest"
+.\gradlew.bat connectedDebugAndroidTest "-Pandroid.testInstrumentationRunnerArguments.package=com.example.cpen321application.e2e"
 ```
-
-Leave out the class list to run every test in `e2e/`.
 
 ### 4.2. Tests
 
@@ -493,7 +490,7 @@ Leave out the class list to run every test in `e2e/`.
     2 tests: 2 passed, 0 failed, 0 skipped (4.3 s)
     ```
 
-- **Use Case 4: Send a Message** ([`SendMessageTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/SendMessageTest.kt) and [`LiveUpdatesTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/LiveUpdatesTest.kt)). Each test starts with a conversation with the E2E Seller about "E2E lamp", holding one message from them, "Message 1". Steps 7, 7a and 8 are about the user who receives the message, so in those tests the signed-in tester receives it and the E2E Seller sends it. The `LiveUpdatesTest` tests start on My Posts and wait two seconds for the app's live connection.
+- **Use Case 4: Send a Message** ([`SendMessageTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/SendMessageTest.kt)). Each test starts with a conversation with the E2E Seller about "E2E lamp", holding one message from them, "Message 1". Steps 7, 7a and 8 are about the user who receives the message, so in those tests the signed-in tester receives it and the E2E Seller sends it, after waiting two seconds for the app's live connection.
 
   - **Expected Behaviors:**
 
@@ -513,35 +510,30 @@ Leave out the class list to run every test in `e2e/`.
     | 6. The system saves the message, and the app shows it on the right and clears the message box. | Check that the message box is empty and that "Is it still available?" is shown.<br>Check on the backend that the conversation's messages are "Message 1" and "Is it still available?". |
     | 6a. The network or server is unavailable when the message is sent. | (`keepsMessageWhenSendFails`) Input "Is it still available?", turn on airplane mode, and tap "Send". |
     | 6a1. The app shows "Could not send the message. Try again." and the message stays in the message box. | Check that "Could not send the message. Try again." is shown and that the message box still contains "Is it still available?".<br>Turn off airplane mode and check on the backend that the only message is "Message 1". |
-    | 7. The message reaches the other user without refreshing: in the open conversation, or in the inbox, with unread dots on the card and the Messages tab and, on another tab, a banner with "View". | (`showsOtherUsersMessageLive`) Open the conversation and wait two seconds for its live connection. The E2E Seller sends "Yes, still available".<br>Check that "Yes, still available" is shown without refreshing.<br>(`updatesInboxLive`) Open the Messages tab and check that "Message 1" is shown. The E2E Seller sends "Still interested?". Check that "Still interested?" and the conversation's unread dot are shown without refreshing.<br>(`marksNewMessageUnreadOnAnotherTab`) On My Posts, the E2E Seller sends "Still interested?". Check that the banner "E2E Seller: Still interested?" and the Messages tab's unread dot are shown. Tap "Messages" and check that the conversation's unread dot and "Still interested?" are shown.<br>(`bannerOpensConversation`) On My Posts, the E2E Seller sends "Still interested?". Tap "View" on the banner and check that the conversation opens with "Still interested?" and that the Messages tab's unread dot is gone. |
+    | 7. The message reaches the other user without refreshing: in the open conversation, or in the inbox, with unread dots on the card and the Messages tab and, on another tab, a banner with "View". | (`showsOtherUsersMessageLive`) Open the conversation and wait two seconds for its live connection. The E2E Seller sends "Yes, still available".<br>Check that "Yes, still available" is shown without refreshing.<br>(`updatesInboxLive`) Open the Messages tab and check that "Message 1" is shown. The E2E Seller sends "Yes, still available". Check that "Yes, still available" and the conversation's unread dot are shown without refreshing.<br>(`marksMessageUnreadOnAnotherTab`) On My Posts, the E2E Seller sends "Yes, still available". Check that the banner "E2E Seller: Yes, still available" and the Messages tab's unread dot are shown. Tap "Messages" and check that the conversation's unread dot and "Yes, still available" are shown.<br>(`bannerOpensConversation`) On My Posts, the E2E Seller sends "Yes, still available". Tap "View" on the banner and check that the conversation opens with "Yes, still available" and that the Messages tab's unread dot is gone. |
     | 7a. The other user's connection to the server was lost. | (`catchesUpAfterReconnecting`) Open the conversation, turn airplane mode on and off, and wait until the backend can be reached. The E2E Seller sends "Sent while you were offline". |
     | 7a1. Their app reconnects and reloads their inbox and the conversation they have open, which then show the message, within about a minute. | Check that "Sent while you were offline" is shown within 90 seconds. |
-    | 8. When the other user opens the conversation, its unread dot goes away, and so does the Messages tab's once no conversation is unread. | (`marksNewMessageUnreadOnAnotherTab`, continued) Tap the conversation's card and check that the Messages tab's unread dot is gone. Tap back and check that the conversation's unread dot is gone. |
+    | 8. When the other user opens the conversation, its unread dot goes away, and so does the Messages tab's once no conversation is unread. | (`marksMessageUnreadOnAnotherTab`, continued) Tap the conversation's card and check that the Messages tab's unread dot is gone. Tap back and check that the conversation's unread dot is gone. |
 
   - **Test Logs:**
     ```
-    Pixel_9(AVD) - 16 (Android 16, API 36), 2026-11-26, .\gradlew.bat connectedDebugAndroidTest (SendMessageTest, LiveUpdatesTest, StartConversationTest, SendProposalTest, RespondToProposalTest)
-    Branch feat/live-inbox, the commit that adds LiveUpdatesTest
+    Pixel_9(AVD) - 16 (Android 16, API 36), 2026-11-26, .\gradlew.bat connectedDebugAndroidTest (SendMessageTest, StartConversationTest, SendProposalTest, RespondToProposalTest)
+    Branch feat/live-inbox, the commit that adds the live updates tests
 
     com.example.cpen321application.e2e.SendMessageTest
-      catchesUpAfterReconnecting                     PASSED   8.26 s
-      keepsMessageWhenSendFails                      PASSED  15.66 s
-      loadsEarlierMessages                           PASSED   6.17 s
-      sendDisabledForBlankMessage                    PASSED   3.72 s
-      sendsMessage                                   PASSED   4.16 s
-      showsErrorWhenConversationsCannotLoad          PASSED   5.20 s
-      showsErrorWhenMessagesCannotLoad               PASSED   8.30 s
-      showsOtherUsersMessageLive                     PASSED   6.63 s
+      bannerOpensConversation                        PASSED   6.41 s
+      catchesUpAfterReconnecting                     PASSED   6.96 s
+      keepsMessageWhenSendFails                      PASSED   8.63 s
+      loadsEarlierMessages                           PASSED   5.38 s
+      marksMessageUnreadOnAnotherTab                 PASSED   6.69 s
+      sendDisabledForBlankMessage                    PASSED   4.15 s
+      sendsMessage                                   PASSED   5.51 s
+      showsErrorWhenConversationsCannotLoad          PASSED  15.50 s
+      showsErrorWhenMessagesCannotLoad               PASSED   9.89 s
+      showsOtherUsersMessageLive                     PASSED  12.72 s
+      updatesInboxLive                               PASSED   5.47 s
 
-    8 tests: 8 passed, 0 failed, 0 skipped (58.1 s)
-
-    com.example.cpen321application.e2e.LiveUpdatesTest
-      bannerOpensConversation                        PASSED   4.68 s
-      marksNewMessageUnreadOnAnotherTab              PASSED   7.17 s
-      showsDealWhenProposalIsAccepted                PASSED   5.44 s
-      updatesInboxLive                               PASSED   4.39 s
-
-    4 tests: 4 passed, 0 failed, 0 skipped (21.7 s)
+    11 tests: 11 passed, 0 failed, 0 skipped (87.3 s)
     ```
 
 - **Start a conversation** ([`StartConversationTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/StartConversationTest.kt)). This use case has no formal specification. Each test starts with the E2E Seller's open listing "E2E lamp" at $30 and no conversation about it.
@@ -554,13 +546,13 @@ Leave out the class list to run every test in `e2e/`.
 
   - **Test Logs:**
     ```
-    Pixel_9(AVD) - 16 (Android 16, API 36), 2026-11-26, .\gradlew.bat connectedDebugAndroidTest (SendMessageTest, LiveUpdatesTest, StartConversationTest, SendProposalTest, RespondToProposalTest)
-    Branch feat/live-inbox, the commit that adds LiveUpdatesTest
+    Pixel_9(AVD) - 16 (Android 16, API 36), 2026-11-26, .\gradlew.bat connectedDebugAndroidTest (SendMessageTest, StartConversationTest, SendProposalTest, RespondToProposalTest)
+    Branch feat/live-inbox, the commit that adds the live updates tests
 
     com.example.cpen321application.e2e.StartConversationTest
-      keepsProposalWhenServerIsUnreachable           PASSED   8.35 s
-      proposeDisabledForInvalidPrice                 PASSED   6.51 s
-      startsConversationWithProposal                 PASSED   6.34 s
+      keepsProposalWhenServerIsUnreachable           PASSED   8.15 s
+      proposeDisabledForInvalidPrice                 PASSED   6.40 s
+      startsConversationWithProposal                 PASSED   6.66 s
 
     3 tests: 3 passed, 0 failed, 0 skipped (21.2 s)
     ```
@@ -576,16 +568,16 @@ Leave out the class list to run every test in `e2e/`.
 
   - **Test Logs:**
     ```
-    Pixel_9(AVD) - 16 (Android 16, API 36), 2026-11-26, .\gradlew.bat connectedDebugAndroidTest (SendMessageTest, LiveUpdatesTest, StartConversationTest, SendProposalTest, RespondToProposalTest)
-    Branch feat/live-inbox, the commit that adds LiveUpdatesTest
+    Pixel_9(AVD) - 16 (Android 16, API 36), 2026-11-26, .\gradlew.bat connectedDebugAndroidTest (SendMessageTest, StartConversationTest, SendProposalTest, RespondToProposalTest)
+    Branch feat/live-inbox, the commit that adds the live updates tests
 
     com.example.cpen321application.e2e.SendProposalTest
-      keepsProposalWhenServerIsUnreachable           PASSED   9.62 s
-      proposeDisabledForInvalidPrice                 PASSED   4.20 s
-      proposesPrice                                  PASSED   5.56 s
-      showsDeclineLiveAndAllowsProposingAgain        PASSED   5.11 s
+      keepsProposalWhenServerIsUnreachable           PASSED  11.08 s
+      proposeDisabledForInvalidPrice                 PASSED   5.62 s
+      proposesPrice                                  PASSED   7.01 s
+      showsDeclineLiveAndAllowsProposingAgain        PASSED  10.02 s
 
-    4 tests: 4 passed, 0 failed, 0 skipped (24.5 s)
+    4 tests: 4 passed, 0 failed, 0 skipped (33.7 s)
     ```
 
 - **Respond to a proposal**, including recording the deal when it is accepted ([`RespondToProposalTest.kt`](../frontend/app/src/androidTest/java/com/example/cpen321application/e2e/RespondToProposalTest.kt)). This use case has no formal specification. Each test starts with a conversation in which the E2E Seller proposed $25 with the note "Final price", and opens it to check that "They proposed $25.00" and the note are shown.
@@ -597,19 +589,18 @@ Leave out the class list to run every test in `e2e/`.
   | `showsErrorWhenAlreadyAnsweredOnAnotherDevice` | Accept the proposal through the API, as if from another device, then tap "Accept". Check that "There is no pending proposal" is shown and that the backend has only the one deal, at 25. |
   | `keepsProposalPendingWhenAcceptFails` | Turn on airplane mode and tap "Accept". Check that "Could not reach the server" is shown. Turn off airplane mode and check on the backend that the proposal is still pending and no deal was made. |
   | `keepsProposalPendingWhenDeclineFails` | Turn on airplane mode and tap "Decline". Check that "Could not reach the server" is shown. Turn off airplane mode and check on the backend that the proposal is still pending. |
-  | `showsDealWhenProposalIsAccepted` (`LiveUpdatesTest.kt`) | The proposer's side: the tester proposes $25 through the API, taps "Deals" and waits two seconds for the live connection. The E2E Seller accepts.<br>Check that "You bought from E2E Seller" and the banner "E2E Seller accepted your proposal of $25.00" are shown without refreshing, and that the backend has the deal at 25. |
 
   - **Test Logs:**
     ```
-    Pixel_9(AVD) - 16 (Android 16, API 36), 2026-11-26, .\gradlew.bat connectedDebugAndroidTest (SendMessageTest, LiveUpdatesTest, StartConversationTest, SendProposalTest, RespondToProposalTest)
-    Branch feat/live-inbox, the commit that adds LiveUpdatesTest
+    Pixel_9(AVD) - 16 (Android 16, API 36), 2026-11-26, .\gradlew.bat connectedDebugAndroidTest (SendMessageTest, StartConversationTest, SendProposalTest, RespondToProposalTest)
+    Branch feat/live-inbox, the commit that adds the live updates tests
 
     com.example.cpen321application.e2e.RespondToProposalTest
-      acceptsProposalAndCreatesDeal                  PASSED   3.90 s
-      declinesProposal                               PASSED   3.25 s
-      keepsProposalPendingWhenAcceptFails            PASSED  14.96 s
-      keepsProposalPendingWhenDeclineFails           PASSED   7.58 s
-      showsErrorWhenAlreadyAnsweredOnAnotherDevice   PASSED   3.67 s
+      acceptsProposalAndCreatesDeal                  PASSED   5.78 s
+      declinesProposal                               PASSED   4.40 s
+      keepsProposalPendingWhenAcceptFails            PASSED  15.17 s
+      keepsProposalPendingWhenDeclineFails           PASSED   8.25 s
+      showsErrorWhenAlreadyAnsweredOnAnotherDevice   PASSED   4.64 s
 
-    5 tests: 5 passed, 0 failed, 0 skipped (33.4 s)
+    5 tests: 5 passed, 0 failed, 0 skipped (38.2 s)
     ```
