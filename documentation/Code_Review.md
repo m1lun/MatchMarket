@@ -17,6 +17,7 @@ Evidence checked: 19 November 2026, Vancouver time.
 | 2026-11-19 | 3.3 | Use Case 3 no longer describes the ranking algorithm. |
 | 2026-11-19 | 2 | Updated Section 2 for CP3 from the Codacy results on main at commit `1c8c835`: 0 issues, after PR #236 fixed the two dependency alerts. Updated the inspected commit. |
 | 2026-11-19 | 3.4 | Named the reviewers by first name, added author and reviewer columns, and reworded each review so it is clear what was asked and what happened. Removed PR #31, which was the author reviewing their own PR. |
+| 2026-11-25 | 3.3 | Recorded the M3 code restructuring: the back end (PR #242) and the app (MVVM) are organised by component, then by layer, and the README documents the structure. The `DealsModel`/`DealModels` and screens-in-`ui` findings are fixed. |
 
 ## 2. Automated Code Review Results
 
@@ -129,10 +130,10 @@ Main findings:
 | Links in Requirements_and_Design.md do not work | Every link target exists and the links work on GitHub, so we could not reproduce it in the repository. The use case anchors now use `id` instead of the older `name`, which more Markdown viewers and PDF converters support. | Fixed |
 | Use Case 1 mixes the request and listing flows | Kept as one use case, since both kinds of post share the same screens and steps. Its description now says that, and failure 5a1 lists which messages apply to requests and which to listings. | Fixed |
 | Use Case 3 describes the ranking algorithm | Steps 3–5 now say what the system does for the user, and the scoring details moved to the Matching component in section 4.1 of Requirements_and_Design.md (this pull request). | Fixed |
-| No explanation of the code structure; files have no top-level explanation | Planned for M3: the group will reorganise the code by domain first, with one folder per component, and by architectural layer inside each one (for example routes, services and data access in the back end, and screens, view models and API calls in the app). We decided as a group not to do this before CP3: moving every file this close to the deadline was too great a risk of breaking working features. The new structure will be documented in the README. | Planned for M3 |
-| `DealsModel.kt` and `DealModels.kt` are easy to confuse | Not changed yet. | Open |
-| Screens are not in the `ui` folder | Part of the M3 restructuring above: within each component's folder, screens will be separated from state and back-end calls. | Planned for M3 |
-| The back end has many very small files and no agreed structure | Part of the M3 restructuring above, which gives the back end an agreed structure: one folder per component, with its layers inside. | Planned for M3 |
+| No explanation of the code structure; files have no top-level explanation | The code is now organised by component first (the five components in Requirements_and_Design.md section 4.1), with one folder per component and its architectural layers inside: routes, logic, store and models in the back end ([PR \#242](https://github.com/m1lun/MatchMarket/pull/242)), and model, view and view model (MVVM) in the app (this pull request). The structure is documented in the README's "Code structure" section. | Fixed |
+| `DealsModel.kt` and `DealModels.kt` are easy to confuse | `DealsModel` is renamed `DealsStateHolder` and sits in `deals/viewmodel/`, while the data classes in `DealModels.kt` sit in `deals/model/` (this pull request). `FeedModel` is renamed `FeedStateHolder` for the same reason. | Fixed |
+| Screens are not in the `ui` folder | Each component's screens are now in its `view/` folder, separate from its view models (`viewmodel/`) and back-end calls (`model/`) (this pull request). | Fixed |
+| The back end has many very small files and no agreed structure | The back end now has an agreed structure: one folder per component under `backend/src/components/`, with `routes`, `logic`, `store` and `models` inside, and shared code in `backend/src/shared/` ([PR \#242](https://github.com/m1lun/MatchMarket/pull/242)). | Fixed |
 | `assertTrue(size == 1)` hides the actual count | Not changed yet. | Open |
 
 ### 3.4 Additional Internal Team Review

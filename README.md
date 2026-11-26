@@ -92,7 +92,7 @@ app.get('/api/listings/mine', requireAuth, (req, res) => {
 });
 ```
 
-On the app side, call `SessionManager.get(context).authorizedRequest(...)` (`frontend/.../auth/SessionManager.kt`). It attaches the session token, refreshes it when it expires or the backend answers `401`, and throws `SessionExpiredException` when the user has to sign in again.
+On the app side, call `SessionManager.get(context).authorizedRequest(...)` (`frontend/.../users/model/SessionManager.kt`). It attaches the session token, refreshes it when it expires or the backend answers `401`, and throws `SessionExpiredException` when the user has to sign in again.
 
 - `POST /api/auth/google`: body `{ "idToken": "..." }`. Verifies the token with Google and starts a session: `{ "firstName", "lastName", "email", "sessionToken", "sessionExpiresIn", "refreshToken" }`. `400` with no token, `401` if it fails verification.
 - `POST /api/auth/refresh`: body `{ "refreshToken": "..." }`. Same response as sign-in, with new tokens; the old refresh token stops working. Google is not called. `401` means the user has to sign in again.
@@ -221,6 +221,61 @@ The IP must be in `subjectAltName` or Android rejects the certificate. Then set 
 3. Set `API_BASE_URL=https\://<PUBLIC_IP>\:3000` in `frontend/local.properties.example` and your own `frontend/local.properties`.
 
 `scripts/run-backend.sh` reads `ENABLE_HTTPS` from `backend/.env` and probes `https://localhost:<PORT>/health` when it is on.
+
+## Code structure
+
+Both halves of the project are organised the same way: by **component** first (the five components in section 4.1 of [documentation/Requirements_and_Design.md](documentation/Requirements_and_Design.md)), then by **architectural layer** inside each component. Code used by more than one component lives in `shared/`.
+
+### Backend (`backend/src/`)
+
+```
+backend/src/
+├── app.ts, index.ts       # builds the Express app and mounts every router; starts the server
+├── components/
+│   ├── posts/             # listings, requests, photos, options, custom fields
+│   ├── matching/          # feed, recommendations, hard requirements, ranking, travel time
+│   ├── users/             # Google sign-in, session tokens, requireAuth, profile
+│   ├── deals/             # deals, ratings, reputation
+│   └── messaging/         # conversations, messages, proposals, live updates
+├── shared/                # config, errors, HTTP helpers, the Store type and MongoDB wiring
+└── testSupport/           # test-only /api/e2e routes (ENABLE_E2E_ROUTES=true)
+```
+
+Inside each component:
+
+| Folder | Holds |
+|---|---|
+| `routes/` | Express routers and the HTTP helpers they use |
+| `logic/` | Domain functions the routes call (ranking, reputation score, sessions) |
+| `store/` | Collection interfaces (`types.ts`) and their MongoDB implementations |
+| `models/` | Data types, collection names and `$jsonSchema` validators |
+
+Tests stay in `backend/tests/` (`mock/`, `no-mock/`, `nfr/`), as the course requires.
+
+### Frontend (`frontend/app/src/main/java/com/example/cpen321application/`)
+
+The app follows **MVVM (Model–View–ViewModel)**:
+
+```
+cpen321application/
+├── MainActivity.kt        # app entry point: bottom tabs, creates the ViewModels
+├── posts/                 # My Posts, the post editor and post details
+├── matching/              # Feed, filters and recommendations
+├── users/                 # sign-in (LoginActivity), session tokens, Profile
+├── deals/                 # Deals tab and ratings
+├── messaging/             # Messages, chat, proposals, live updates
+└── shared/                # HTTP client, photos, address search, theme
+```
+
+Inside each component:
+
+| Folder | Holds |
+|---|---|
+| `model/` | Backend calls (`…Api`), data classes and session storage |
+| `view/` | Compose screens, tabs, dialogs and cards |
+| `viewmodel/` | Screen state and actions (`…ViewModel`, and the `…StateHolder` classes they use) |
+
+Dependencies run one way: view → viewmodel → model. The end-to-end tests stay in `frontend/app/src/androidTest/` (`e2e/`, with shared helpers in `support/`).
 
 ## Testing
 
