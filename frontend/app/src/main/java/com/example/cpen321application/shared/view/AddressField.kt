@@ -17,8 +17,8 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.example.cpen321application.R
-import com.example.cpen321application.posts.viewmodel.MIN_ADDRESS_QUERY_LENGTH
-import com.example.cpen321application.posts.viewmodel.PostViewModel
+import com.example.cpen321application.components.posts.viewmodel.MIN_ADDRESS_QUERY_LENGTH
+import com.example.cpen321application.components.posts.viewmodel.PostViewModel
 
 @Composable
 internal fun AddressField(viewModel: PostViewModel) {

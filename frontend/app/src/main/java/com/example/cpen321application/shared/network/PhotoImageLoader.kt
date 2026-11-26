@@ -5,7 +5,7 @@ import coil3.ImageLoader
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import com.example.cpen321application.BuildConfig
 import com.example.cpen321application.shared.network.SessionExpiredException
-import com.example.cpen321application.users.model.SessionManager
+import com.example.cpen321application.components.users.model.SessionManager
 import com.example.cpen321application.shared.network.backendClient
 import kotlinx.coroutines.runBlocking
 import okhttp3.HttpUrl

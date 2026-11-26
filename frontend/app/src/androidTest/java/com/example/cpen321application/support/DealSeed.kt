@@ -4,8 +4,8 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
-import com.example.cpen321application.deals.view.DealsTags
-import com.example.cpen321application.deals.view.RateTags
+import com.example.cpen321application.components.deals.view.DealsTags
+import com.example.cpen321application.components.deals.view.RateTags
 import org.json.JSONObject
 
 // Helpers for the backend's /api/e2e/deals routes (needs ENABLE_E2E_ROUTES=true).

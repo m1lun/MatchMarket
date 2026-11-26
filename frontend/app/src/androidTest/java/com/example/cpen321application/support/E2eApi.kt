@@ -5,7 +5,7 @@ import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasText
 import androidx.test.platform.app.InstrumentationRegistry
 import com.example.cpen321application.shared.network.HttpResult
-import com.example.cpen321application.users.model.SessionManager
+import com.example.cpen321application.components.users.model.SessionManager
 import kotlinx.coroutines.runBlocking
 import org.json.JSONObject
 import java.io.IOException

@@ -4,7 +4,7 @@ import android.content.Context
 import android.location.Address
 import android.location.Geocoder
 import android.os.Build
-import com.example.cpen321application.posts.model.AddressSuggestion
+import com.example.cpen321application.components.posts.model.AddressSuggestion
 import kotlin.coroutines.resume
 import kotlinx.coroutines.suspendCancellableCoroutine
 
