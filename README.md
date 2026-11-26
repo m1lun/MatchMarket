@@ -72,10 +72,12 @@ cp backend/.env.example backend/.env
 Set at least:
 - `GOOGLE_CLIENT_ID` (required): the **Web** OAuth client ID. The backend verifies every Google ID token against it and will not start without it. Must match `GOOGLE_CLIENT_ID` in `frontend/local.properties`.
 - `JWT_SECRET` (required): signs the backend's session tokens; at least 32 characters, and the server will not start without it. Generate one per server with `openssl rand -base64 48` and never commit it: anyone holding it can sign in as any user.
-- `MONGODB_URI` (required): where sessions (and listings) are stored. The default in `.env.example` assumes MongoDB on `localhost:27017`; Docker Compose overrides it with its own `mongo` service. The server waits for MongoDB before it starts listening.
+- `MONGODB_URI` (required): where all the app's data is stored. The default in `.env.example` assumes MongoDB on `localhost:27017`; Docker Compose overrides it with its own `mongo` service. The server waits for MongoDB before it starts listening.
+- `MONGODB_DB` (optional): the database name; defaults to `matchmarket`.
 - `PORT` (optional): defaults to `3000` if unset.
 - `ENABLE_HTTPS` (optional): `true` serves HTTPS using `backend/certs/server.crt` and `backend/certs/server.key` (see [HTTPS](#https)). Leave unset for local HTTP.
 - `ORS_API_KEY` (optional): an [OpenRouteService](https://openrouteservice.org/dev/) API key, used for travel times on the first page of recommendations. Without it, the feed works but shows "Travel time unavailable".
+- `ENABLE_E2E_ROUTES` (optional): `true` turns on the test-only `/api/e2e` routes the end-to-end tests use; leave it unset in production.
 
 ### API
 
@@ -241,7 +243,7 @@ backend/src/
 └── testSupport/           # test-only /api/e2e routes (ENABLE_E2E_ROUTES=true)
 ```
 
-Inside each component:
+Inside each component (a component has only the layers it needs):
 
 | Folder | Holds |
 |---|---|
