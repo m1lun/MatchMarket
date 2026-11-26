@@ -1,6 +1,6 @@
-# CPEN321_26W1_ProjectName
+# Match Market
 
-_Keep this README up to date with the steps required to build and run the frontend and backend (including any scripts, config files, and environment variables). TAs ill follow these instructions._
+A two-sided second-hand marketplace for Android. Buyers post requests, sellers post listings, and the app recommends each side to the other. This README has every step needed to build and run the frontend and backend, including the scripts, configuration files and environment variables.
 
 ## Requirements
 
@@ -110,19 +110,34 @@ Listings (what sellers offer) and requests (what buyers want) share the same rou
 - `DELETE /api/listings/:id`, `DELETE /api/requests/:id`: `204`.
 - `GET /api/options?field=brand`, `POST /api/options` with `{ "field", "label" }`: the saved options for category, brand, colour and custom text fields. Saving a post adds any new category, brand or colour (and new custom field values) to these lists, so the app does not have to add them first. Categories are saved in the singular, so `desks` is saved as `desk`, except words that only look plural, such as `glass` and `electronics`.
 - `GET /api/custom-fields`, `POST /api/custom-fields` with `{ "label", "type" }`, `DELETE /api/custom-fields/:key`: your saved custom fields (`text`, `number` or `bool`).
+- `POST /api/photos`: multipart form data with 1–10 images in the `photos` field (JPEG, PNG, WebP or GIF, at most 5 MB each). `201` with `{ "ids" }`, which a post then lists in its `photoIds`. `400` for no photos, more than 10 or another file type, `413` for a photo over 5 MB.
+- `GET /api/photos/:id`: the image, to any signed-in user. `404` if it does not exist.
 
 The feed shows other users' posts. It needs the session token too.
 
 - `GET /api/feed/listings?limit=20&before=<id>`: open listings from everyone except you, newest first: `{ "listings": [...], "nextCursor" }`.
 - `GET /api/feed/requests?limit=20&before=<id>`: the same for requests: `{ "requests": [...], "nextCursor" }`.
+- `GET /api/feed/listings/:id`, `GET /api/feed/requests/:id`: one listing or request, open or closed, to any signed-in user, used to open the posts of a deal. `404` for a malformed or unknown id.
 - `GET /api/feed?postId=<id>&limit=20&cursor=<nextCursor>`: recommendations for one of your open posts, best fit first: listings for a request, requests for a listing. `{ "matches": [{ "post", "score", "distanceKm", "travelMinutes" }], "nextCursor" }`. Pass `nextCursor` back as `cursor`. `404` if the post doesn't exist, `403` if it isn't yours, `409` if it's closed.
 
-All three take `limit` from 1 to 50 (default 20). For the two browse routes, pass the `nextCursor` you got back as `before` to get the next page, along with the same filters; it is `null` on the last page. All three take these optional filters, which can be combined:
+The two browse routes and the recommendations take `limit` from 1 to 50 (default 20). For the two browse routes, pass the `nextCursor` you got back as `before` to get the next page, along with the same filters; it is `null` on the last page. All three take these optional filters, which can be combined:
 - `category`: one category, ignoring case, spacing and simple plurals.
 - `minPrice`, `maxPrice`: an inclusive range on a listing's price or a request's budget (its `price` field). A request with no budget is left out when either is sent.
 - `lat`, `lng`, `radiusKm`: within `radiusKm` (up to 100) of a point. Send all three or none.
 
 A bad value, a misspelt parameter or `minPrice` above `maxPrice` is a `400` with `{ "error", "details": [...] }`.
+
+Deals are made by accepting a proposal in a conversation (below). They need the session token too.
+
+- `GET /api/deals?limit=20&before=<nextCursor>`: your deals, newest first: `{ "deals": [...], "nextCursor" }`. Each has your role, the title, the agreed price, the listing and request (`null` if deleted), the other user's name and score, and both ratings. `limit` is 1 to 50 (default 20).
+- `POST /api/deals/:id/ratings`: body `{ "stars", "comment"? }`, whole stars from 1 to 5 and a comment of up to 300 characters. Rates the other side of the deal: `201` with `{ "rating", "otherUser" }`. `403` if the deal isn't yours, `404` if it does not exist, `409` if you already rated it, `413` for a body over 4 KB.
+- `PUT /api/deals/:id/ratings`: the same body, replacing your rating: `200` with `{ "rating", "otherUser" }`, `404` if you haven't rated the deal.
+- `GET /api/users/:id/reputation`: `{ "userId", "score", "ratingCount" }`, where `score` is the average of the ratings the user received, or `null` before their first.
+
+Your profile:
+
+- `GET /api/users/me`: your names, email, photo URL, address and location, and when the profile was created and updated. `404` if there is none.
+- `PATCH /api/users/me`: body `{ "address", "location": { "longitude", "latitude" } }` sets your address, or `{ "address": null, "location": null }` clears it. `200` with the updated profile. `400` for a blank address, one over 200 characters or a bad location, `413` for a body over 4 KB.
 
 Conversations are between a post's owner and one user who messaged them about it. They have the same `listingId`, `requestId`, `sellerId` and `buyerId` as a deal, so a deal can be made from one. They need the session token, and only the two participants can read or write one (`403` for anyone else, `404` if it does not exist).
 

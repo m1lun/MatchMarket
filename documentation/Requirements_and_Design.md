@@ -58,6 +58,7 @@
 | 2026-11-25 | 4.5 | Matched the dependencies diagram to the code: Matching, Deals and Messaging call the Posts component's store, so the diagram now shows those three links, and the sign-in routes under `/api/auth` are named as the routes that do not call `requireAuth`. |
 | 2026-11-25 | 4.1, 4.2, 4.3, 4.6 | Following the course's sequence diagram format, the messages in all five sequence diagrams are now interfaces: REST calls between the app and the back end, and Java-style method signatures with parameters for calls to MongoDB, between components and inside a component. Every reply and failure branch is kept; calls that were described together are now shown one by one, in parallel where the code runs them in parallel, and the rating is shown in its transaction. View Recommendations now also shows opening the recommendations from the post itself. Section 4.2 lists the database interfaces the diagrams use. Section 4.3 names the interfaces of the Android Geocoder and OpenRouteService, and Section 4.1 adds the internal `publish` interface of Messaging, since the diagrams call them. |
 | 2026-11-26 | 3.1, 3.4, 3.5, 4.1, 4.6 | Following TA feedback that live updates matter, live updates now reach the whole app, not only an open conversation: the app keeps `GET /api/events` open while it is on screen; new messages and proposal changes update the inbox, mark the conversation and the Messages tab unread, and show a banner with "View" on the other tabs; and an accepted proposal updates the proposer's Deals and My Posts tabs. Use Case 4 and its sequence diagram describe the new steps, and failure 2a also covers a reload that fails while conversations are shown. |
+| 2026-11-26 | 3.5, 3.6 | Use Cases 1 and 3 now use the app's labels, "Must have" and "Nice to have", instead of Hard and Soft. Added Section 3.6, Screen Mock-ups (none, since they are optional), so the numbering follows the template. |
 
 ---
 
@@ -151,7 +152,7 @@ Each use case covers one goal, and the user starts each of them directly, so the
 3. The user taps "New request" or "New listing".
 4. The app shows the post form.
 5. The user enters a name and a category and picks an address from the suggestions.
-    - For a request: a maximum price (required), and optionally a minimum condition, maximum size, search radius, brand and colour. Each of these fields, including the maximum price, is marked Hard or Soft, and a Soft field gets an importance from 1 to 5. The user may also add a description, custom fields, and up to 10 reference photos.
+    - For a request: a maximum price (required), and optionally a minimum condition, maximum size, search radius, brand and colour. Each of these fields, including the maximum price, is marked "Must have" or "Nice to have", and a "Nice to have" field gets an importance from 1 to 5. The user may also add a description, custom fields, and up to 10 reference photos.
     - For a listing: a price, a condition and 1–10 photos, and optionally a brand, colour, size, description and custom fields.
 6. The user taps "Create request" or "Create listing".
 7. The app saves the post and shows it in My Posts.
@@ -208,7 +209,7 @@ Each use case covers one goal, and the user starts each of them directly, so the
 **Main success scenario**:
 1. The user opens one of their open posts and taps "See recommendations", or picks the post under "Recommended for" in the feed filters. If the user has no open posts, the feed filters show "You have no open posts to get recommendations for" instead.
 2. The app shows "Recommended for: <post>".
-3. The system finds other users' open posts in the same category that meet every requirement the buyer marked Hard, within the request's search radius (10 km if none was set), and that match any feed filters (Use Case 5).
+3. The system finds other users' open posts in the same category that meet every requirement the buyer marked "Must have", within the request's search radius (10 km if none was set), and that match any feed filters (Use Case 5).
 4. The system puts the posts that best fit the buyer's soft preferences first. How they are scored is described under [Matching](#41-main-components).
 5. The system looks up the walking travel time to each of the first 20 results.
 6. The app shows the ranked list, 20 at a time; each item shows its price or budget, its condition (listings), and its distance, plus its travel time on the first page, such as "12 min walk". If no post fits, the app shows "Nothing here yet. Try changing the filters or check back soon." and a "Refresh" button.
@@ -281,6 +282,10 @@ Each use case covers one goal, and the user starts each of them directly, so the
     - 3d1. The app shows "Enter a distance from 0 to 100".
 - 5a. The network or server is unavailable.
     - 5a1. The app shows "Couldn't load the feed. Check your connection and try again." and a "Retry" button.
+
+### **3.6. Screen Mock-ups**
+
+None. Mock-ups are optional, and the use cases above describe each screen's fields, buttons and messages.
 
 ### **3.7. Non-Functional Requirements**
 
