@@ -5,12 +5,15 @@ import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
 import com.example.cpen321application.components.messaging.view.MessagesTags
 import com.example.cpen321application.support.PARTNER_NAME
+import com.example.cpen321application.support.MainRule
 import com.example.cpen321application.support.SEEDED_LISTING
 import com.example.cpen321application.support.SeededConversation
 import com.example.cpen321application.support.assertMessageBox
@@ -34,7 +37,8 @@ import org.junit.Rule
 import org.junit.Test
 
 // Use Case 4: Send a Message. Each test starts with a seeded conversation about the E2E Seller's listing, holding one
-// message from them. Steps 1–2 and 2a are also the View conversations use case.
+// message from them. Steps 1–2 and 2a are also the View conversations use case. Steps 7 and 8 are seen from the
+// receiving side: the E2E Seller sends, and the tester receives.
 class SendMessageTest {
     @get:Rule
     val rule = mainRule()
@@ -154,8 +158,7 @@ class SendMessageTest {
     fun showsOtherUsersMessageLive() {
         rule.openConversation(seeded.conversationId)
         rule.waitForText(FIRST_MESSAGE)
-        // The live stream connects alongside the first load; this lets it finish before the other user sends.
-        Thread.sleep(LIVE_CONNECT_MS)
+        waitForLiveConnection()
 
         partnerSends(seeded.conversationId, LIVE_MESSAGE)
 
@@ -179,12 +182,76 @@ class SendMessageTest {
         rule.waitForText(OFFLINE_MESSAGE, timeoutMs = RECONNECT_WAIT_MS)
     }
 
+    // Step 7 in the inbox: the conversation's last message changes and it is marked unread, without refreshing.
+    @Test
+    fun updatesInboxLive() {
+        rule.openMessages()
+        rule.waitForText(FIRST_MESSAGE)
+        waitForLiveConnection()
+
+        partnerSends(seeded.conversationId, LIVE_MESSAGE)
+
+        rule.waitForText(LIVE_MESSAGE)
+        rule.waitForDot(MessagesTags.UNREAD_PREFIX + seeded.conversationId)
+    }
+
+    // Steps 7 and 8 on another tab: a banner and unread dots on the Messages tab and the conversation, which go
+    // away once the conversation is opened.
+    @Test
+    fun marksMessageUnreadOnAnotherTab() {
+        waitForLiveConnection()
+
+        partnerSends(seeded.conversationId, LIVE_MESSAGE)
+
+        rule.waitForText("$PARTNER_NAME: $LIVE_MESSAGE")
+        rule.waitForDot(MessagesTags.UNREAD_TAB)
+        rule.openMessages()
+        rule.waitForDot(MessagesTags.UNREAD_PREFIX + seeded.conversationId)
+        rule.waitForText(LIVE_MESSAGE)
+
+        rule.onNodeWithTag(MessagesTags.CONVERSATION_PREFIX + seeded.conversationId).performClick()
+        rule.waitForTag(MessagesTags.INPUT)
+        rule.waitForDotGone(MessagesTags.UNREAD_TAB)
+        rule.onNodeWithTag(MessagesTags.BACK).performClick()
+        rule.waitForDotGone(MessagesTags.UNREAD_PREFIX + seeded.conversationId)
+    }
+
+    // Step 7: "View" on the banner opens the conversation, with the new message in it.
+    @Test
+    fun bannerOpensConversation() {
+        waitForLiveConnection()
+
+        partnerSends(seeded.conversationId, LIVE_MESSAGE)
+
+        rule.waitForText(VIEW)
+        rule.onNodeWithText(VIEW).performClick()
+        rule.waitForTag(MessagesTags.INPUT)
+        rule.waitForText(LIVE_MESSAGE)
+        rule.waitForDotGone(MessagesTags.UNREAD_TAB)
+    }
+
+    // The live stream connects alongside the app's first loads; this lets it finish before the other user sends.
+    private fun waitForLiveConnection() {
+        Thread.sleep(LIVE_CONNECT_MS)
+    }
+
+    // Unread dots sit inside the clickable tab and conversation card, which merge their contents into one node.
+    private fun MainRule.waitForDot(tag: String) {
+        waitUntil(DOT_WAIT_MS) { onAllNodesWithTag(tag, useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty() }
+    }
+
+    private fun MainRule.waitForDotGone(tag: String) {
+        waitUntil(DOT_WAIT_MS) { onAllNodesWithTag(tag, useUnmergedTree = true).fetchSemanticsNodes().isEmpty() }
+    }
+
     private companion object {
         const val FIRST_MESSAGE = "Message 1"
         const val MY_MESSAGE = "Is it still available?"
         const val LIVE_MESSAGE = "Yes, still available"
         const val OFFLINE_MESSAGE = "Sent while you were offline"
+        const val VIEW = "View"
         const val LIVE_CONNECT_MS = 2_000L
+        const val DOT_WAIT_MS = 15_000L
         const val RECONNECT_WAIT_MS = 90_000L
     }
 }

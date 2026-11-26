@@ -62,16 +62,6 @@ fun partnerDeclines(conversationId: String) {
     send("POST", "$PARTNER_PATH/$conversationId/proposal/decline").orFail("The partner declining the proposal")
 }
 
-fun partnerAccepts(conversationId: String) {
-    send("POST", "$PARTNER_PATH/$conversationId/proposal/accept").orFail("The partner accepting the proposal")
-}
-
-// Proposes a price as the signed-in user, as if from another device.
-fun proposeThroughApi(conversationId: String, price: Double) {
-    send("POST", "/api/conversations/$conversationId/proposal", JSONObject().put("price", price))
-        .orFail("Proposing through the API")
-}
-
 // Accepts the partner's proposal as the signed-in user, as if from another device.
 fun acceptThroughApi(conversationId: String) {
     send("POST", "/api/conversations/$conversationId/proposal/accept").orFail("Accepting the proposal through the API")
