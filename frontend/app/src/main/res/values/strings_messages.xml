@@ -24,4 +24,9 @@
     <string name="proposal_accept">Accept</string>
     <string name="proposal_decline">Decline</string>
     <string name="message_post">Message</string>
+    <string name="notice_message">%1$s: %2$s</string>
+    <string name="notice_proposed">%1$s proposed %2$s</string>
+    <string name="notice_accepted">%1$s accepted your proposal of %2$s</string>
+    <string name="notice_declined">%1$s declined your proposal</string>
+    <string name="notice_open">View</string>
 </resources>

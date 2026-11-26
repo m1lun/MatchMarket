@@ -1,9 +1,11 @@
 package com.example.cpen321application.components.messaging.view
 
+import android.content.res.Resources
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -13,6 +15,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material3.Badge
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -35,12 +38,15 @@ import com.example.cpen321application.components.deals.view.money
 import com.example.cpen321application.components.messaging.model.Conversation
 import com.example.cpen321application.components.messaging.model.ProposalStatus
 import com.example.cpen321application.components.messaging.viewmodel.InboxState
+import com.example.cpen321application.components.messaging.viewmodel.LiveNotice
 import com.example.cpen321application.components.messaging.viewmodel.MessagesViewModel
 
 object MessagesTags {
     const val REFRESH = "messages_refresh"
     const val RETRY = "messages_retry"
     const val CONVERSATION_PREFIX = "messages_conversation_"
+    const val UNREAD_PREFIX = "messages_unread_"
+    const val UNREAD_TAB = "messages_unread_tab"
     const val BACK = "chat_back"
     const val LOAD_EARLIER = "chat_load_earlier"
     const val INPUT = "chat_input"
@@ -60,7 +66,7 @@ fun MessagesTab(viewModel: MessagesViewModel, onSignedOut: () -> Unit, innerPadd
     LaunchedEffect(Unit) { viewModel.refreshInbox() }
     Column(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
         InboxHeader(viewModel::refreshInbox)
-        InboxContent(viewModel.inbox, viewModel::refreshInbox, viewModel::openChat)
+        InboxContent(viewModel.inbox, viewModel.live.unread, viewModel::refreshInbox, viewModel::openChat)
     }
 }
 
@@ -80,16 +86,14 @@ private fun InboxHeader(onRefresh: () -> Unit) {
 }
 
 @Composable
-private fun InboxContent(inbox: InboxState, onRetry: () -> Unit, onOpen: (Conversation) -> Unit) {
+private fun InboxContent(inbox: InboxState, unread: Set<String>, onRetry: () -> Unit, onOpen: (Conversation) -> Unit) {
     val nothingShown = inbox.conversations.isEmpty()
     when {
         nothingShown && inbox.isLoading -> Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
             CircularProgressIndicator()
         }
         nothingShown && inbox.loadFailed -> CenteredMessage(stringResource(R.string.error_unreachable)) {
-            OutlinedButton(onClick = onRetry, modifier = Modifier.testTag(MessagesTags.RETRY)) {
-                Text(text = stringResource(R.string.btn_retry))
-            }
+            RetryButton(onRetry)
         }
         nothingShown -> CenteredMessage(stringResource(R.string.messages_empty))
         else -> LazyColumn(
@@ -97,13 +101,35 @@ private fun InboxContent(inbox: InboxState, onRetry: () -> Unit, onOpen: (Conver
             verticalArrangement = Arrangement.spacedBy(12.dp),
             modifier = Modifier.fillMaxSize(),
         ) {
-            items(inbox.conversations, key = { it.id }) { ConversationCard(it, onOpen) }
+            // The conversations from the last load stay, under the error, when a reload fails.
+            if (inbox.loadFailed) item { ReloadFailed(onRetry) }
+            items(inbox.conversations, key = { it.id }) { ConversationCard(it, it.id in unread, onOpen) }
         }
     }
 }
 
 @Composable
-private fun ConversationCard(conversation: Conversation, onOpen: (Conversation) -> Unit) {
+private fun ReloadFailed(onRetry: () -> Unit) {
+    Row(horizontalArrangement = Arrangement.spacedBy(12.dp), verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            text = stringResource(R.string.error_unreachable),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.error,
+            modifier = Modifier.weight(1f),
+        )
+        RetryButton(onRetry)
+    }
+}
+
+@Composable
+private fun RetryButton(onRetry: () -> Unit) {
+    OutlinedButton(onClick = onRetry, modifier = Modifier.testTag(MessagesTags.RETRY)) {
+        Text(text = stringResource(R.string.btn_retry))
+    }
+}
+
+@Composable
+private fun ConversationCard(conversation: Conversation, unread: Boolean, onOpen: (Conversation) -> Unit) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -113,7 +139,14 @@ private fun ConversationCard(conversation: Conversation, onOpen: (Conversation) 
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow),
     ) {
         Column(modifier = Modifier.padding(all = 12.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(text = displayName(conversation), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = displayName(conversation),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                )
+                if (unread) Badge(modifier = Modifier.testTag(MessagesTags.UNREAD_PREFIX + conversation.id))
+            }
             PostLines(conversation)
             val pending = conversation.proposal?.takeIf { it.status == ProposalStatus.PENDING }
             pending?.let {
@@ -126,6 +159,7 @@ private fun ConversationCard(conversation: Conversation, onOpen: (Conversation) 
                 Text(
                     text = preview ?: stringResource(R.string.messages_no_messages),
                     style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = if (unread) FontWeight.SemiBold else null,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -159,5 +193,16 @@ internal fun CenteredMessage(text: String, action: @Composable () -> Unit = {}) 
     ) {
         Text(text = text, style = MaterialTheme.typography.bodyLarge)
         action()
+    }
+}
+
+internal fun noticeText(notice: LiveNotice, resources: Resources): String {
+    val name = notice.conversation.otherUserName.ifBlank { resources.getString(R.string.messages_unknown_user) }
+    val proposal = notice.proposal
+        ?: return resources.getString(R.string.notice_message, name, notice.message.orEmpty())
+    return when (proposal.status) {
+        ProposalStatus.PENDING -> resources.getString(R.string.notice_proposed, name, money(proposal.price))
+        ProposalStatus.ACCEPTED -> resources.getString(R.string.notice_accepted, name, money(proposal.price))
+        ProposalStatus.DECLINED -> resources.getString(R.string.notice_declined, name)
     }
 }
