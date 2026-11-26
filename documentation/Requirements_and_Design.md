@@ -56,7 +56,9 @@
 | 2026-11-19 | 3.4, 4.1, 4.2, 4.4 | Matched the document to the implementation: the Posts interfaces follow the same format as the other components, with each one's request body, return value and status, and errors, and a JSON body over 1 MB returns 413; photos are stored in the GridFS `photos` bucket; the sessions collection lists all its fields; the Posts data rules no longer include review notes; dotenv is listed; and the Profile button is named "Sign Out" as in the app. |
 | 2026-11-25 | 4.1, 4.5, 4.6 | Renamed the Users and Auth component to Users, matching the backend's `components/users` folder. It still verifies Google sign-in, issues session tokens and protects every route with `requireAuth`. |
 | 2026-11-25 | 4.5 | Matched the dependencies diagram to the code: Matching, Deals and Messaging call the Posts component's store, so the diagram now shows those three links, and the sign-in routes under `/api/auth` are named as the routes that do not call `requireAuth`. |
+| 2026-11-25 | 4.1, 4.2, 4.3, 4.6 | Following the course's sequence diagram format, the messages in all five sequence diagrams are now interfaces: REST calls between the app and the back end, and Java-style method signatures with parameters for calls to MongoDB, between components and inside a component. Every reply and failure branch is kept; calls that were described together are now shown one by one, in parallel where the code runs them in parallel, and the rating is shown in its transaction. View Recommendations now also shows opening the recommendations from the post itself. Section 4.2 lists the database interfaces the diagrams use. Section 4.3 names the interfaces of the Android Geocoder and OpenRouteService, and Section 4.1 adds the internal `publish` interface of Messaging, since the diagrams call them. |
 | 2026-11-26 | 3.1, 3.4, 3.5, 4.1, 4.6 | Following TA feedback that live updates matter, live updates now reach the whole app, not only an open conversation: the app keeps `GET /api/events` open while it is on screen; new messages and proposal changes update the inbox, mark the conversation and the Messages tab unread, and show a banner with "View" on the other tabs; and an accepted proposal updates the proposer's Deals and My Posts tabs. Use Case 4 and its sequence diagram describe the new steps, and failure 2a also covers a reload that fails while conversations are shown. |
+| 2026-11-26 | 3.5, 3.6 | Use Cases 1 and 3 now use the app's labels, "Must have" and "Nice to have", instead of Hard and Soft. Added Section 3.6, Screen Mock-ups (none, since they are optional), so the numbering follows the template. |
 
 ---
 
@@ -150,7 +152,7 @@ Each use case covers one goal, and the user starts each of them directly, so the
 3. The user taps "New request" or "New listing".
 4. The app shows the post form.
 5. The user enters a name and a category and picks an address from the suggestions.
-    - For a request: a maximum price (required), and optionally a minimum condition, maximum size, search radius, brand and colour. Each of these fields, including the maximum price, is marked Hard or Soft, and a Soft field gets an importance from 1 to 5. The user may also add a description, custom fields, and up to 10 reference photos.
+    - For a request: a maximum price (required), and optionally a minimum condition, maximum size, search radius, brand and colour. Each of these fields, including the maximum price, is marked "Must have" or "Nice to have", and a "Nice to have" field gets an importance from 1 to 5. The user may also add a description, custom fields, and up to 10 reference photos.
     - For a listing: a price, a condition and 1–10 photos, and optionally a brand, colour, size, description and custom fields.
 6. The user taps "Create request" or "Create listing".
 7. The app saves the post and shows it in My Posts.
@@ -207,7 +209,7 @@ Each use case covers one goal, and the user starts each of them directly, so the
 **Main success scenario**:
 1. The user opens one of their open posts and taps "See recommendations", or picks the post under "Recommended for" in the feed filters. If the user has no open posts, the feed filters show "You have no open posts to get recommendations for" instead.
 2. The app shows "Recommended for: <post>".
-3. The system finds other users' open posts in the same category that meet every requirement the buyer marked Hard, within the request's search radius (10 km if none was set), and that match any feed filters (Use Case 5).
+3. The system finds other users' open posts in the same category that meet every requirement the buyer marked "Must have", within the request's search radius (10 km if none was set), and that match any feed filters (Use Case 5).
 4. The system puts the posts that best fit the buyer's soft preferences first. How they are scored is described under [Matching](#41-main-components).
 5. The system looks up the walking travel time to each of the first 20 results.
 6. The app shows the ranked list, 20 at a time; each item shows its price or budget, its condition (listings), and its distance, plus its travel time on the first page, such as "12 min walk". If no post fits, the app shows "Nothing here yet. Try changing the filters or check back soon." and a "Refresh" button.
@@ -280,6 +282,10 @@ Each use case covers one goal, and the user starts each of them directly, so the
     - 3d1. The app shows "Enter a distance from 0 to 100".
 - 5a. The network or server is unavailable.
     - 5a1. The app shows "Couldn't load the feed. Check your connection and try again." and a "Retry" button.
+
+### **3.6. Screen Mock-ups**
+
+None. Mock-ups are optional, and the use cases above describe each screen's fields, buttons and messages.
 
 ### **3.7. Non-Functional Requirements**
 
@@ -404,11 +410,26 @@ Each use case covers one goal, and the user starts each of them directly, so the
             - **Purpose**: Decline the other user's pending proposal, after which either user can propose again. Returns 200 with the proposal and sends `proposal.updated`. 403 for the caller's own proposal; 409 if no proposal is pending.
         8. `GET /api/events`
             - **Purpose**: The caller's live updates as Server-Sent Events (`Content-Type: text/event-stream`). The response stays open, and the backend writes an event to every open stream of the other user whenever a user acts: `message.created` with the message, or `proposal.updated` with `{ conversationId, proposal }`. The user who acted, and users outside the conversation, get nothing. A comment line every 25 seconds keeps a quiet stream from being dropped. Events sent while the app is disconnected are not replayed, so the app reloads the inbox and the open conversation after it reconnects. 401 without a valid session token.
+        9. `void publish(List<String> userIds, String type, Object data)`
+            - **Purpose**: Internal interface that writes an event of the given type, `message.created` or `proposal.updated`, to every open `GET /api/events` stream of the given users. The message and proposal routes call it with the other user of the conversation.
 
 ### **4.2. Databases**
 
 1. **MongoDB** (self-hosted in Docker on the cloud VM)
     - **Purpose**: Stores users, requests, listings, options, custom fields, sessions, deals, ratings, reputations, conversations and messages. Photos for requests and listings are stored in the same database using GridFS, in the `photos` bucket (photos.files and photos.chunks), and each post keeps the ids of its photos. Geospatial index on post locations.
+
+
+    **Database interfaces:** the store methods the components call, as used in the sequence diagrams (Section 4.6).
+
+    | **Collection** | **Methods** |
+    | -------------- | ----------- |
+    | requests, listings | `Post[] listByOwner(String ownerId)`, `Post insert(Post post)`, `Post findById(String id)`, `Post[] findByIds(String[] ids, String[] fields, boolean firstPhotoOnly)`, `Post[] listOpen(String excludeOwnerId, int limit, PostFilter filter)`, `Post[] listOpenInCategory(String category, String excludeOwnerId)` |
+    | photos (GridFS) | `String save(byte[] data, String mimeType, String ownerId)` |
+    | options, customFields | `Option ensure(Option option)`, `CustomField upsert(CustomField field)` |
+    | users | `User findById(String id)`, `PublicUser[] findPublicByIds(String[] ids)` |
+    | deals | `Deal findById(String id)`, `Deal[] listByUser(String userId, int limit, String before)` |
+    | ratings, reputations | `Rating insert(Rating rating)`, `Rating[] listByDeals(String[] dealIds)`, `Reputation addRating(String userId, int stars, Date now)`, `Reputation[] findMany(String[] userIds)` |
+    | conversations, messages | `Conversation[] listByUser(String userId)`, `Conversation findById(String id)`, `void recordMessage(String id, LastMessage message)`, `Message insert(Message message)`, `Message[] listByConversation(String conversationId, int limit, String before)` |
 
     **Collections and data rules:**
 
@@ -455,9 +476,10 @@ Each use case covers one goal, and the user starts each of them directly, so the
     - **Purpose**: Authenticates users. The backend verifies Google ID tokens with google-auth-library.
 2. **Android Geocoder**
     - **Purpose**: Provides address suggestions and coordinates in the current frontend. The implemented lookup uses the Android 13+ callback API; the older-version path returns no suggestions.
+    - **Interface**: `void getFromLocationName(String locationName, int maxResults, GeocodeListener listener)`, which answers through `listener.onGeocode(List<Address> addresses)`.
 3. **OpenRouteService**
     - **Purpose**: Travel times between the user's post and the first page of recommended posts, from its matrix API, for walking, cycling or driving. The backend needs an `ORS_API_KEY`; without it the feed is returned without travel times.
-
+    - **Interface**: `POST /v2/matrix/{profile}`, where the profile is `foot-walking`, `cycling-regular` or `driving-car`, with JSON `{ locations, sources, destinations, metrics: ["duration"] }`. Returns `{ durations }`, one row of travel times in seconds from the source to each destination, null where there is no route.
 ### **4.4. Frameworks and Libraries**
 
 1. **Jetpack Compose and Kotlin** (frontend)
@@ -553,18 +575,18 @@ sequenceDiagram
         FE--)U: "Could not reach the server. Check your connection."
     else
         activate P
-        P->>DB: find the user's posts
+        P->>DB: Post[] listByOwner(ownerId)
         activate DB
-        DB--)P: posts
+        DB--)P: Post[]
         deactivate DB
-        P--)FE: 200 posts
+        P--)FE: 200 Post[]
         deactivate P
         FE--)U: show the user's open and closed posts
     end
     U->>FE: Tap "New request" or "New listing", type an address
-    FE->>GEO: look up the typed address
+    FE->>GEO: getFromLocationName(locationName, maxResults=5, listener)
     activate GEO
-    GEO--)FE: address suggestions with coordinates
+    GEO--)FE: onGeocode(Address[])
     deactivate GEO
     U->>FE: Fill the form, pick up to 10 photos (5d), tap "Create request" or "Create listing"
     alt 5a–5c. a required field is missing, the address was not picked, or a photo is over 5 MB
@@ -573,26 +595,43 @@ sequenceDiagram
         FE--)U: "Could not reach the server. Check your connection.", and the form keeps what the user entered
     else
         opt the post has new photos
-            FE->>P: POST /api/photos (multipart photos)
+            FE->>P: POST /api/photos (multipart photos[])
             activate P
-            P->>DB: store the photos in GridFS
-            activate DB
-            DB--)P: photo ids
-            deactivate DB
-            P--)FE: 201 photo ids
+            loop each photo
+                P->>DB: String save(data, mimeType, ownerId)
+                activate DB
+                DB--)P: photoId
+                deactivate DB
+            end
+            P--)FE: 201 {ids: String[]}
             deactivate P
         end
-        FE->>P: POST /api/requests or /api/listings (fields, coordinates, photo ids)
+        FE->>P: POST /api/requests or /api/listings (name, category, address, location, fields, photoIds)
         activate P
         alt 5a. a value is invalid
-            P--)FE: 400 with the error messages
+            P--)FE: 400 {error, details: String[]}
             FE--)U: the message, such as "max price must be at least 0", and nothing is saved
         else
-            P->>DB: insert the post
+            P->>DB: Post insert(post)
             activate DB
-            DB--)P: saved post
+            DB--)P: Post
             deactivate DB
-            P--)FE: 201 post
+            par the post's category, brand, colour and custom text values
+                loop each value
+                    P->>DB: Option ensure(option)
+                    activate DB
+                    DB--)P: Option
+                    deactivate DB
+                end
+            and the post's custom fields
+                loop each custom field
+                    P->>DB: CustomField upsert(field)
+                    activate DB
+                    DB--)P: CustomField
+                    deactivate DB
+                end
+            end
+            P--)FE: 201 Post
             FE--)U: show the new post in My Posts
         end
         deactivate P
@@ -609,16 +648,42 @@ sequenceDiagram
     participant DB as MongoDB
     Note over U,FE: Precondition: the user is signed in and has a deal
     U->>FE: Open the Deals tab
-    FE->>D: GET /api/deals
+    FE->>D: GET /api/deals?limit=20
     alt 2a. the network or server is unavailable
         FE--)U: "Could not reach the server. Check your connection." and "Retry"
     else
         activate D
-        D->>DB: find the user's deals, ratings, reputations and posts
+        D->>DB: Deal[] listByUser(userId, limit=21, before)
         activate DB
-        DB--)D: deals
+        DB--)D: Deal[]
         deactivate DB
-        D--)FE: 200 deals and the cursor for the next page
+        par
+            D->>DB: Rating[] listByDeals(dealIds)
+            activate DB
+            DB--)D: Rating[]
+            deactivate DB
+        and
+            D->>DB: Reputation[] findMany(otherUserIds)
+            activate DB
+            DB--)D: Reputation[]
+            deactivate DB
+        and
+            D->>DB: PublicUser[] findPublicByIds(otherUserIds)
+            activate DB
+            DB--)D: PublicUser[]
+            deactivate DB
+        and
+            D->>DB: Listing[] findByIds(listingIds, fields, firstPhotoOnly=true)
+            activate DB
+            DB--)D: Listing[]
+            deactivate DB
+        and
+            D->>DB: Request[] findByIds(requestIds, fields, firstPhotoOnly=true)
+            activate DB
+            DB--)D: Request[]
+            deactivate DB
+        end
+        D--)FE: 200 {deals, nextCursor}
         deactivate D
         FE--)U: show the deals, newest first, with "Rate" on each deal the user has not rated and "Edit" on the others
     end
@@ -628,32 +693,36 @@ sequenceDiagram
         FE--)U: "Submit" stays disabled
     else
         U->>FE: Pick 1 to 5 stars, write an optional comment, tap "Submit"
-        FE->>D: POST /api/deals/:id/ratings (stars, comment)
+        FE->>D: POST /api/deals/{dealId}/ratings {stars, comment}
         alt 6b. the network or server is unavailable
             FE--)U: "Could not reach the server. Check your connection." in the dialog, and the rating is not saved
         else
             activate D
-            D->>DB: find the deal
+            D->>DB: Deal findById(dealId)
             activate DB
-            DB--)D: deal
+            DB--)D: Deal
             deactivate DB
             alt the user has not rated this deal
-                D->>DB: insert the rating (one transaction with the reputation update)
-                activate DB
-                DB--)D: saved rating
-                deactivate DB
-                D->>DB: add the stars to the other user's reputation
-                activate DB
-                DB--)D: updated reputation
-                deactivate DB
-                D--)FE: 201 rating and the other user's new score
+                critical one MongoDB transaction
+                    D->>DB: Rating insert(rating)
+                    activate DB
+                    DB--)D: Rating
+                    deactivate DB
+                    D->>DB: Reputation addRating(ratedUserId, stars, now)
+                    activate DB
+                    DB--)D: Reputation
+                    deactivate DB
+                end
+                D--)FE: 201 {rating, otherUser: {id, score, ratingCount}}
                 FE--)U: show the rating and the other user's new score on the deal
             else 6a. the user already rated this deal on another device
-                D->>DB: insert the rating (one transaction with the reputation update)
-                activate DB
-                DB--)D: duplicate key error, nothing saved
-                deactivate DB
-                D--)FE: 409 "You already rated this deal"
+                critical one MongoDB transaction
+                    D->>DB: Rating insert(rating)
+                    activate DB
+                    DB--)D: duplicate key error 11000, transaction aborted
+                    deactivate DB
+                end
+                D--)FE: 409 {error: "You already rated this deal"}
                 FE--)U: "You already rated this deal", and the first rating is unchanged
             end
             deactivate D
@@ -672,57 +741,72 @@ sequenceDiagram
     participant DB as MongoDB
     participant ORS as OpenRouteService
     Note over U,FE: Precondition: the user is signed in
-    U->>FE: Open the feed filters
-    FE->>P: GET /api/requests or /api/listings (the user's own posts)
-    activate P
-    P->>DB: find the user's posts
-    activate DB
-    DB--)P: posts
-    deactivate DB
-    P--)FE: 200 posts
-    deactivate P
-    alt the user has no open posts
-        FE--)U: "You have no open posts to get recommendations for"
-    else
-        U->>FE: Pick an open post under "Recommended for", or tap "See recommendations" on the post
-        FE->>M: GET /api/feed?postId (and any feed filters)
-        alt 6a. the network or server is unavailable
-            FE--)U: "Couldn't load the feed. Check your connection and try again." and "Retry"
-        else
-            activate M
-            M->>DB: find the post by postId
-            activate DB
-            DB--)M: source post
-            deactivate DB
-            alt 1a. the post is closed (the app shows no "See recommendations" button for it)
-                M--)FE: 409 "Closed posts have no feed"
-            else
-                M->>DB: find other users' open posts in the same category
-                activate DB
-                DB--)M: candidates
-                deactivate DB
-                M->>M: keep the candidates that meet the hard requirements and the filters, and rank them
-                alt no candidate is kept
-                    M--)FE: 200 empty list
-                    FE--)U: "Nothing here yet. Try changing the filters or check back soon." and "Refresh"
-                else the routing service answers within 2 seconds
-                    M->>ORS: walking travel times to the first 20 results
-                    activate ORS
-                    ORS--)M: travel times, with none for a result that has no route
-                    deactivate ORS
-                    M--)FE: 200 ranked results with travel times, and the cursor for the next page
-                    FE--)U: "Recommended for" with the post, each item with its travel time,<br/>such as "12 min walk", or "No route available" (5b)
-                else 5a. the routing service is unavailable, rate-limited or slower than 2 seconds
-                    M->>ORS: walking travel times to the first 20 results
-                    activate ORS
-                    ORS--)M: an error, or no answer in time
-                    deactivate ORS
-                    M--)FE: 200 ranked results without travel times, and the cursor for the next page
-                    FE--)U: "Recommended for" with the post, each item on the first page with "Travel time unavailable"
-                end
-            end
-            deactivate M
+    alt from one of the user's posts
+        U->>FE: Tap "See recommendations" on the post
+    else from the feed filters
+        U->>FE: Open the feed filters
+        FE->>P: GET /api/requests or /api/listings
+        activate P
+        P->>DB: Post[] listByOwner(ownerId)
+        activate DB
+        DB--)P: Post[]
+        deactivate DB
+        P--)FE: 200 Post[]
+        deactivate P
+        break the user has no open posts
+            FE--)U: "You have no open posts to get recommendations for"
         end
+        U->>FE: Pick an open post under "Recommended for"
+    end
+    Note over U,FE: 1a. A closed post has no "See recommendations" button
+    FE->>M: GET /api/feed?postId={postId} (and any feed filters)
+    alt 6a. the network or server is unavailable
+        FE--)U: "Couldn't load the feed. Check your connection and try again." and "Retry"
+    else
+        activate M
+        M->>DB: Request findById(postId)
+        activate DB
+        DB--)M: Request, or null
+        deactivate DB
+        opt the post is not a request
+            M->>DB: Listing findById(postId)
+            activate DB
+            DB--)M: Listing
+            deactivate DB
+        end
+        alt 1a. the post is closed
+            M--)FE: 409 {error: "Closed posts have no feed"}
+        else
+            M->>DB: Listing[] listOpenInCategory(category, excludeOwnerId)
+            activate DB
+            DB--)M: Listing[] (requests for a listing)
+            deactivate DB
+            loop each candidate
+                M->>M: boolean satisfies(Request request, Listing listing)
+            end
+            M->>M: List#lt;RankedMatch#gt; rank(Post source, List#lt;Post#gt; candidates, Weights weights)
+            alt no candidate meets the hard requirements
+                M--)FE: 200 {matches: [], travelTimesAvailable: false, nextCursor: null}
+                FE--)U: "Nothing here yet. Try changing the filters or check back soon." and "Refresh"
+            else the routing service answers within 2 seconds
+                M->>M: List#lt;Duration#gt; travelTimes(origin, destinations, mode=walk)
+                M->>ORS: POST /v2/matrix/foot-walking {locations, sources, destinations, metrics}
+                activate ORS
+                ORS--)M: 200 {durations}, null for a result with no route
+                deactivate ORS
+                M--)FE: 200 {matches, travelMode, travelTimesAvailable: true, nextCursor}
+                FE--)U: "Recommended for" with the post, each item with its travel time,<br/>such as "12 min walk", or "No route available" (5b)
+            else 5a. the routing service is unavailable, rate-limited or slower than 2 seconds
+                M->>M: List#lt;Duration#gt; travelTimes(origin, destinations, mode=walk)
+                M->>ORS: POST /v2/matrix/foot-walking {locations, sources, destinations, metrics}
+                activate ORS
+                ORS--)M: 429 or 5xx, or no answer within 2 seconds
+                deactivate ORS
+                M--)FE: 200 {matches, travelMode, travelTimesAvailable: false, nextCursor}
+                FE--)U: "Recommended for" with the post, each item on the first page with "Travel time unavailable"
+            end
+        end
+        deactivate M
     end
 ```
 
@@ -742,35 +826,59 @@ sequenceDiagram
         FE--)U: "Could not reach the server. Check your connection." and "Retry"
     else
         activate MS
-        MS->>DB: find the user's conversations, their posts and the other users
+        MS->>DB: Conversation[] listByUser(userId)
         activate DB
-        DB--)MS: conversations
+        DB--)MS: Conversation[]
         deactivate DB
-        MS--)FE: 200 conversations
+        par
+            MS->>DB: PublicUser[] findPublicByIds(otherUserIds)
+            activate DB
+            DB--)MS: PublicUser[]
+            deactivate DB
+        and
+            MS->>DB: Listing[] findByIds(listingIds, fields, firstPhotoOnly=true)
+            activate DB
+            DB--)MS: Listing[]
+            deactivate DB
+        and
+            MS->>DB: Request[] findByIds(requestIds, fields, firstPhotoOnly=true)
+            activate DB
+            DB--)MS: Request[]
+            deactivate DB
+        end
+        MS--)FE: 200 {conversations}
         deactivate MS
         FE--)U: show the conversations, newest activity first
     end
     U->>FE: Tap a conversation
-    FE->>MS: GET /api/conversations/:id/messages
+    FE->>MS: GET /api/conversations/{id}/messages
     alt 4a. the network or server is unavailable
         FE--)U: "Could not reach the server. Check your connection." and "Retry"
     else
         activate MS
-        MS->>DB: find the 30 newest messages
+        MS->>DB: Conversation findById(id)
         activate DB
-        DB--)MS: messages
+        DB--)MS: Conversation
         deactivate DB
-        MS--)FE: 200 messages and the cursor for older ones
+        MS->>DB: Message[] listByConversation(id, limit=31)
+        activate DB
+        DB--)MS: Message[]
+        deactivate DB
+        MS--)FE: 200 {messages, nextCursor}
         deactivate MS
         FE--)U: show the messages, newest at the bottom
         opt there are older messages and the user taps "Load earlier messages"
-            FE->>MS: GET /api/conversations/:id/messages?before=cursor
+            FE->>MS: GET /api/conversations/{id}/messages?before={nextCursor}
             activate MS
-            MS->>DB: find the 30 messages before the cursor
+            MS->>DB: Conversation findById(id)
             activate DB
-            DB--)MS: messages
+            DB--)MS: Conversation
             deactivate DB
-            MS--)FE: 200 messages and the next cursor
+            MS->>DB: Message[] listByConversation(id, limit=31, before)
+            activate DB
+            DB--)MS: Message[]
+            deactivate DB
+            MS--)FE: 200 {messages, nextCursor}
             deactivate MS
         end
     end
@@ -778,22 +886,27 @@ sequenceDiagram
         FE--)U: "Send" stays disabled
     else
         U->>FE: Type a message and tap "Send"
-        FE->>MS: POST /api/conversations/:id/messages (text)
+        FE->>MS: POST /api/conversations/{id}/messages {text}
         alt 6a. the network or server is unavailable
             FE--)U: "Could not send the message. Try again.", and the message stays in the box
         else
             activate MS
-            MS->>DB: insert the message
+            MS->>DB: Conversation findById(id)
             activate DB
-            DB--)MS: saved message
+            DB--)MS: Conversation
             deactivate DB
-            MS->>DB: set the conversation's last message
+            MS->>DB: Message insert(message)
             activate DB
-            DB--)MS: updated
+            DB--)MS: Message
             deactivate DB
-            MS--)FE: 201 message
+            MS->>DB: void recordMessage(id, lastMessage)
+            activate DB
+            DB--)MS: ok
+            deactivate DB
+            MS--)FE: 201 Message
             FE--)U: show the message on the right and clear the box
-            MS-)O: message.created (message) on the events stream
+            MS->>MS: void publish(userIds=[otherUserId], type="message.created", data=message)
+            MS-)O: event: message.created, data: Message
             deactivate MS
             alt the other user's connection is open
                 alt the conversation is open
@@ -809,12 +922,12 @@ sequenceDiagram
                 O->>MS: GET /api/events (reconnect)
                 O->>MS: GET /api/conversations (reload the inbox)
                 activate MS
-                MS--)O: 200 conversations, with the new last message
+                MS--)O: 200 {conversations}, with the new last message
                 deactivate MS
                 opt the conversation is open
-                    O->>MS: GET /api/conversations/:id/messages (reload)
+                    O->>MS: GET /api/conversations/{id}/messages (reload)
                     activate MS
-                    MS--)O: 200 messages, including the new one
+                    MS--)O: 200 {messages, nextCursor}, including the new one
                     deactivate MS
                 end
             end
@@ -836,45 +949,45 @@ sequenceDiagram
     U->>FE: Open the Feed tab, choose "I'm buying" or "I'm selling"
     FE->>UA: GET /api/users/me
     activate UA
-    UA->>DB: find the user
+    UA->>DB: User findById(userId)
     activate DB
-    DB--)UA: user, with the home address if set
+    DB--)UA: User, with the home address if set
     deactivate DB
-    UA--)FE: 200 profile
+    UA--)FE: 200 User
     deactivate UA
-    FE->>M: GET /api/feed/listings or /api/feed/requests (within 50 km of the home address, if set)
+    FE->>M: GET /api/feed/listings or /api/feed/requests?lat&lng&radiusKm=50 (home address, if set)
     alt 2a. the network or server is unavailable
         FE--)U: "Couldn't load the feed. Check your connection and try again." and "Retry"
     else
         activate M
-        M->>DB: find other users' open posts, newest first
+        M->>DB: Post[] listOpen(excludeOwnerId, limit=21, filter)
         activate DB
-        DB--)M: posts
+        DB--)M: Post[], newest first
         deactivate DB
-        M--)FE: 200 posts and the cursor for the next page
+        M--)FE: 200 {listings or requests, nextCursor}
         deactivate M
         FE--)U: show the posts
     end
     U->>FE: Tap "Filters", type an address
-    FE->>GEO: look up the typed address
+    FE->>GEO: getFromLocationName(locationName, maxResults=5, listener)
     activate GEO
-    GEO--)FE: address suggestions with coordinates
+    GEO--)FE: onGeocode(Address[])
     deactivate GEO
     U->>FE: Set category, price and distance
     alt 3a–3d. a filter is invalid
         FE--)U: its message, "Enter a number of 0 or more", "Min must not be more than max",<br/>"Pick an address to filter by distance" or "Enter a distance from 0 to 100", and "Apply" is disabled
     else
         U->>FE: Tap "Apply"
-        FE->>M: GET /api/feed/listings or /api/feed/requests (category, minPrice, maxPrice, lat, lng, radiusKm)
+        FE->>M: GET /api/feed/listings or /api/feed/requests?category&minPrice&maxPrice&lat&lng&radiusKm
         alt 5a. the network or server is unavailable
             FE--)U: "Couldn't load the feed. Check your connection and try again." and "Retry"
         else
             activate M
-            M->>DB: find other users' open posts that match the filters, newest first
+            M->>DB: Post[] listOpen(excludeOwnerId, limit=21, filter)
             activate DB
-            DB--)M: matching posts
+            DB--)M: Post[] that pass the filter, newest first
             deactivate DB
-            M--)FE: 200 posts and the cursor for the next page
+            M--)FE: 200 {listings or requests, nextCursor}
             deactivate M
             alt no posts pass the filters
                 FE--)U: "Nothing here yet. Try changing the filters or check back soon." and "Refresh"
