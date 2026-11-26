@@ -55,6 +55,7 @@
 | 2026-11-19 | 3.5, 4.1 | Following TA and peer-review feedback, Use Case 3 steps 3–5 now say what the system does for the user instead of how it ranks; the scoring details moved to the `rank` interface of Matching in 4.1. |
 | 2026-11-19 | 3.4, 4.1, 4.2, 4.4 | Matched the document to the implementation: the Posts interfaces follow the same format as the other components, with each one's request body, return value and status, and errors, and a JSON body over 1 MB returns 413; photos are stored in the GridFS `photos` bucket; the sessions collection lists all its fields; the Posts data rules no longer include review notes; dotenv is listed; and the Profile button is named "Sign Out" as in the app. |
 | 2026-11-25 | 4.1, 4.5, 4.6 | Renamed the Users and Auth component to Users, matching the backend's `components/users` folder. It still verifies Google sign-in, issues session tokens and protects every route with `requireAuth`. |
+| 2026-11-25 | 4.5 | Matched the dependencies diagram to the code: Matching, Deals and Messaging call the Posts component's store, so the diagram now shows those three links, and the sign-in routes under `/api/auth` are named as the routes that do not call `requireAuth`. |
 
 ---
 
@@ -492,7 +493,7 @@ Each use case covers one goal, and the user starts each of them directly, so the
 
 ### **4.5. Dependencies Diagram**
 
-Every backend route except `/health` calls `requireAuth` in Users. The frontend's calls to Messaging include `GET /api/events`, the live updates stream: the backend writes events to that response while the app keeps it open, so the link stays one-way. Messaging records deals through the Deals component's store when a proposal is accepted.
+Every backend route except `/health` and the sign-in routes under `/api/auth` calls `requireAuth` in Users. The frontend's calls to Messaging include `GET /api/events`, the live updates stream: the backend writes events to that response while the app keeps it open, so the link stays one-way. Messaging records deals through the Deals component's store when a proposal is accepted. In the same way, Matching, Deals and Messaging read listings and requests through the Posts component's store: Matching to build the feeds, Deals to show each deal's posts, and Messaging to show a conversation's posts and close them when a proposal is accepted.
 
 ```mermaid
 flowchart LR
@@ -527,6 +528,9 @@ flowchart LR
     MS --> UA
     MS --> DB
     MS --> D
+    M --> P
+    D --> P
+    MS --> P
 ```
 
 ### **4.6. Use Case Sequence Diagram (5 Most Major Use Cases)**
