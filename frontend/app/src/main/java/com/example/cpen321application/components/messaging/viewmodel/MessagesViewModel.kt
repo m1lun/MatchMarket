@@ -62,62 +62,88 @@ class MessagesViewModel(app: Application) : AndroidViewModel(app) {
     var signedOut by mutableStateOf(false)
         private set
 
+    val live = LiveInbox()
+
     // The post the open post screen can send an offer on: null when it wasn't opened from the feed.
     var offerTarget by mutableStateOf<OfferTarget?>(null)
     var offer by mutableStateOf(OfferState())
         private set
 
     fun refreshInbox() {
-        viewModelScope.launch {
-            inbox = inbox.copy(isLoading = true, loadFailed = false)
-            val conversations = call("load conversations") { api.conversations() }
-            inbox = if (conversations == null) inbox.copy(isLoading = false, loadFailed = true) else InboxState(conversations)
+        viewModelScope.launch { loadInbox() }
+    }
+
+    private suspend fun loadInbox() {
+        inbox = inbox.copy(isLoading = true, loadFailed = false)
+        val conversations = call("load conversations") { api.conversations() }
+        inbox = if (conversations == null) {
+            inbox.copy(isLoading = false, loadFailed = true)
+        } else {
+            InboxState(conversations)
         }
     }
 
     fun openChat(conversation: Conversation) {
         chat = ChatState(conversation)
         refreshChat()
-        listenWhileChatOpen()
     }
 
     fun closeChat() {
         chatJob?.cancel()
-        liveJob?.cancel()
         chat = null
     }
 
-    // The first connection follows the load in openChat; after a reconnect the chat reloads to catch what it missed.
-    private fun listenWhileChatOpen() {
-        liveJob?.cancel()
+    // One stream while the app is on screen. Each connection, including the first, reloads what it may have missed.
+    fun startLiveUpdates() {
+        if (liveJob?.isActive == true) return
         liveJob = viewModelScope.launch {
-            var reconnecting = false
             liveEvents(sessions)
                 .catch { if (it is SessionExpiredException) signedOut = true else throw it }
                 .collect { event ->
-                    if (event.type != LiveEvent.CONNECTED) {
+                    if (event.type == LiveEvent.CONNECTED) {
+                        refreshInbox()
+                        if (chat != null) refreshChat()
+                    } else {
                         applyLiveEvent(event)
-                    } else if (reconnecting) {
-                        refreshChat()
                     }
-                    reconnecting = true
                 }
         }
     }
 
-    // The other user's new message or proposal change, if it is for the open chat.
+    fun stopLiveUpdates() {
+        liveJob?.cancel()
+    }
+
+    // The other user's new message or proposal change: it updates the open chat and the inbox, and tells LiveInbox.
+    // A conversation the inbox doesn't have yet, such as one the other user just started, reloads the inbox first.
     private fun applyLiveEvent(event: LiveEvent) {
         try {
             val id = event.data.getString("conversationId")
-            when (event.type) {
-                LiveEvent.MESSAGE_CREATED -> {
-                    val message = parseMessage(event.data)
-                    updateChat(id) { if (it.messages.any { m -> m.id == message.id }) it else it.copy(messages = listOf(message) + it.messages) }
+            val message = if (event.type == LiveEvent.MESSAGE_CREATED) parseMessage(event.data) else null
+            val proposal = when (event.type) {
+                LiveEvent.PROPOSAL_UPDATED -> parseProposal(event.data.getJSONObject("proposal"))
+                else -> null
+            }
+            if (message == null && proposal == null) return
+            updateChat(id) {
+                when {
+                    message == null -> it.copy(conversation = it.conversation.copy(proposal = proposal))
+                    it.messages.any { m -> m.id == message.id } -> it
+                    else -> it.copy(messages = listOf(message) + it.messages)
                 }
-                LiveEvent.PROPOSAL_UPDATED -> {
-                    val proposal = parseProposal(event.data.getJSONObject("proposal"))
-                    updateChat(id) { it.copy(conversation = it.conversation.copy(proposal = proposal)) }
-                }
+            }
+            val updated = inbox.conversations.bumped(id) {
+                it.copy(lastMessage = message?.text ?: it.lastMessage, proposal = proposal ?: it.proposal)
+            }
+            if (updated != null) {
+                inbox = inbox.copy(conversations = updated)
+                live.arrived(LiveNotice(updated.first(), message?.text, proposal))
+                return
+            }
+            viewModelScope.launch {
+                loadInbox()
+                val conversation = inbox.conversations.firstOrNull { it.id == id } ?: return@launch
+                live.arrived(LiveNotice(conversation, message?.text, proposal))
             }
         } catch (e: JSONException) {
             Log.w(TAG, "Unexpected live event: ${event.type}", e)
