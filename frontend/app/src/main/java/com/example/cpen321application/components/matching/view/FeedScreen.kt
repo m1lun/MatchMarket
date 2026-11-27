@@ -27,6 +27,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -174,7 +175,7 @@ private fun FeedCardText(item: FeedItem, modifier: Modifier = Modifier) {
         )
         Text(text = priceText(item), style = MaterialTheme.typography.titleLarge)
         Text(
-            text = item.category.replaceFirstChar { it.titlecase(Locale.getDefault()) },
+            text = item.category.replaceFirstChar { it.titlecase(LocalConfiguration.current.locales[0]) },
             style = MaterialTheme.typography.titleMedium
         )
         detailsText(item)?.let {
