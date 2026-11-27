@@ -59,6 +59,7 @@
 | 2026-11-25 | 4.1, 4.2, 4.3, 4.6 | Following the course's sequence diagram format, the messages in all five sequence diagrams are now interfaces: REST calls between the app and the back end, and Java-style method signatures with parameters for calls to MongoDB, between components and inside a component. Every reply and failure branch is kept; calls that were described together are now shown one by one, in parallel where the code runs them in parallel, and the rating is shown in its transaction. View Recommendations now also shows opening the recommendations from the post itself. Section 4.2 lists the database interfaces the diagrams use. Section 4.3 names the interfaces of the Android Geocoder and OpenRouteService, and Section 4.1 adds the internal `publish` interface of Messaging, since the diagrams call them. |
 | 2026-11-26 | 3.1, 3.4, 3.5, 4.1, 4.6 | Following TA feedback that live updates matter, live updates now reach the whole app, not only an open conversation: the app keeps `GET /api/events` open while it is on screen; new messages and proposal changes update the inbox, mark the conversation and the Messages tab unread, and show a banner with "View" on the other tabs; and an accepted proposal updates the proposer's Deals and My Posts tabs. Use Case 4 and its sequence diagram describe the new steps, and failure 2a also covers a reload that fails while conversations are shown. |
 | 2026-11-26 | 3.5, 3.6 | Use Cases 1 and 3 now use the app's labels, "Must have" and "Nice to have", instead of Hard and Soft. Added Section 3.6, Screen Mock-ups (none, since they are optional), so the numbering follows the template. |
+| 2026-11-26 | 4.1, 4.6 | Following TA feedback, each component now has a service that owns its rules, and other components call that service instead of reading or writing its data. Accepting a proposal now asks Deals to record the deal (`recordDeal`) and Posts to close the posts (`closeForDeal`), instead of Messaging writing both itself. Section 4.1 lists the internal interfaces other components call (Posts' `findById`, `findByIds`, `listOpen`, `listOpenInCategory` and `closeForDeal`, Users' `findPublicByIds`, and Deals' `recordDeal` and `earlierDeal`), and the View Deals, View Recommendations, Send a Message and Filter Feed sequence diagrams now read posts and users through Posts and Users. |
 
 ---
 
@@ -336,6 +337,12 @@ None. Mock-ups are optional, and the use cases above describe each screen's fiel
             - **Purpose**: Save a custom field definition from JSON `{ label, type }`: a label of 1 to 60 characters and a type of text, number or bool. Returns 201 with the definition. 400 for a bad label or type, or a label that names a built-in field; 409 if the caller already has a field with the same name, in any case.
         12. `DELETE /api/custom-fields/:key`
             - **Purpose**: Delete one of the caller's definitions. Returns 204, or 404 if the caller has none with that key.
+        13. `Post findById(PostKind kind, String id)` and `List<Post> findByIds(PostKind kind, List<String> ids, List<String> fields)`
+            - **Purpose**: Internal interfaces that return posts of either kind, open or closed: one by id, or the named fields of many in one query. Matching, Deals and Messaging call them instead of reading the posts themselves.
+        14. `List<Post> listOpen(PostKind kind, String excludeOwnerId, int limit, PostFilter filter)` and `List<Post> listOpenInCategory(PostKind kind, String category, String excludeOwnerId)`
+            - **Purpose**: Internal interfaces that return other users' open posts: newest first with the feed filters, or every open post in a category. Matching calls them for the browse feed and for the candidates it ranks.
+        15. `void closeForDeal(String listingId, String requestId, Date now)`
+            - **Purpose**: Internal interface that closes the posts of a new deal. Messaging calls it when a proposal is accepted, so only Posts changes a post's status.
 
 2. **Matching**
     - **Purpose**: Hard-requirement filtering and weighted ranking in both directions, plus travel time.
@@ -370,6 +377,8 @@ None. Mock-ups are optional, and the use cases above describe each screen's fiel
             - **Purpose**: Set the profile address from JSON `{ address, location: { longitude, latitude } }`, or clear it with `{ address: null, location: null }`. Returns the updated profile, with the address trimmed. 400 for an unsupported field, a missing or blank address, an address over 200 characters, a missing, malformed or out-of-range location, only one of the two cleared, or malformed JSON; 413 for a body over 4 KB; 404 if the user has no profile.
         6. `userId requireAuth(token)`
             - **Purpose**: Internal interface protecting every other route.
+        7. `List<PublicUser> findPublicByIds(List<String> userIds)`
+            - **Purpose**: Internal interface that returns the public profile (names and photo) of each user in one query. Deals and Messaging call it to show the other user of a deal or conversation.
 
 4. **Deals**
     - **Purpose**: Shows each user their deals, lets the two sides of a deal rate each other, and keeps each user's reputation score.
@@ -384,10 +393,12 @@ None. Mock-ups are optional, and the use cases above describe each screen's fiel
             - **Purpose**: Replace the caller's rating, with the same body and errors as `POST`. Returns 200 with `{ rating, otherUser }`, or 404 if the caller has not rated the deal.
         4. `GET /api/users/:id/reputation`
             - **Purpose**: Return a user's reputation as `{ userId, score, ratingCount }`: score is the average of the ratings they received, or null when nobody has rated them. The route sits under `/api/users`, but Deals keeps the reputations.
-        5. `Deal insert(Deal deal)`
-            - **Purpose**: Internal interface that records a deal. Messaging calls it when a proposal is accepted, with the listing, request, seller and buyer of the conversation and the proposed price. Rejects a deal with neither a listing nor a request, or a second deal for the same listing or request.
+        5. `Deal recordDeal(DealTerms terms, Date now)`
+            - **Purpose**: Internal interface that records a deal. Messaging calls it when a proposal is accepted, with the listing, request, seller and buyer of the conversation and the proposed price. Returns null if one of the posts already has a deal, since a listing or request can belong to only one deal.
         6. `Deal findByPosts(String listingId, String requestId)`
             - **Purpose**: Internal interface that returns the deal on the listing or the request, or null if neither has one. Messaging calls it before recording a deal, so that accepting a proposal again after a failed accept finishes that deal rather than reporting the posts as taken.
+        7. `Deal earlierDeal(Deal deal, DealTerms terms)`
+            - **Purpose**: Internal interface that returns the deal found by `findByPosts` if it has the same posts, users and price as the proposal being accepted, or null if it is another sale. Messaging uses it so that a retried accept finishes its own deal and does not take over someone else's.
 
 5. **Messaging**
     - **Purpose**: Conversations between two users about a post, their messages, price proposals that record a deal when accepted, and live updates to the open app.
@@ -405,13 +416,13 @@ None. Mock-ups are optional, and the use cases above describe each screen's fiel
         5. `POST /api/conversations/:id/proposal`
             - **Purpose**: Propose a price from JSON `{ price, note? }`: a price of at least 0 and a note of up to 300 characters after trimming. Returns 201 with the proposal `{ proposerId, price, note, status: "pending", createdAt }` and sends `proposal.updated` to the other user. Either user can propose, and a new proposal replaces a declined one. 409 while a proposal is pending or once one was accepted.
         6. `POST /api/conversations/:id/proposal/accept`
-            - **Purpose**: Accept the other user's pending proposal: records the deal with the conversation's listing, request, seller and buyer at the proposed price, and closes the conversation's posts. Returns 201 with `{ deal, proposal }` and sends `proposal.updated`. 403 for the caller's own proposal; 409 if no proposal is pending, or a post is closed, deleted or already in another deal, in which case nothing changes. The proposal is marked accepted last, so if an accept fails partway (500) the proposal stays pending, and accepting again finishes the same deal instead of recording a second one.
+            - **Purpose**: Accept the other user's pending proposal: asks Deals to record the deal with the conversation's listing, request, seller and buyer at the proposed price (`recordDeal`), and Posts to close the conversation's posts (`closeForDeal`). Returns 201 with `{ deal, proposal }` and sends `proposal.updated`. 403 for the caller's own proposal; 409 if no proposal is pending, or a post is closed, deleted or already in another deal, in which case nothing changes. The proposal is marked accepted last, so if an accept fails partway (500) the proposal stays pending, and accepting again finishes the same deal instead of recording a second one.
         7. `POST /api/conversations/:id/proposal/decline`
             - **Purpose**: Decline the other user's pending proposal, after which either user can propose again. Returns 200 with the proposal and sends `proposal.updated`. 403 for the caller's own proposal; 409 if no proposal is pending.
         8. `GET /api/events`
             - **Purpose**: The caller's live updates as Server-Sent Events (`Content-Type: text/event-stream`). The response stays open, and the backend writes an event to every open stream of the other user whenever a user acts: `message.created` with the message, or `proposal.updated` with `{ conversationId, proposal }`. The user who acted, and users outside the conversation, get nothing. A comment line every 25 seconds keeps a quiet stream from being dropped. Events sent while the app is disconnected are not replayed, so the app reloads the inbox and the open conversation after it reconnects. 401 without a valid session token.
         9. `void publish(List<String> userIds, String type, Object data)`
-            - **Purpose**: Internal interface that writes an event of the given type, `message.created` or `proposal.updated`, to every open `GET /api/events` stream of the given users. The message and proposal routes call it with the other user of the conversation.
+            - **Purpose**: Internal interface that writes an event of the given type, `message.created` or `proposal.updated`, to every open `GET /api/events` stream of the given users. Messaging's service calls it with the other user of the conversation.
 
 ### **4.2. Databases**
 
@@ -645,6 +656,8 @@ sequenceDiagram
     actor U as User
     participant FE as Frontend
     participant D as Deals
+    participant UA as Users
+    participant P as Posts
     participant DB as MongoDB
     Note over U,FE: Precondition: the user is signed in and has a deal
     U->>FE: Open the Deals tab
@@ -668,20 +681,32 @@ sequenceDiagram
             DB--)D: Reputation[]
             deactivate DB
         and
-            D->>DB: PublicUser[] findPublicByIds(otherUserIds)
+            D->>UA: PublicUser[] findPublicByIds(otherUserIds)
+            activate UA
+            UA->>DB: PublicUser[] findPublicByIds(otherUserIds)
             activate DB
-            DB--)D: PublicUser[]
+            DB--)UA: PublicUser[]
             deactivate DB
+            UA--)D: PublicUser[]
+            deactivate UA
         and
-            D->>DB: Listing[] findByIds(listingIds, fields, firstPhotoOnly=true)
+            D->>P: Listing[] findByIds(listing, listingIds, fields)
+            activate P
+            P->>DB: Listing[] findByIds(listingIds, fields, firstPhotoOnly=true)
             activate DB
-            DB--)D: Listing[]
+            DB--)P: Listing[]
             deactivate DB
+            P--)D: Listing[]
+            deactivate P
         and
-            D->>DB: Request[] findByIds(requestIds, fields, firstPhotoOnly=true)
+            D->>P: Request[] findByIds(request, requestIds, fields)
+            activate P
+            P->>DB: Request[] findByIds(requestIds, fields, firstPhotoOnly=true)
             activate DB
-            DB--)D: Request[]
+            DB--)P: Request[]
             deactivate DB
+            P--)D: Request[]
+            deactivate P
         end
         D--)FE: 200 {deals, nextCursor}
         deactivate D
@@ -764,23 +789,35 @@ sequenceDiagram
         FE--)U: "Couldn't load the feed. Check your connection and try again." and "Retry"
     else
         activate M
-        M->>DB: Request findById(postId)
+        M->>P: Request findById(request, postId)
+        activate P
+        P->>DB: Request findById(postId)
         activate DB
-        DB--)M: Request, or null
+        DB--)P: Request, or null
         deactivate DB
+        P--)M: Request, or null
+        deactivate P
         opt the post is not a request
-            M->>DB: Listing findById(postId)
+            M->>P: Listing findById(listing, postId)
+            activate P
+            P->>DB: Listing findById(postId)
             activate DB
-            DB--)M: Listing
+            DB--)P: Listing
             deactivate DB
+            P--)M: Listing
+            deactivate P
         end
         alt 1a. the post is closed
             M--)FE: 409 {error: "Closed posts have no feed"}
         else
-            M->>DB: Listing[] listOpenInCategory(category, excludeOwnerId)
+            M->>P: Listing[] listOpenInCategory(listing, category, excludeOwnerId)
+            activate P
+            P->>DB: Listing[] listOpenInCategory(category, excludeOwnerId)
             activate DB
-            DB--)M: Listing[] (requests for a listing)
+            DB--)P: Listing[] (requests for a listing)
             deactivate DB
+            P--)M: Listing[] (requests for a listing)
+            deactivate P
             loop each candidate
                 M->>M: boolean satisfies(Request request, Listing listing)
             end
@@ -817,6 +854,8 @@ sequenceDiagram
     actor U as User
     participant FE as Frontend
     participant MS as Messaging
+    participant UA as Users
+    participant P as Posts
     participant DB as MongoDB
     participant O as Other user's frontend
     Note over U,O: Precondition: the user is signed in and has a conversation, and the other user's app<br/>keeps GET /api/events open while the app is on screen
@@ -831,20 +870,32 @@ sequenceDiagram
         DB--)MS: Conversation[]
         deactivate DB
         par
-            MS->>DB: PublicUser[] findPublicByIds(otherUserIds)
+            MS->>UA: PublicUser[] findPublicByIds(otherUserIds)
+            activate UA
+            UA->>DB: PublicUser[] findPublicByIds(otherUserIds)
             activate DB
-            DB--)MS: PublicUser[]
+            DB--)UA: PublicUser[]
             deactivate DB
+            UA--)MS: PublicUser[]
+            deactivate UA
         and
-            MS->>DB: Listing[] findByIds(listingIds, fields, firstPhotoOnly=true)
+            MS->>P: Listing[] findByIds(listing, listingIds, fields)
+            activate P
+            P->>DB: Listing[] findByIds(listingIds, fields, firstPhotoOnly=true)
             activate DB
-            DB--)MS: Listing[]
+            DB--)P: Listing[]
             deactivate DB
+            P--)MS: Listing[]
+            deactivate P
         and
-            MS->>DB: Request[] findByIds(requestIds, fields, firstPhotoOnly=true)
+            MS->>P: Request[] findByIds(request, requestIds, fields)
+            activate P
+            P->>DB: Request[] findByIds(requestIds, fields, firstPhotoOnly=true)
             activate DB
-            DB--)MS: Request[]
+            DB--)P: Request[]
             deactivate DB
+            P--)MS: Request[]
+            deactivate P
         end
         MS--)FE: 200 {conversations}
         deactivate MS
@@ -944,6 +995,7 @@ sequenceDiagram
     participant GEO as Android Geocoder
     participant UA as Users
     participant M as Matching
+    participant P as Posts
     participant DB as MongoDB
     Note over U,FE: Precondition: the user is signed in
     U->>FE: Open the Feed tab, choose "I'm buying" or "I'm selling"
@@ -960,10 +1012,14 @@ sequenceDiagram
         FE--)U: "Couldn't load the feed. Check your connection and try again." and "Retry"
     else
         activate M
-        M->>DB: Post[] listOpen(excludeOwnerId, limit=21, filter)
+        M->>P: Post[] listOpen(kind, excludeOwnerId, limit=21, filter)
+        activate P
+        P->>DB: Post[] listOpen(excludeOwnerId, limit=21, filter)
         activate DB
-        DB--)M: Post[], newest first
+        DB--)P: Post[], newest first
         deactivate DB
+        P--)M: Post[], newest first
+        deactivate P
         M--)FE: 200 {listings or requests, nextCursor}
         deactivate M
         FE--)U: show the posts
@@ -983,10 +1039,14 @@ sequenceDiagram
             FE--)U: "Couldn't load the feed. Check your connection and try again." and "Retry"
         else
             activate M
-            M->>DB: Post[] listOpen(excludeOwnerId, limit=21, filter)
+            M->>P: Post[] listOpen(kind, excludeOwnerId, limit=21, filter)
+            activate P
+            P->>DB: Post[] listOpen(excludeOwnerId, limit=21, filter)
             activate DB
-            DB--)M: Post[] that pass the filter, newest first
+            DB--)P: Post[] that pass the filter, newest first
             deactivate DB
+            P--)M: Post[] that pass the filter, newest first
+            deactivate P
             M--)FE: 200 {listings or requests, nextCursor}
             deactivate M
             alt no posts pass the filters
@@ -1008,5 +1068,5 @@ sequenceDiagram
         - Target ranking latency: 1 second at the 95th percentile, not counting the travel-time lookup.
         - Measurement environment: a backend Jest NFR test in `backend/tests/nfr/`, run with `scripts/run-backend-nfr-tests.sh`, that sends 100 `GET /api/feed?postId=<id>` requests through Supertest. It measures the backend's response time only, without the phone's network.
 2. **Graceful degradation without the routing service**
-    - **Implementation**: The feed requests travel times only for the first page of recommendations, in one OpenRouteService matrix request with a timeout of 2 seconds (`ROUTING_TIMEOUT_MS` in `components/matching/logic/travelTime.ts`). If the service fails, times out or is rate-limited, the feed returns the ranked recommendations with `travelTimesAvailable: false`, and the app shows "Travel time unavailable". The timeout lets the feed meet the 3-second response target in Section 3.7.
+    - **Implementation**: The feed requests travel times only for the first page of recommendations, in one OpenRouteService matrix request with a timeout of 2 seconds (`ROUTING_TIMEOUT_MS` in `components/matching/services/travelTime.ts`). If the service fails, times out or is rate-limited, the feed returns the ranked recommendations with `travelTimesAvailable: false`, and the app shows "Travel time unavailable". The timeout lets the feed meet the 3-second response target in Section 3.7.
     - **Implementation status**: Matching on main filters candidates and ranks them before pagination. `backend/tests/nfr/routingFallback.test.ts` checks NFR 2 with the same 1,000 candidate posts as NFR 1: with a routing service that never answers, the feed returns the same ranked recommendations as with a working one in about 2 seconds, and with one that is rate-limited, fails or is unreachable, in under 100 ms, all under the 3-second limit. `backend/tests/nfr/feedLatency.test.ts` checks NFR 1: with 1,000 candidate posts, 95% of 100 feed requests return within about 50 ms, well under the 1-second target.

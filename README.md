@@ -81,7 +81,7 @@ Set at least:
 
 ### API
 
-Google is asked only once, at sign-in. The backend then issues its own tokens (`backend/src/components/users/logic/sessions.ts`):
+Google is asked only once, at sign-in. The backend then issues its own tokens (`backend/src/components/users/services/sessionService.ts`):
 
 - **Session token**: a JWT signed with `JWT_SECRET`, valid for 15 minutes. Sent as `Authorization: Bearer <session token>` on every data request.
 - **Refresh token**: 256 random bits, valid for 30 days. Only its SHA-256 hash is stored, in the `sessions` collection; MongoDB deletes it once expired. Each refresh replaces it with a new one, and presenting an already-used refresh token revokes every token from that sign-in (it means two parties hold it).
@@ -254,7 +254,7 @@ backend/src/
 │   ├── users/             # Google sign-in, session tokens, requireAuth, profile
 │   ├── deals/             # deals, ratings, reputation
 │   └── messaging/         # conversations, messages, proposals, live updates
-├── shared/                # config, errors, HTTP helpers, the Store type and MongoDB wiring
+├── shared/                # config, errors, HTTP helpers, the Store type, MongoDB wiring, and createServices
 └── testSupport/           # test-only /api/e2e routes (ENABLE_E2E_ROUTES=true)
 ```
 
@@ -262,8 +262,8 @@ Inside each component (a component has only the layers it needs):
 
 | Folder | Holds |
 |---|---|
-| `routes/` | Express routers and the HTTP helpers they use |
-| `logic/` | Domain functions the routes call (ranking, reputation score, sessions) |
+| `routes/` | Express routers: read the request, call one service method, send the status code |
+| `services/` | The component's rules and use cases, and the pure functions they use (ranking, must-have checks, distance, reputation score). Other components call these, never its store |
 | `store/` | Collection interfaces (`types.ts`) and their MongoDB implementations |
 | `models/` | Data types, collection names and `$jsonSchema` validators |
 
