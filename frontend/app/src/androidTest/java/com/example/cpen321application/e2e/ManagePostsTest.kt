@@ -1,6 +1,5 @@
 package com.example.cpen321application.e2e
 
-import android.util.Log
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -32,8 +31,6 @@ import org.junit.runners.Parameterized
 @RunWith(Parameterized::class)
 class ManagePostsTest(private val form: PostForm) {
     companion object {
-        private const val TAG = "ManagePostsTest"
-
         @JvmStatic
         @Parameterized.Parameters(name = "{0}")
         fun forms() = PostForm.entries
@@ -117,7 +114,7 @@ class ManagePostsTest(private val form: PostForm) {
         rule.click("Reopen")
         rule.waitForText("Open")
         rule.click("Edit")
-        waitForEditorDespiteComposeRace(form.editTitle)
+        rule.waitForText(form.editTitle)
         rule.replacePrice(form, "175")
         rule.click("Save changes")
         rule.waitForText("175", substring = true)
@@ -192,15 +189,5 @@ class ManagePostsTest(private val form: PostForm) {
         rule.waitForText("Could not reach the server", substring = true)
         setAirplaneMode(false)
         assertTrue(rule.postCards().size == 1)
-    }
-
-    private fun waitForEditorDespiteComposeRace(title: String) {
-        try {
-            rule.waitForText(title)
-        } catch (race: IllegalArgumentException) {
-            if (race.message?.contains("multithreaded access") != true) throw race
-            Log.i(TAG, "Compose test race while the editor opened, checking again", race)
-            rule.waitForText(title)
-        }
     }
 }
