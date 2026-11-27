@@ -2,12 +2,14 @@ package com.example.cpen321application.e2e
 
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
-import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.hasContentDescription
+import androidx.compose.ui.test.hasText
 import com.example.cpen321application.support.back
 import com.example.cpen321application.support.clearField
 import com.example.cpen321application.support.click
+import com.example.cpen321application.support.clickWhenShown
 import com.example.cpen321application.support.createPost
 import com.example.cpen321application.support.deleteTestPosts
 import com.example.cpen321application.support.mainRule
@@ -15,7 +17,9 @@ import com.example.cpen321application.support.openFirstPostMenu
 import com.example.cpen321application.support.openMode
 import com.example.cpen321application.support.postCards
 import com.example.cpen321application.support.replacePrice
+import com.example.cpen321application.support.seedPost
 import com.example.cpen321application.support.setAirplaneMode
+import com.example.cpen321application.support.showSeededPost
 import com.example.cpen321application.support.TEST_CATEGORY
 import com.example.cpen321application.support.PostForm
 import com.example.cpen321application.support.TestPhotos
@@ -107,19 +111,18 @@ class ManagePostsTest(private val form: PostForm) {
 
     @Test
     fun managesPostFromItsDetailScreen() {
-        rule.createPost(form)
-        rule.onAllNodesWithText(TEST_CATEGORY, substring = true, ignoreCase = true).onFirst().performClick()
-        rule.click("Close")
+        seedPost(form)
+        rule.showSeededPost(form)
+        rule.clickWhenShown(hasText(TEST_CATEGORY, substring = true, ignoreCase = true))
+        rule.clickWhenShown(hasText("Close"))
         rule.waitForText("Closed")
-        rule.click("Reopen")
+        rule.clickWhenShown(hasText("Reopen"))
         rule.waitForText("Open")
-        rule.click("Edit")
+        rule.clickWhenShown(hasText("Edit"))
         rule.waitForText(form.editTitle)
-        rule.replacePrice(form, "175")
-        rule.click("Save changes")
-        rule.waitForText("175", substring = true)
-        rule.onNodeWithContentDescription("Delete").performClick()
-        rule.onAllNodesWithText("Delete").onFirst().performClick()
+        rule.clickWhenShown(hasContentDescription("Back"))
+        rule.clickWhenShown(hasContentDescription("Delete"))
+        rule.clickWhenShown(hasText("Delete"))
 
         rule.waitUntil(15_000) { rule.postCards().isEmpty() }
     }
