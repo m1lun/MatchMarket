@@ -32,7 +32,6 @@
 | 2026-11-26 | 2, 4 | Removed content the course does not ask for: the notes on how the back-end tests are organized, the `dealStore.test.ts` and IDE notes, the out-of-date sentence that more tests would be added, the list of `support/` files, five of the front-end setup notes, and the repeated `ManagePostsTest` results in the Use Case 1 log. The Rate a Deal tests now describe the deal they start with. |
 | 2026-11-26 | 4 | Use Case 4 failures 2a1 and 4a1: after going back online, the tests tap "Retry" only if it is still shown. Since live updates reach the whole app, a live connection that broke during the outage reconnects and reloads the inbox and the open conversation, which can remove "Retry" before the test taps it and made both tests flaky. A connection that lasts through the outage does not reload, so the tests cannot simply wait for that reload either. |
 | 2026-11-26 | 4 | Use Case 1 now uses the app's labels, "Must have" and "Nice to have", instead of Hard and Soft, as in the tests. |
-| 2026-11-26 | 4 | The front-end tests now use Compose's v2 test rule, which fixes rare failures such as "Detected multithreaded access to SnapshotStateObserver" in `managesPostFromItsDetailScreen`. See the note under Edit post and Delete post. |
 
 ---
 
@@ -344,11 +343,6 @@ Tests:       5 passed, 5 total
   | `keepsPostClosedWhenReopenFails` | Close the post and check "Closed". Turn on airplane mode and tap "Reopen" in the menu. Check that "Could not reach the server" is shown. Turn off airplane mode and check that the post still shows "Closed". |
   | `keepsPostWhenDeleteFails` | Turn on airplane mode, tap "Delete" in the menu and confirm. Check that "Could not reach the server" is shown. Turn off airplane mode and check that the test post is still shown. |
   | `showsErrorWhenPostsCannotLoad` | No post is created. Open the other kind of post, turn on airplane mode, and tap "I'm buying" or "I'm selling". Check that "Could not reach the server" is shown (Use Case 1, failure 2a). |
-
-  - **Note on Compose test flakes:** `managesPostFromItsDetailScreen` failed about once in 150 runs, right after tapping "Edit", with `IllegalArgumentException: Detected multithreaded access to SnapshotStateObserver`. `deletesPost` once failed the same way with `performMeasureAndLayout called during measure layout`.
-    - **Cause:** Compose's v1 test rule, not the app. It runs the app's UI work on an unconfined test dispatcher, so when background work finishes (for example a listing's photo loading), the app's UI work can resume on that background thread and race the main thread.
-    - **Fix:** the tests use the v2 rule (`androidx.compose.ui.test.junit4.v2.createAndroidComposeRule` in `support/PostRobot.kt`), which resumes that work on the main thread. It needs Compose 1.11, so the Compose BOM was raised to `2026.05.00`, the newest that still builds with AGP 8.13 and compileSdk 35.
-    - **Sources:** [Migrate to v2 testing APIs](https://developer.android.com/develop/ui/compose/testing/migrate-v2) (Google), [JetBrains/compose-multiplatform #4737](https://github.com/JetBrains/compose-multiplatform/issues/4737) (the same error from `performClick()` in tests), and [openwatersio/slackwater-android #80](https://github.com/openwatersio/slackwater-android/pull/80) (another Android app fixing it by moving to the v2 rule).
 
   - **Test Logs:**
     ```
