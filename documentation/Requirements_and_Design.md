@@ -60,6 +60,7 @@
 | 2026-11-26 | 3.1, 3.4, 3.5, 4.1, 4.6 | Following TA feedback that live updates matter, live updates now reach the whole app, not only an open conversation: the app keeps `GET /api/events` open while it is on screen; new messages and proposal changes update the inbox, mark the conversation and the Messages tab unread, and show a banner with "View" on the other tabs; and an accepted proposal updates the proposer's Deals and My Posts tabs. Use Case 4 and its sequence diagram describe the new steps, and failure 2a also covers a reload that fails while conversations are shown. |
 | 2026-11-26 | 3.5, 3.6 | Use Cases 1 and 3 now use the app's labels, "Must have" and "Nice to have", instead of Hard and Soft. Added Section 3.6, Screen Mock-ups (none, since they are optional), so the numbering follows the template. |
 | 2026-11-26 | 4.1, 4.6 | Following TA feedback, each component now has a service that owns its rules, and other components call that service instead of reading or writing its data. Accepting a proposal now asks Deals to record the deal (`recordDeal`) and Posts to close the posts (`closeForDeal`), instead of Messaging writing both itself. Section 4.1 lists the internal interfaces other components call (Posts' `findById`, `findByIds`, `listOpen`, `listOpenInCategory` and `closeForDeal`, Users' `findPublicByIds`, and Deals' `recordDeal` and `earlierDeal`), and the View Deals, View Recommendations, Send a Message and Filter Feed sequence diagrams now read posts and users through Posts and Users. |
+| 2026-11-26 | 3.2, 3.3, 3.4, 3.5, 4.1, 4.3, 4.4, 4.5, 4.6 | Following the CP3 TA feedback: one User actor, since buying and selling use the same use cases; Google is "Google Sign-In" everywhere, with the interface the backend calls; Manage profile is split into View profile and Edit address, in the text and the use case diagram, so the later use cases are renumbered; Use Case 3 failure 1a and Use Case 4 steps 7 and 7a1 describe only what the user sees; the Matching interface no longer mentions filters that were never built; Section 4.4 names the test libraries in use. In every sequence diagram the app has activation bars, and each call shows its result before the branches on it, so a network failure is a missing response rather than a second reply. After the services refactor, the diagrams pass `firstPhotoOnly` to Posts' `findByIds` as the code does, View Recommendations shows the feed filters it applies (`passesFilter`), and Send a Message sends the live update before it replies 201; Section 4.5 says other components go through Posts' and Deals' services. |
 
 ---
 
@@ -335,8 +336,8 @@ None. Mock-ups are optional, and the use cases above describe each screen's fiel
             - **Purpose**: Save a custom field definition from JSON `{ label, type }`: a label of 1 to 60 characters and a type of text, number or bool. Returns 201 with the definition. 400 for a bad label or type, or a label that names a built-in field; 409 if the caller already has a field with the same name, in any case.
         12. `DELETE /api/custom-fields/:key`
             - **Purpose**: Delete one of the caller's definitions. Returns 204, or 404 if the caller has none with that key.
-        13. `Post findById(PostKind kind, String id)` and `List<Post> findByIds(PostKind kind, List<String> ids, List<String> fields)`
-            - **Purpose**: Internal interfaces that return posts of either kind, open or closed: one by id, or the named fields of many in one query. Matching, Deals and Messaging call them instead of reading the posts themselves.
+        13. `Post findById(PostKind kind, String id)` and `List<Post> findByIds(PostKind kind, List<String> ids, List<String> fields, boolean firstPhotoOnly)`
+            - **Purpose**: Internal interfaces that return posts of either kind, open or closed: one by id, or the named fields of many in one query, with only their first photo if `firstPhotoOnly` is set. Matching, Deals and Messaging call them instead of reading the posts themselves.
         14. `List<Post> listOpen(PostKind kind, String excludeOwnerId, int limit, PostFilter filter)` and `List<Post> listOpenInCategory(PostKind kind, String category, String excludeOwnerId)`
             - **Purpose**: Internal interfaces that return other users' open posts: newest first with the feed filters, or every open post in a category. Matching calls them for the browse feed and for the candidates it ranks.
         15. `void closeForDeal(String listingId, String requestId, Date now)`
@@ -529,7 +530,7 @@ None. Mock-ups are optional, and the use cases above describe each screen's fiel
 
 ### **4.5. Dependencies Diagram**
 
-Every backend route except `/health` and the sign-in routes under `/api/auth` calls `requireAuth` in Users. Live updates (`GET /api/events`) stay a one-way link: the backend writes events to a response the app keeps open. Messaging records deals through the Deals store, and Matching, Deals and Messaging read posts through the Posts store.
+Every backend route except `/health` and the sign-in routes under `/api/auth` calls `requireAuth` in Users. Live updates (`GET /api/events`) stay a one-way link: the backend writes events to a response the app keeps open. Messaging records deals through Deals' service, and Matching, Deals and Messaging read and close posts through Posts' service, never through another component's store.
 
 ```mermaid
 flowchart LR
@@ -706,7 +707,7 @@ sequenceDiagram
             UA--)D: PublicUser[]
             deactivate UA
         and
-            D->>P: Listing[] findByIds(listing, listingIds, fields)
+            D->>P: Listing[] findByIds(listing, listingIds, fields, firstPhotoOnly=true)
             activate P
             P->>DB: Listing[] findByIds(listingIds, fields, firstPhotoOnly=true)
             activate DB
@@ -715,7 +716,7 @@ sequenceDiagram
             P--)D: Listing[]
             deactivate P
         and
-            D->>P: Request[] findByIds(request, requestIds, fields)
+            D->>P: Request[] findByIds(request, requestIds, fields, firstPhotoOnly=true)
             activate P
             P->>DB: Request[] findByIds(requestIds, fields, firstPhotoOnly=true)
             activate DB
@@ -848,6 +849,7 @@ sequenceDiagram
             deactivate P
             loop each candidate
                 M->>M: boolean satisfies(Request request, Listing listing)
+                M->>M: boolean passesFilter(Post post, PostFilter filter)
             end
             M->>M: List#lt;RankedMatch#gt; rank(Post source, List#lt;Post#gt; candidates, Weights weights)
             opt at least one candidate fits
@@ -904,7 +906,7 @@ sequenceDiagram
             UA--)MS: PublicUser[]
             deactivate UA
         and
-            MS->>P: Listing[] findByIds(listing, listingIds, fields)
+            MS->>P: Listing[] findByIds(listing, listingIds, fields, firstPhotoOnly=true)
             activate P
             P->>DB: Listing[] findByIds(listingIds, fields, firstPhotoOnly=true)
             activate DB
@@ -913,7 +915,7 @@ sequenceDiagram
             P--)MS: Listing[]
             deactivate P
         and
-            MS->>P: Request[] findByIds(request, requestIds, fields)
+            MS->>P: Request[] findByIds(request, requestIds, fields, firstPhotoOnly=true)
             activate P
             P->>DB: Request[] findByIds(requestIds, fields, firstPhotoOnly=true)
             activate DB
@@ -991,7 +993,6 @@ sequenceDiagram
             activate DB
             DB--)MS: ok
             deactivate DB
-            MS--)FE: 201 Message
             MS->>MS: void publish(userIds=[otherUserId], type="message.created", data=message)
             alt 7. the other user's app is connected
                 MS-)O: event: message.created, data: Message
@@ -1022,6 +1023,7 @@ sequenceDiagram
                 O--)O: show the message, without an unread dot or a banner
                 deactivate O
             end
+            MS--)FE: 201 Message
             deactivate MS
         end
         alt 6a. no response: the network or server is unavailable
