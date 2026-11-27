@@ -32,7 +32,7 @@
 | 2026-11-26 | 2, 4 | Removed content the course does not ask for: the notes on how the back-end tests are organized, the `dealStore.test.ts` and IDE notes, the out-of-date sentence that more tests would be added, the list of `support/` files, five of the front-end setup notes, and the repeated `ManagePostsTest` results in the Use Case 1 log. The Rate a Deal tests now describe the deal they start with. |
 | 2026-11-26 | 4 | Use Case 4 failures 2a1 and 4a1: after going back online, the tests tap "Retry" only if it is still shown. Since live updates reach the whole app, a live connection that broke during the outage reconnects and reloads the inbox and the open conversation, which can remove "Retry" before the test taps it and made both tests flaky. A connection that lasts through the outage does not reload, so the tests cannot simply wait for that reload either. |
 | 2026-11-26 | 4 | Use Case 1 now uses the app's labels, "Must have" and "Nice to have", instead of Hard and Soft, as in the tests. |
-| 2026-11-26 | 4 | `managesPostFromItsDetailScreen` now creates its post through the back-end API and only checks the detail screen's buttons (Close, Reopen, Edit, Delete). Its form steps and price edit repeated other tests, and its many screen lookups while a listing's photo loaded made it fail now and then. |
+| 2026-11-26 | 4 | `managesPostFromItsDetailScreen` checks for the editor a second time after a rare multithreaded access error from Compose's test library. See the note under Edit post and Delete post. |
 
 ---
 
@@ -338,12 +338,17 @@ Tests:       5 passed, 5 total
   | `rejectsInvalidEditAndKeepsPost` | Tap "Edit" in the menu, clear "Category \*" and tap "Save changes". Check that "Choose a category" is shown. Go back and check that My Posts still shows exactly one test post. |
   | `closesAndReopensPost` | Tap "Close" in the menu and check that the post shows "Closed". Tap "Reopen" in the menu and check that it shows "Open". |
   | `deletesPost` | Tap "Delete" in the menu and confirm with "Delete". Check that no test post is shown. |
-  | `managesPostFromItsDetailScreen` | The post is created through the back-end API instead of the form (for a listing, with one uploaded photo), since creating posts is already tested above. Tap the post to open it. Tap "Close" and check "Closed", tap "Reopen" and check "Open". Tap "Edit", check that "Edit request" or "Edit listing" is shown, and go back. Tap the delete icon, confirm with "Delete", and check that no test post is shown. Editing and saving are covered by `editsPost`, through the same view model actions. |
+  | `managesPostFromItsDetailScreen` | Tap the post to open it. Tap "Close" and check "Closed", tap "Reopen" and check "Open". Tap "Edit", replace the price with "175", tap "Save changes" and check that "175" is shown. Tap the delete icon, confirm with "Delete", and check that no test post is shown. After "Edit", the test checks for the editor a second time if Compose's test library reports a multithreaded access error (see the note below). |
   | `keepsPostWhenServerIsUnreachable` | Turn on airplane mode and tap "Close" in the menu. Check that "Could not reach the server" is shown. Turn off airplane mode and check that the post still shows "Open". |
   | `keepsPostWhenEditCannotBeSaved` | Tap "Edit", replace the price with "175", turn on airplane mode and tap "Save changes". Check that "Could not reach the server" is shown. Turn off airplane mode, go back, and check that "175" is not shown. |
   | `keepsPostClosedWhenReopenFails` | Close the post and check "Closed". Turn on airplane mode and tap "Reopen" in the menu. Check that "Could not reach the server" is shown. Turn off airplane mode and check that the post still shows "Closed". |
   | `keepsPostWhenDeleteFails` | Turn on airplane mode, tap "Delete" in the menu and confirm. Check that "Could not reach the server" is shown. Turn off airplane mode and check that the test post is still shown. |
   | `showsErrorWhenPostsCannotLoad` | No post is created. Open the other kind of post, turn on airplane mode, and tap "I'm buying" or "I'm selling". Check that "Could not reach the server" is shown (Use Case 1, failure 2a). |
+
+  - **Note on a Compose test flake:** `managesPostFromItsDetailScreen` failed about once in 150 runs, right after tapping "Edit", with `IllegalArgumentException: Detected multithreaded access to SnapshotStateObserver`.
+    - **Cause:** Compose's test library, not the app. When a test finds a screen element, the library also records that element's details, and it does this from the test thread. If the app is drawing the editor on the main thread at the same moment, for example while a listing's photo loads, Compose detects the two threads overlapping and throws.
+    - **What the test does:** at that one step, the test checks for the editor once more if this exact error happens, and logs it under the `ManagePostsTest` tag so retries stay visible. Any other error still fails the test.
+    - **Why not change the app:** the app is correct. The overlap only happens under the test library, and the course requires Compose's testing APIs for Compose screens, so the test library can't be swapped out.
 
   - **Test Logs:**
     ```

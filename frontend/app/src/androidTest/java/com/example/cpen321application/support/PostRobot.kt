@@ -8,9 +8,6 @@ import android.graphics.Paint
 import android.net.Uri
 import android.os.SystemClock
 import android.provider.MediaStore
-import androidx.compose.ui.semantics.SemanticsActions
-import androidx.compose.ui.semantics.getOrNull
-import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.SemanticsNodeInteraction
 import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.hasText
@@ -33,20 +30,17 @@ import androidx.test.uiautomator.UiDevice
 import androidx.test.uiautomator.Until
 import com.example.cpen321application.BuildConfig
 import com.example.cpen321application.MainActivity
+import com.example.cpen321application.components.users.model.SessionManager
 import com.example.cpen321application.components.posts.model.ApiException
 import com.example.cpen321application.components.posts.model.Mode
-import com.example.cpen321application.components.posts.model.PhotoData
 import com.example.cpen321application.components.posts.model.PostApi
 import com.example.cpen321application.components.posts.model.PostSummary
-import com.example.cpen321application.components.users.model.SessionManager
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.runBlocking
 import java.io.ByteArrayOutputStream
 import java.net.HttpURLConnection
 import java.net.URL
 import java.util.Random
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.runBlocking
-import org.json.JSONArray
-import org.json.JSONObject
 import org.junit.rules.ExternalResource
 
 typealias MainRule = AndroidComposeTestRule<ActivityScenarioRule<MainActivity>, MainActivity>
@@ -65,11 +59,6 @@ private const val FORM_WAIT_MS = 5_000L
 private const val NETWORK_WAIT_MS = 30_000L
 private const val NETWORK_POLL_MS = 250L
 private const val HEALTH_TIMEOUT_MS = 1_000
-private const val SEED_PRICE = 150
-private const val SEED_LONGITUDE = -123.2463
-private const val SEED_LATITUDE = 49.2621
-private const val SEED_PHOTO_SIZE = 64
-private const val SEED_PHOTO_QUALITY = 90
 
 fun mainRule(): MainRule = createAndroidComposeRule<MainActivity>()
 
@@ -246,61 +235,6 @@ fun testPosts(): List<Pair<Mode, PostSummary>> = runBlocking {
 
 fun deleteTestPosts() {
     runBlocking { testPosts().forEach { (mode, post) -> whenOnline { api.deletePost(mode, post.id) } } }
-}
-
-fun seedPost(form: PostForm) = runBlocking {
-    val listing = form == PostForm.LISTING
-    val photoIds = if (listing) {
-        whenOnline { api.uploadPhotos(listOf(PhotoData("image/jpeg", seedJpeg()))) }
-    } else {
-        emptyList()
-    }
-    val body = JSONObject()
-        .put("name", TEST_NAME)
-        .put("category", TEST_CATEGORY)
-        .put("address", TEST_ADDRESS)
-        .put("location", JSONObject().put("longitude", SEED_LONGITUDE).put("latitude", SEED_LATITUDE))
-        .put("photoIds", JSONArray(photoIds))
-    if (listing) {
-        body.put("price", SEED_PRICE).put("condition", "good").put("listingFields", JSONArray())
-    } else {
-        val maxPrice = JSONObject()
-            .put("kind", "builtin")
-            .put("key", "price")
-            .put("value", SEED_PRICE)
-            .put("hard", true)
-        body.put("requestFields", JSONArray().put(maxPrice))
-    }
-    whenOnline { api.createPost(if (listing) Mode.SELLING else Mode.BUYING, body) }
-}
-
-fun MainRule.showSeededPost(form: PostForm) {
-    val other = if (form == PostForm.LISTING) PostForm.REQUEST else PostForm.LISTING
-    clickWhenShown(hasText("My Posts"))
-    clickWhenShown(hasText(other.mode))
-    waitForText(other.listHeader, substring = true)
-    clickWhenShown(hasText(form.mode))
-    waitForText(form.listHeader, substring = true)
-    waitUntil(WAIT_MS) { postCards().size == 1 }
-}
-
-fun MainRule.clickWhenShown(matcher: SemanticsMatcher) {
-    waitUntil(WAIT_MS) { onAllNodes(matcher).fetchSemanticsNodes().size == 1 }
-    val node = onAllNodes(matcher).fetchSemanticsNodes().single()
-    runOnUiThread {
-        val onClick = node.config.getOrNull(SemanticsActions.OnClick)?.action ?: error("Not clickable: $matcher")
-        onClick.invoke()
-    }
-    waitForIdle()
-}
-
-private fun seedJpeg(): ByteArray {
-    val bitmap = Bitmap.createBitmap(SEED_PHOTO_SIZE, SEED_PHOTO_SIZE, Bitmap.Config.ARGB_8888)
-    bitmap.eraseColor(Color.RED)
-    return ByteArrayOutputStream().use { out ->
-        bitmap.compress(Bitmap.CompressFormat.JPEG, SEED_PHOTO_QUALITY, out)
-        out.toByteArray()
-    }
 }
 
 fun MainRule.clearField(label: String) {

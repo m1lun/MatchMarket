@@ -1,15 +1,14 @@
 package com.example.cpen321application.e2e
 
+import android.util.Log
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onFirst
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.hasContentDescription
-import androidx.compose.ui.test.hasText
 import com.example.cpen321application.support.back
 import com.example.cpen321application.support.clearField
 import com.example.cpen321application.support.click
-import com.example.cpen321application.support.clickWhenShown
 import com.example.cpen321application.support.createPost
 import com.example.cpen321application.support.deleteTestPosts
 import com.example.cpen321application.support.mainRule
@@ -17,9 +16,7 @@ import com.example.cpen321application.support.openFirstPostMenu
 import com.example.cpen321application.support.openMode
 import com.example.cpen321application.support.postCards
 import com.example.cpen321application.support.replacePrice
-import com.example.cpen321application.support.seedPost
 import com.example.cpen321application.support.setAirplaneMode
-import com.example.cpen321application.support.showSeededPost
 import com.example.cpen321application.support.TEST_CATEGORY
 import com.example.cpen321application.support.PostForm
 import com.example.cpen321application.support.TestPhotos
@@ -35,6 +32,8 @@ import org.junit.runners.Parameterized
 @RunWith(Parameterized::class)
 class ManagePostsTest(private val form: PostForm) {
     companion object {
+        private const val TAG = "ManagePostsTest"
+
         @JvmStatic
         @Parameterized.Parameters(name = "{0}")
         fun forms() = PostForm.entries
@@ -111,18 +110,19 @@ class ManagePostsTest(private val form: PostForm) {
 
     @Test
     fun managesPostFromItsDetailScreen() {
-        seedPost(form)
-        rule.showSeededPost(form)
-        rule.clickWhenShown(hasText(TEST_CATEGORY, substring = true, ignoreCase = true))
-        rule.clickWhenShown(hasText("Close"))
+        rule.createPost(form)
+        rule.onAllNodesWithText(TEST_CATEGORY, substring = true, ignoreCase = true).onFirst().performClick()
+        rule.click("Close")
         rule.waitForText("Closed")
-        rule.clickWhenShown(hasText("Reopen"))
+        rule.click("Reopen")
         rule.waitForText("Open")
-        rule.clickWhenShown(hasText("Edit"))
-        rule.waitForText(form.editTitle)
-        rule.clickWhenShown(hasContentDescription("Back"))
-        rule.clickWhenShown(hasContentDescription("Delete"))
-        rule.clickWhenShown(hasText("Delete"))
+        rule.click("Edit")
+        waitForEditorDespiteComposeRace(form.editTitle)
+        rule.replacePrice(form, "175")
+        rule.click("Save changes")
+        rule.waitForText("175", substring = true)
+        rule.onNodeWithContentDescription("Delete").performClick()
+        rule.onAllNodesWithText("Delete").onFirst().performClick()
 
         rule.waitUntil(15_000) { rule.postCards().isEmpty() }
     }
@@ -192,5 +192,15 @@ class ManagePostsTest(private val form: PostForm) {
         rule.waitForText("Could not reach the server", substring = true)
         setAirplaneMode(false)
         assertTrue(rule.postCards().size == 1)
+    }
+
+    private fun waitForEditorDespiteComposeRace(title: String) {
+        try {
+            rule.waitForText(title)
+        } catch (race: IllegalArgumentException) {
+            if (race.message?.contains("multithreaded access") != true) throw race
+            Log.i(TAG, "Compose test race while the editor opened, checking again", race)
+            rule.waitForText(title)
+        }
     }
 }
