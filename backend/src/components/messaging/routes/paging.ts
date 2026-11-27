@@ -49,10 +49,3 @@ export function parsePageQuery(query: unknown, size: PageSize): PageQuery {
   }
   return { limit, before };
 }
-
-// Splits a fetch of limit + 1 items into the page and the cursor for the next one.
-export function toPage<T extends { id: string }>(found: T[], limit: number): { page: T[]; nextCursor: string | null } {
-  const page = found.slice(0, limit);
-  const last = page[page.length - 1];
-  return { page, nextCursor: found.length > limit && last !== undefined ? last.id : null };
-}

@@ -3,8 +3,8 @@ import type { Server } from 'node:http';
 import request from 'supertest';
 
 import { env } from '../../src/shared/config/env';
-import * as travelTime from '../../src/components/matching/logic/travelTime';
-import { ORS_MATRIX_URL, orsProfile, type TravelMode } from '../../src/components/matching/logic/travelTime';
+import * as travelTime from '../../src/components/matching/services/travelTime';
+import { ORS_MATRIX_URL, orsProfile, type TravelMode } from '../../src/components/matching/services/travelTime';
 import type { GeoPoint } from '../../src/shared/models/common';
 import { ME, OTHER, bearer, clearDealData, makeListing, makeRequest } from '../helpers/dealFixtures';
 import { expectServerError, rejecting } from '../helpers/storeFailures';

@@ -9,6 +9,30 @@ export class BadRequestError extends Error {
   }
 }
 
+export class ClientError extends Error {
+  constructor(public readonly statusCode: number, message: string) {
+    super(message);
+  }
+}
+
+export class NotFoundError extends ClientError {
+  constructor(message = 'Not Found') {
+    super(404, message);
+  }
+}
+
+export class ForbiddenError extends ClientError {
+  constructor(message = 'Forbidden') {
+    super(403, message);
+  }
+}
+
+export class ConflictError extends ClientError {
+  constructor(message: string) {
+    super(409, message);
+  }
+}
+
 // The message of a thrown value, for logs.
 export function errorMessage(cause: unknown): string {
   return cause instanceof Error ? cause.message : String(cause);
@@ -24,6 +48,10 @@ export const errorHandler: ErrorRequestHandler = (error: unknown, _req, res, nex
   }
   if (error instanceof BadRequestError) {
     res.status(400).json({ error: 'Invalid request', details: error.details });
+    return;
+  }
+  if (error instanceof ClientError) {
+    res.status(error.statusCode).json({ error: error.message });
     return;
   }
   if (error instanceof DuplicateFieldError) {

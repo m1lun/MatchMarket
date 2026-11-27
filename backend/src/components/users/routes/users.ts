@@ -2,8 +2,7 @@ import { Router } from 'express';
 
 import { currentUser } from './requireAuth';
 import { BadRequestError } from '../../../shared/errors';
-import type { GeoPoint } from '../../../shared/models/common';
-import type { Store } from '../../../shared/store/types';
+import type { UsersService, Place } from '../services/usersService';
 import { isObject, isText, parseLocation, type Body } from '../../../shared/http/checks';
 import { handle } from '../../../shared/http/handle';
 
@@ -11,7 +10,7 @@ import { handle } from '../../../shared/http/handle';
 const EDITABLE_FIELDS = ['address', 'location'];
 
 // The place to save, or null to clear it: both fields are set, or both are null.
-function parsePlace(body: Body, errors: string[]): { address: string; location: GeoPoint } | null {
+function parsePlace(body: Body, errors: string[]): Place {
   if (body.address === null && body.location === null) {
     return null;
   }
@@ -26,17 +25,12 @@ function parsePlace(body: Body, errors: string[]): { address: string; location: 
   return { address: isText(body.address) ? body.address.trim() : '', location };
 }
 
-export function createUsersRouter(store: Store): Router {
+export function createUsersRouter(users: UsersService): Router {
   const router = Router();
 
   // GET /api/users/me — the signed-in user's own profile, including the private fields.
   router.get('/me', handle(async (_req, res) => {
-    const user = await store.users.findById(currentUser(res).id);
-    if (user === null) {
-      res.status(404).json({ error: 'Not Found' });
-      return;
-    }
-    res.json(user);
+    res.json(await users.getMe(currentUser(res).id));
   }));
 
   // PATCH /api/users/me — `{ address, location: { longitude, latitude } }` sets the
@@ -53,12 +47,7 @@ export function createUsersRouter(store: Store): Router {
     if (errors.length > 0) {
       throw new BadRequestError(errors);
     }
-    const user = await store.users.updateAddress(currentUser(res).id, place);
-    if (user === null) {
-      res.status(404).json({ error: 'Not Found' });
-      return;
-    }
-    res.json(user);
+    res.json(await users.updateAddress(currentUser(res).id, place));
   }));
 
   return router;

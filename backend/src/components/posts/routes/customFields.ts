@@ -3,15 +3,15 @@ import { Router } from 'express';
 import { currentUser } from '../../users/routes/requireAuth';
 import { BadRequestError } from '../../../shared/errors';
 import { FIELD_TYPES, MAX_LABEL_LENGTH, RESERVED_KEYS, isOneOf, normaliseKey } from '../../../shared/models/common';
-import type { Store } from '../../../shared/store/types';
 import { isObject, isText } from '../../../shared/http/checks';
 import { handle } from '../../../shared/http/handle';
+import type { PostsService } from '../services/postsService';
 
-export function createCustomFieldsRouter(store: Store): Router {
+export function createCustomFieldsRouter(posts: PostsService): Router {
   const router = Router();
 
   router.get('/', handle(async (_req, res) => {
-    res.json(await store.customFields.list(currentUser(res).id));
+    res.json(await posts.listCustomFields(currentUser(res).id));
   }));
 
   router.post('/', handle(async (req, res) => {
@@ -31,21 +31,11 @@ export function createCustomFieldsRouter(store: Store): Router {
     if (errors.length > 0 || type === undefined) {
       throw new BadRequestError(errors);
     }
-    const ownerId = currentUser(res).id;
-    const existing = (await store.customFields.list(ownerId)).find((field) => field.key === key);
-    if (existing !== undefined) {
-      res.status(409).json({ error: `You already have a custom field called "${existing.label}"` });
-      return;
-    }
-    res.status(201).json(await store.customFields.upsert({ ownerId, key, label, type }));
+    res.status(201).json(await posts.addCustomField({ ownerId: currentUser(res).id, key, label, type }));
   }));
 
   router.delete('/:key', handle(async (req, res) => {
-    const removed = await store.customFields.remove(currentUser(res).id, normaliseKey(String(req.params.key)));
-    if (!removed) {
-      res.status(404).json({ error: 'Not Found' });
-      return;
-    }
+    await posts.removeCustomField(currentUser(res).id, String(req.params.key));
     res.status(204).end();
   }));
 

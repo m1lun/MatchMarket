@@ -1,21 +1,12 @@
 import { Router } from 'express';
-import type { ErrorRequestHandler, Request, Response } from 'express';
+import type { ErrorRequestHandler } from 'express';
 
 import { BadRequestError } from '../../../shared/errors';
 import { MAX_COMMENT_LENGTH, MAX_STARS, MIN_STARS } from '../../../shared/models/common';
-import { otherParty } from '../models/deal';
-import type { Rating } from '../models/rating';
-import type { Reputation } from '../models/reputation';
-import { reputationSummary } from '../logic/score';
 import { currentUser } from '../../users/routes/requireAuth';
-import type { Store } from '../../../shared/store/types';
+import type { DealsService } from '../services/dealsService';
 import { isObject } from '../../../shared/http/checks';
 import { handle } from '../../../shared/http/handle';
-
-// MongoDB's code for an insert that breaks a unique index.
-const DUPLICATE_KEY = 11000;
-
-class AlreadyRatedError extends Error {}
 
 const RATING_FIELDS = ['stars', 'comment'];
 
@@ -57,97 +48,30 @@ export const ratingBodyTooLarge: ErrorRequestHandler = (error: unknown, _req, re
   next(error);
 };
 
-// The caller's deal and the other party in it. Sends the 404 or 403 itself and returns null when there is none.
-async function findMyDeal(
-  store: Store,
-  req: Request,
-  res: Response,
-): Promise<{ dealId: string; me: string; ratedUserId: string } | null> {
-  const me = currentUser(res).id;
-  const deal = await store.deals.findById(String(req.params.id));
-  if (deal === null) {
-    res.status(404).json({ error: 'Not Found' });
-    return null;
-  }
-  if (deal.sellerId !== me && deal.buyerId !== me) {
-    res.status(403).json({ error: 'Forbidden' });
-    return null;
-  }
-  return { dealId: deal.id, me, ratedUserId: otherParty(deal, me) };
-}
-
-export function createRatingsRouter(store: Store): Router {
+export function createRatingsRouter(deals: DealsService): Router {
   const router = Router();
 
   // POST /api/deals/:id/ratings — the caller rates the other party of their deal and gets back that party's new score.
   router.post('/:id/ratings', handle(async (req, res) => {
-    const { stars, comment } = parseRating(req.body);
-    const myDeal = await findMyDeal(store, req, res);
-    if (myDeal === null) {
-      return;
-    }
-    const { dealId, me, ratedUserId } = myDeal;
-    const now = new Date();
-
-    let saved: { rating: Rating; reputation: Reputation };
-    try {
-      saved = await store.transaction(async (tx) => {
-        let rating: Rating;
-        try {
-          rating = await tx.ratings.insert({ dealId, raterId: me, ratedUserId, stars, comment, createdAt: now });
-        } catch (error) {
-          throw (error as { code?: number }).code === DUPLICATE_KEY ? new AlreadyRatedError() : error;
-        }
-        const reputation = await tx.reputations.addRating(ratedUserId, stars, now);
-        return { rating, reputation };
-      });
-    } catch (error) {
-      if (error instanceof AlreadyRatedError) {
-        res.status(409).json({ error: 'You already rated this deal' });
-        return;
-      }
-      throw error;
-    }
-    res.status(201).json({ rating: saved.rating, otherUser: reputationSummary(ratedUserId, saved.reputation) });
+    const rating = parseRating(req.body);
+    res.status(201).json(await deals.rate(String(req.params.id), currentUser(res).id, rating));
   }));
 
   // PUT /api/deals/:id/ratings — the caller replaces their rating of the deal and gets back the other party's new score.
   router.put('/:id/ratings', handle(async (req, res) => {
-    const { stars, comment } = parseRating(req.body);
-    const myDeal = await findMyDeal(store, req, res);
-    if (myDeal === null) {
-      return;
-    }
-    const { dealId, me, ratedUserId } = myDeal;
-    const now = new Date();
-
-    const saved = await store.transaction(async (tx) => {
-      const updated = await tx.ratings.update(dealId, me, stars, comment, now);
-      if (updated === null) {
-        return null;
-      }
-      const delta = stars - updated.previousStars;
-      const reputation = delta === 0 ? await tx.reputations.find(ratedUserId) : await tx.reputations.changeStars(ratedUserId, delta, now);
-      return { rating: updated.rating, reputation };
-    });
-    if (saved === null) {
-      res.status(404).json({ error: 'You have not rated this deal' });
-      return;
-    }
-    res.json({ rating: saved.rating, otherUser: reputationSummary(ratedUserId, saved.reputation) });
+    const rating = parseRating(req.body);
+    res.json(await deals.editRating(String(req.params.id), currentUser(res).id, rating));
   }));
 
   return router;
 }
 
-export function createReputationRouter(store: Store): Router {
+export function createReputationRouter(deals: DealsService): Router {
   const router = Router();
 
   // GET /api/users/:id/reputation — a user's score and rating count; score is null when nobody has rated them.
   router.get('/:id/reputation', handle(async (req, res) => {
-    const userId = String(req.params.id);
-    const { id, score, ratingCount } = reputationSummary(userId, await store.reputations.find(userId));
-    res.json({ userId: id, score, ratingCount });
+    res.json(await deals.reputation(String(req.params.id)));
   }));
 
   return router;

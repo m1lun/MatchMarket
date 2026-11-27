@@ -1,8 +1,5 @@
 import { normaliseCategory } from '../../../shared/models/common';
-import type { Listing } from '../../posts/models/listing';
-import type { BuyerRequest } from '../../posts/models/request';
-import { distanceKm } from '../logic/distance';
-import type { PostFilter } from '../../posts/store/types';
+import type { PostFilter } from '../../posts/services/postsService';
 
 export const MAX_RADIUS_KM = 100;
 
@@ -52,26 +49,4 @@ export function parsePostFilter(query: Record<string, unknown>, errors: string[]
   const near = lat !== undefined && lng !== undefined && radiusKm !== undefined ? { lat, lng, radiusKm } : undefined;
 
   return { category: parseCategory(query.category, errors), minPrice, maxPrice, near };
-}
-
-function price(post: Listing | BuyerRequest): number | undefined {
-  if ('price' in post) {
-    return post.price;
-  }
-  const budget = post.requestFields.find((field) => field.key === 'price')?.value;
-  return typeof budget === 'number' ? budget : undefined;
-}
-
-// The same rule as MongoPostCollection.listOpen, for posts already loaded. A request
-// with no budget fails any price filter, as it does in MongoDB.
-export function passesFilter(post: Listing | BuyerRequest, filter: PostFilter): boolean {
-  const { category, minPrice, maxPrice, near } = filter;
-  const postPrice = price(post);
-  return (
-    (category === undefined || post.category === category) &&
-    (minPrice === undefined || (postPrice !== undefined && postPrice >= minPrice)) &&
-    (maxPrice === undefined || (postPrice !== undefined && postPrice <= maxPrice)) &&
-    (near === undefined ||
-      distanceKm({ type: 'Point', coordinates: [near.lng, near.lat] }, post.location) <= near.radiusKm)
-  );
 }

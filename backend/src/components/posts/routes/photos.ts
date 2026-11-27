@@ -3,7 +3,7 @@ import multer from 'multer';
 import { pipeline } from 'node:stream/promises';
 
 import { MAX_PHOTOS, MAX_PHOTO_BYTES } from '../../../shared/models/common';
-import { PHOTO_TYPES, type PhotoStorage } from '../store/photoStorage';
+import { PHOTO_TYPES, type PostsService } from '../services/postsService';
 import { currentUser, requireAuth } from '../../users/routes/requireAuth';
 import { handle } from '../../../shared/http/handle';
 
@@ -52,18 +52,14 @@ function readPhotos(req: Request, res: Response, next: NextFunction): void {
   });
 }
 
-export function createPhotosRouter(photos: PhotoStorage): Router {
+export function createPhotosRouter(posts: PostsService): Router {
   const router = Router();
 
   router.get(
     '/:id',
     requireAuth,
     handle(async (req: Request, res: Response) => {
-      const photo = await photos.open(String(req.params.id));
-      if (photo === null) {
-        res.status(404).json({ error: 'Photo not found' });
-        return;
-      }
+      const photo = await posts.openPhoto(String(req.params.id));
       res.set({ 'Content-Type': photo.mimeType, 'Cache-Control': 'private, max-age=31536000, immutable' });
       await pipeline(photo.stream, res);
     }),
@@ -81,7 +77,7 @@ export function createPhotosRouter(photos: PhotoStorage): Router {
         return;
       }
       const ownerId = currentUser(res).id;
-      const ids = await Promise.all(files.map((f) => photos.save(f.buffer, f.mimetype.toLowerCase(), ownerId)));
+      const ids = await posts.savePhotos(files.map((f) => ({ data: f.buffer, mimeType: f.mimetype.toLowerCase() })), ownerId);
       res.status(201).json({ ids });
     }),
   );
