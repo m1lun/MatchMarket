@@ -18,6 +18,7 @@ Evidence checked: 19 November 2026, Vancouver time.
 | 2026-11-19 | 2 | Updated Section 2 for CP3 from the Codacy results on main at commit `1c8c835`: 0 issues, after PR #236 fixed the two dependency alerts. Updated the inspected commit. |
 | 2026-11-19 | 3.4 | Named the reviewers by first name, added author and reviewer columns, and reworded each review so it is clear what was asked and what happened. Removed PR #31, which was the author reviewing their own PR. |
 | 2026-11-25 | 3.3 | Recorded the M3 code restructuring: the back end (PR #242) and the app (MVVM) are organised by component, then by layer, and the README documents the structure. The `DealsModel`/`DealModels` and screens-in-`ui` findings are fixed. |
+| 2026-11-26 | 3.3 | Replaced "this pull request" with the pull request numbers, named the app's "Edit" button as it appears, limited the photos row to what we tested, and marked the `assertTrue(size == 1)` finding fixed. |
 
 ## 2. Automated Code Review Results
 
@@ -114,9 +115,9 @@ Main findings:
 | Finding from SportsNow | Action | Status |
 | :---- | :---- | :---- |
 | "Create deal" reads like a user action | Removed it as a use case: recording the deal is now a step of "Respond to a proposal" ([PR \#196](https://github.com/m1lun/MatchMarket/pull/196)). | Fixed |
-| Sequence diagrams show only one failure each | Every sequence diagram now shows each failure of its formal use case: Send a Message in [PR \#212](https://github.com/m1lun/MatchMarket/pull/212), the other four in the pull request that adds this section. | Fixed |
-| UC2 checks for an existing rating only after the rating is written; activation box with no arrow | The Rate a Deal diagram now starts from the Deals tab, where an already-rated deal shows "Edit rating" instead of "Rate", and every activation box starts at an incoming arrow. | Fixed |
-| Database writes with no reply | Every database write in the sequence diagrams now has a reply ([PR \#212](https://github.com/m1lun/MatchMarket/pull/212) and this pull request). | Fixed |
+| Sequence diagrams show only one failure each | Every sequence diagram now shows each failure of its formal use case: Send a Message in [PR \#212](https://github.com/m1lun/MatchMarket/pull/212), the other four in [PR \#214](https://github.com/m1lun/MatchMarket/pull/214). | Fixed |
+| UC2 checks for an existing rating only after the rating is written; activation box with no arrow | The Rate a Deal diagram now starts from the Deals tab, where an already-rated deal shows "Edit" instead of "Rate", and every activation box starts at an incoming arrow. | Fixed |
+| Database writes with no reply | Every database write in the sequence diagrams now has a reply ([PR \#212](https://github.com/m1lun/MatchMarket/pull/212) and [\#214](https://github.com/m1lun/MatchMarket/pull/214)). | Fixed |
 | The address must be typed from memory | The Profile tab now searches addresses as the user types and saves the picked suggestion ([PR \#198](https://github.com/m1lun/MatchMarket/pull/198)). | Fixed |
 | Accepting a proposal rewrites both posts to close them | The posts are closed with a status-only update ([PR \#213](https://github.com/m1lun/MatchMarket/pull/213)). | Fixed |
 | A mocked rating test expects a half-finished write | A rating and its reputation update are saved in one transaction, and the tests now check that a failure saves neither ([PR \#204](https://github.com/m1lun/MatchMarket/pull/204)). | Fixed |
@@ -126,15 +127,15 @@ Main findings:
 | Use Cases 2–5 have no end-to-end tests | Added end-to-end tests for the Deals use cases ([PR \#167](https://github.com/m1lun/MatchMarket/pull/167)) and the Messaging use cases ([PR \#185](https://github.com/m1lun/MatchMarket/pull/185)). | Fixed |
 | NFR 1 has no test | Added the feed ranking latency test and its results ([PR \#209](https://github.com/m1lun/MatchMarket/pull/209)). | Fixed |
 | Coverage gaps are justified only for Deals | Testing.md now justifies every file below 100% across the back end ([PR \#202](https://github.com/m1lun/MatchMarket/pull/202), [\#209](https://github.com/m1lun/MatchMarket/pull/209)). | Fixed |
-| Major fault: no photos load on a physical device with the deployed back end | Could not reproduce: photos loaded throughout the app on our physical device, a Samsung Galaxy S20 FE running Android 13, with the deployed back end. | Could not reproduce |
+| Major fault: no photos load on a physical device with the deployed back end | Could not reproduce: photos loaded on our physical device, a Samsung Galaxy S20 FE running Android 13. | Could not reproduce |
 | Links in Requirements_and_Design.md do not work | Every link target exists and the links work on GitHub, so we could not reproduce it in the repository. The use case anchors now use `id` instead of the older `name`, which more Markdown viewers and PDF converters support. | Fixed |
 | Use Case 1 mixes the request and listing flows | Kept as one use case, since both kinds of post share the same screens and steps. Its description now says that, and failure 5a1 lists which messages apply to requests and which to listings. | Fixed |
-| Use Case 3 describes the ranking algorithm | Steps 3–5 now say what the system does for the user, and the scoring details moved to the Matching component in section 4.1 of Requirements_and_Design.md (this pull request). | Fixed |
-| No explanation of the code structure; files have no top-level explanation | The code is now organised by component first (the five components in Requirements_and_Design.md section 4.1), with one folder per component and its architectural layers inside: routes, logic, store and models in the back end ([PR \#242](https://github.com/m1lun/MatchMarket/pull/242)), and model, view and view model (MVVM) in the app (this pull request). The structure is documented in the README's "Code structure" section. | Fixed |
-| `DealsModel.kt` and `DealModels.kt` are easy to confuse | `DealsModel` is renamed `DealsStateHolder` and sits in `components/deals/viewmodel/`, while the data classes in `DealModels.kt` sit in `components/deals/model/` (this pull request). `FeedModel` is renamed `FeedStateHolder` for the same reason. | Fixed |
-| Screens are not in the `ui` folder | Each component's screens are now in its `view/` folder, separate from its view models (`viewmodel/`) and back-end calls (`model/`) (this pull request). | Fixed |
+| Use Case 3 describes the ranking algorithm | Steps 3–5 now say what the system does for the user, and the scoring details moved to the Matching component in section 4.1 of Requirements_and_Design.md ([PR \#235](https://github.com/m1lun/MatchMarket/pull/235)). | Fixed |
+| No explanation of the code structure; files have no top-level explanation | The code is now organised by component first (the five components in Requirements_and_Design.md section 4.1), with one folder per component and its architectural layers inside: routes, logic, store and models in the back end ([PR \#242](https://github.com/m1lun/MatchMarket/pull/242)), and model, view and view model (MVVM) in the app ([PR \#244](https://github.com/m1lun/MatchMarket/pull/244)). The structure is documented in the README's "Code structure" section. | Fixed |
+| `DealsModel.kt` and `DealModels.kt` are easy to confuse | `DealsModel` is renamed `DealsStateHolder` and sits in `components/deals/viewmodel/`, while the data classes in `DealModels.kt` sit in `components/deals/model/` ([PR \#244](https://github.com/m1lun/MatchMarket/pull/244)). `FeedModel` is renamed `FeedStateHolder` for the same reason. | Fixed |
+| Screens are not in the `ui` folder | Each component's screens are now in its `view/` folder, separate from its view models (`viewmodel/`) and back-end calls (`model/`) ([PR \#244](https://github.com/m1lun/MatchMarket/pull/244)). | Fixed |
 | The back end has many very small files and no agreed structure | The back end now has an agreed structure: one folder per component under `backend/src/components/`, with `routes`, `logic`, `store` and `models` inside, and shared code in `backend/src/shared/` ([PR \#242](https://github.com/m1lun/MatchMarket/pull/242)). | Fixed |
-| `assertTrue(size == 1)` hides the actual count | Not changed yet. | Open |
+| `assertTrue(size == 1)` hides the actual count | The five checks now use `assertEquals(1, size)`, so a failure shows the actual count. | Fixed |
 
 ### 3.4 Additional Internal Team Review
 
