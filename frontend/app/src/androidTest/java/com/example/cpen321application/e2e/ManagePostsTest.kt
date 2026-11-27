@@ -22,6 +22,7 @@ import com.example.cpen321application.support.TestPhotos
 import com.example.cpen321application.support.waitForText
 import org.junit.After
 import org.junit.Before
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -79,7 +80,7 @@ class ManagePostsTest(private val form: PostForm) {
         rule.waitForText("Choose a category")
         rule.back()
         rule.waitForText(form.listHeader, substring = true)
-        assertTrue(rule.postCards().size == 1)
+        assertEquals(1, rule.postCards().size)
     }
 
     @Test
@@ -188,6 +189,6 @@ class ManagePostsTest(private val form: PostForm) {
 
         rule.waitForText("Could not reach the server", substring = true)
         setAirplaneMode(false)
-        assertTrue(rule.postCards().size == 1)
+        assertEquals(1, rule.postCards().size)
     }
 }
