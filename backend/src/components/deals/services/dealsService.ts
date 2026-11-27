@@ -98,7 +98,6 @@ export class DealsService {
     private readonly users: UsersService,
   ) {}
 
-  // The caller's deals, newest first. At most 6 queries however many deals there are; nextCursor is null on the last page.
   async listMine(me: string, limit: number, before: string | undefined) {
     // One extra deal tells whether another page follows.
     const found = await this.store.deals.listByUser(me, limit + 1, before);
@@ -125,7 +124,6 @@ export class DealsService {
     return { deals: page.map((deal) => dealView(deal, me, lookups)), nextCursor };
   }
 
-  // The caller rates the other party of their deal and gets back that party's new score.
   async rate(id: string, me: string, { stars, comment }: RatingInput): Promise<RatingResult> {
     const { dealId, ratedUserId } = await this.findMyDeal(id, me);
     const now = new Date();
@@ -150,7 +148,6 @@ export class DealsService {
     return { rating: saved.rating, otherUser: reputationSummary(ratedUserId, saved.reputation) };
   }
 
-  // The caller replaces their rating of the deal and gets back the other party's new score.
   async editRating(id: string, me: string, { stars, comment }: RatingInput): Promise<RatingResult> {
     const { dealId, ratedUserId } = await this.findMyDeal(id, me);
     const now = new Date();
@@ -169,7 +166,6 @@ export class DealsService {
     return { rating: saved.rating, otherUser: reputationSummary(ratedUserId, saved.reputation) };
   }
 
-  // A user's score and rating count; score is null when nobody has rated them.
   async reputation(userId: string): Promise<{ userId: string; score: number | null; ratingCount: number }> {
     const { id, score, ratingCount } = reputationSummary(userId, await this.store.reputations.find(userId));
     return { userId: id, score, ratingCount };

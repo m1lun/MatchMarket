@@ -32,9 +32,6 @@ export function passesFilter(post: Listing | BuyerRequest, filter: PostFilter): 
 export class FeedService {
   constructor(private readonly posts: PostsService) {}
 
-  // The ranked feed for one of the caller's open posts: listings that match a request, or requests
-  // that match a listing, best first, narrowed by any feed filters. The first page carries travel
-  // times. nextCursor is the `cursor` for the next page, or null on the last page.
   async recommendations(me: string, postId: string, limit: number, offset: number, filter: PostFilter) {
     const source = await this.findPost(postId);
     if (source === null) {
@@ -72,7 +69,6 @@ export class FeedService {
     };
   }
 
-  // Other users' open posts, newest first. nextCursor is the `before` for the next page, or null on the last page.
   async browse<K extends PostKind>(
     kind: K,
     me: string,
@@ -88,7 +84,6 @@ export class FeedService {
     return { page, nextCursor };
   }
 
-  // One post, open or closed, to any signed-in user.
   async one<K extends PostKind>(kind: K, id: string): Promise<PostOf<K>> {
     const post = await this.posts.findById(kind, id);
     if (post === null) {

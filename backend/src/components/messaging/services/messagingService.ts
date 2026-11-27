@@ -146,8 +146,6 @@ export class MessagingService {
     private readonly events: EventPublisher,
   ) {}
 
-  // Opens the caller's conversation with the owner of the tapped post; myPostId is the caller's post it was
-  // recommended for. Returns the existing conversation unchanged if there is one; created says which.
   async open(me: string, postId: string, postKind: PostKind, myPostId: string | undefined) {
     const myKind = postKind === 'listing' ? 'request' : 'listing';
     const [post, myPost] = await Promise.all([
@@ -168,7 +166,6 @@ export class MessagingService {
     });
   }
 
-  // The caller's conversations, newest activity first, in at most 4 queries.
   async listInbox(me: string) {
     const conversations = await this.store.conversations.listByUser(me);
     const others = [...new Set(conversations.map((c) => otherParticipant(c, me)))];
@@ -185,7 +182,6 @@ export class MessagingService {
     return { conversations: conversations.map((c) => conversationView(c, me, lookups)) };
   }
 
-  // Newest first; nextCursor is null on the last page.
   async listMessages(me: string, conversationId: string, limit: number, before: string | undefined) {
     const conversation = await this.findMyConversation(conversationId, me);
     // One extra message tells whether another page follows.
@@ -203,7 +199,6 @@ export class MessagingService {
     return message;
   }
 
-  // Proposes a price to the other participant. 409 while a proposal is pending, or once one was accepted.
   async propose(me: string, conversationId: string, price: number, note: string): Promise<Proposal> {
     const conversation = await this.findMyConversation(conversationId, me);
     const proposal: Proposal = { proposerId: me, price, note, status: 'pending', createdAt: new Date() };
@@ -214,8 +209,6 @@ export class MessagingService {
     return proposal;
   }
 
-  // Makes the deal from the conversation's posts and people at the proposed price, and closes the posts.
-  // Retrying after a failure finishes the same deal.
   async accept(me: string, conversationId: string): Promise<{ deal: Deal; proposal: Proposal }> {
     const conversation = await this.findMyConversation(conversationId, me);
     const proposal = proposalToAnswer(conversation, me);
@@ -240,7 +233,6 @@ export class MessagingService {
     return { deal, proposal: accepted };
   }
 
-  // Turns down the pending proposal; either side can then propose again.
   async decline(me: string, conversationId: string): Promise<Proposal> {
     const conversation = await this.findMyConversation(conversationId, me);
     const proposal = proposalToAnswer(conversation, me);
