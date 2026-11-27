@@ -4,7 +4,7 @@ import jwt from 'jsonwebtoken';
 import request from 'supertest';
 
 import { SESSIONS_COLLECTION } from '../../src/components/users/models/session';
-import { SESSION_TTL_SECONDS } from '../../src/components/users/logic/sessions';
+import { SESSION_TTL_SECONDS } from '../../src/components/users/services/sessionService';
 import {
   AUTH_BODY_LIMIT,
   GOOGLE_USER,

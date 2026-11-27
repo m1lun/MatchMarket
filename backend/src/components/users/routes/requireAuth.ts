@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from 'express';
 
-import { verifySessionToken, type SessionUser } from '../logic/sessions';
+import { verifySessionToken, type SessionUser } from '../services/sessionService';
 
 // Rejects the request with 401 unless it carries a valid session token in
 // `Authorization: Bearer <token>`. On success the user is in res.locals; read

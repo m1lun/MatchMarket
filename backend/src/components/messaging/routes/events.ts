@@ -3,9 +3,6 @@ import type { Response } from 'express';
 // A comment line this often keeps networks from dropping a stream that has been quiet for a while.
 const HEARTBEAT_MS = 25_000;
 
-export const MESSAGE_CREATED = 'message.created';
-export const PROPOSAL_UPDATED = 'proposal.updated';
-
 // Server-Sent Events: each open GET /api/events response stays open, and events are written to it as they happen.
 export class EventHub {
   // A user can have more than one stream, e.g. two devices, or a reconnect before the old stream has closed.

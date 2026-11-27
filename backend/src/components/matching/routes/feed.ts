@@ -1,13 +1,10 @@
 import { Router, type RequestHandler } from 'express';
 
 import { currentUser } from '../../users/routes/requireAuth';
-import { BadRequestError } from '../../../shared/errors';
-import { DEFAULT_WEIGHTS, asPair, isRequest, rank, type Post } from '../logic/rank';
-import { satisfies } from '../logic/satisfies';
-import { DEFAULT_TRAVEL_MODE, travelTimes } from '../logic/travelTime';
-import type { PostCollection, PostDoc } from '../../posts/store/types';
-import type { Store } from '../../../shared/store/types';
-import { FILTER_PARAMS, parsePostFilter, passesFilter } from './feedFilter';
+import { BadRequestError, NotFoundError } from '../../../shared/errors';
+import type { PostKind } from '../../posts/services/postsService';
+import type { FeedService } from '../services/feedService';
+import { FILTER_PARAMS, parsePostFilter } from './feedFilter';
 import { handle } from '../../../shared/http/handle';
 
 export const DEFAULT_PAGE_SIZE = 20;
@@ -64,13 +61,9 @@ function parseCursor(value: unknown, errors: string[]): number {
   return Number(value);
 }
 
-async function findPost(store: Store, id: string): Promise<Post | null> {
-  return (await store.requests.findById(id)) ?? (await store.listings.findById(id));
-}
-
 // Responds with `{ [key]: posts, nextCursor }`: other users' open posts, newest first.
 // nextCursor is the `before` for the next page, or null on the last page.
-function browse<T extends PostDoc>(posts: PostCollection<T>, key: string): RequestHandler {
+function browse(feed: FeedService, kind: PostKind, key: string): RequestHandler {
   return handle(async (req, res) => {
     const errors = Object.keys(req.query)
       .filter((name) => !BROWSE_PARAMS.includes(name))
@@ -81,29 +74,23 @@ function browse<T extends PostDoc>(posts: PostCollection<T>, key: string): Reque
     if (errors.length > 0) {
       throw new BadRequestError(errors);
     }
-    // One extra post tells whether another page follows.
-    const found = await posts.listOpen(currentUser(res).id, limit + 1, { ...filter, before });
-    const page = found.slice(0, limit);
-    const last = page[page.length - 1];
-    const nextCursor = found.length > limit && last !== undefined ? last.id : null;
+    const { page, nextCursor } = await feed.browse(kind, currentUser(res).id, limit, before, filter);
     res.json({ [key]: page, nextCursor });
   });
 }
 
 // Responds with one post, open or closed, to any signed-in user; 404 for a malformed or unknown id.
-function one<T extends PostDoc>(posts: PostCollection<T>): RequestHandler {
+function one(feed: FeedService, kind: PostKind): RequestHandler {
   return handle(async (req, res) => {
     const id = String(req.params.id);
-    const post = POST_ID.test(id) ? await posts.findById(id) : null;
-    if (post === null) {
-      res.status(404).json({ error: 'Not Found' });
-      return;
+    if (!POST_ID.test(id)) {
+      throw new NotFoundError();
     }
-    res.json(post);
+    res.json(await feed.one(kind, id));
   });
 }
 
-export function createFeedRouter(store: Store): Router {
+export function createFeedRouter(feed: FeedService): Router {
   const router = Router();
 
   // GET /api/feed?postId=<id>&limit=20&cursor=<nextCursor> — the ranked feed for one of
@@ -122,50 +109,13 @@ export function createFeedRouter(store: Store): Router {
       throw new BadRequestError(errors);
     }
 
-    const me = currentUser(res).id;
-    const source = await findPost(store, postId);
-    if (source === null) {
-      res.status(404).json({ error: 'Not Found' });
-      return;
-    }
-    if (source.ownerId !== me) {
-      res.status(403).json({ error: 'Forbidden' });
-      return;
-    }
-    if (source.status === 'closed') {
-      res.status(409).json({ error: 'Closed posts have no feed' });
-      return;
-    }
-
-    const candidates: Post[] = isRequest(source)
-      ? await store.listings.listOpenInCategory(source.category, me)
-      : await store.requests.listOpenInCategory(source.category, me);
-    const matching = candidates.filter((candidate) => {
-      const { request, listing } = asPair(source, candidate);
-      return satisfies(request, listing) && passesFilter(candidate, filter);
-    });
-    // Every match is ranked before paging, since any of them could come first.
-    const ranked = rank(source, matching, DEFAULT_WEIGHTS);
-    const end = offset + limit;
-    const page = ranked.slice(offset, end);
-    // Only the first page asks for travel times, to stay within the routing service's
-    // daily cap. If it fails, the feed is still returned, without them.
-    const minutes =
-      offset === 0 ? await travelTimes(source.location, page.map((match) => match.post.location), DEFAULT_TRAVEL_MODE) : [];
-    // When travel times are available, a null travelMinutes means there is no route to that post.
-    const travelTimesAvailable = page.length > 0 && minutes.length === page.length;
-    res.json({
-      matches: page.map((match, index) => ({ ...match, travelMinutes: minutes.at(index) ?? null })),
-      travelMode: DEFAULT_TRAVEL_MODE,
-      travelTimesAvailable,
-      nextCursor: end < ranked.length ? String(end) : null,
-    });
+    res.json(await feed.recommendations(currentUser(res).id, postId, limit, offset, filter));
   }));
 
-  router.get('/listings', browse(store.listings, 'listings'));
-  router.get('/requests', browse(store.requests, 'requests'));
-  router.get('/listings/:id', one(store.listings));
-  router.get('/requests/:id', one(store.requests));
+  router.get('/listings', browse(feed, 'listing', 'listings'));
+  router.get('/requests', browse(feed, 'request', 'requests'));
+  router.get('/listings/:id', one(feed, 'listing'));
+  router.get('/requests/:id', one(feed, 'request'));
 
   return router;
 }

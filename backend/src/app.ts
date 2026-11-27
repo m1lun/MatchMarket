@@ -2,7 +2,7 @@ import express, { type Express, type Response } from 'express';
 
 import { errorHandler, errorMessage } from './shared/errors';
 import { EventHub } from './components/messaging/routes/events';
-import { verifyGoogleIdToken } from './components/users/logic/googleAuth';
+import { verifyGoogleIdToken } from './components/users/services/googleAuth';
 import { isText } from './shared/http/checks';
 import { createConversationsRouter } from './components/messaging/routes/conversations';
 import { createCustomFieldsRouter } from './components/posts/routes/customFields';
@@ -17,9 +17,10 @@ import { createProposalsRouter } from './components/messaging/routes/proposals';
 import { createRequestsRouter } from './components/posts/routes/requests';
 import { createUsersRouter } from './components/users/routes/users';
 import { currentUser, requireAuth } from './components/users/routes/requireAuth';
-import { endSession, refreshSession, startSession, type AuthResponse } from './components/users/logic/sessions';
+import { endSession, refreshSession, startSession, type AuthResponse } from './components/users/services/sessionService';
 import type { SessionRepo } from './components/users/store/types';
 import type { Store } from './shared/store/types';
+import { createServices } from './shared/services';
 
 export interface AppDeps {
   sessions: SessionRepo;
@@ -97,24 +98,25 @@ export function createApp({ sessions, store, e2eRoutes = false }: AppDeps): Expr
 
   // Posts carry photo ids and fields, so they get a larger body limit.
   if (store !== undefined) {
-    const posts = [express.json({ limit: '1mb' }), requireAuth];
-    app.use('/api/feed', requireAuth, createFeedRouter(store));
-    app.use('/api/deals', requireAuth, createDealsRouter(store));
-    app.use('/api/deals', express.json({ limit: '4kb' }), requireAuth, createRatingsRouter(store), ratingBodyTooLarge);
-    app.use('/api/users', requireAuth, createReputationRouter(store));
-    app.use('/api/users', express.json({ limit: '4kb' }), requireAuth, createUsersRouter(store), ratingBodyTooLarge);
-    app.use('/api/listings', ...posts, createListingsRouter(store));
-    app.use('/api/requests', ...posts, createRequestsRouter(store));
-    app.use('/api/options', ...posts, createOptionsRouter(store));
-    app.use('/api/custom-fields', ...posts, createCustomFieldsRouter(store));
-    app.use('/api/photos', createPhotosRouter(store.photos));
     const events = new EventHub();
+    const services = createServices(store, events);
+    const posts = [express.json({ limit: '1mb' }), requireAuth];
+    app.use('/api/feed', requireAuth, createFeedRouter(services.feed));
+    app.use('/api/deals', requireAuth, createDealsRouter(services.deals));
+    app.use('/api/deals', express.json({ limit: '4kb' }), requireAuth, createRatingsRouter(services.deals), ratingBodyTooLarge);
+    app.use('/api/users', requireAuth, createReputationRouter(services.deals));
+    app.use('/api/users', express.json({ limit: '4kb' }), requireAuth, createUsersRouter(services.users), ratingBodyTooLarge);
+    app.use('/api/listings', ...posts, createListingsRouter(services.posts));
+    app.use('/api/requests', ...posts, createRequestsRouter(services.posts));
+    app.use('/api/options', ...posts, createOptionsRouter(services.posts));
+    app.use('/api/custom-fields', ...posts, createCustomFieldsRouter(services.posts));
+    app.use('/api/photos', createPhotosRouter(services.posts));
     // GET /api/events — the caller's live updates as Server-Sent Events; the response stays open.
     app.get('/api/events', requireAuth, (_req, res) => {
       events.open(currentUser(res).id, res);
     });
     const conversationAuth = [express.json({ limit: '16kb' }), requireAuth];
-    const conversationRoutes = [createConversationsRouter(store, events), createProposalsRouter(store, events), ratingBodyTooLarge];
+    const conversationRoutes = [createConversationsRouter(services.messaging), createProposalsRouter(services.messaging), ratingBodyTooLarge];
     app.use('/api/conversations', ...conversationAuth, ...conversationRoutes);
     if (e2eRoutes) {
       app.use('/api/e2e', requireAuth, createE2eRouter(store));
