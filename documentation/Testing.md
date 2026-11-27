@@ -33,6 +33,7 @@
 | 2026-11-26 | 4 | Use Case 4 failures 2a1 and 4a1: after going back online, the tests tap "Retry" only if it is still shown. Since live updates reach the whole app, a live connection that broke during the outage reconnects and reloads the inbox and the open conversation, which can remove "Retry" before the test taps it and made both tests flaky. A connection that lasts through the outage does not reload, so the tests cannot simply wait for that reload either. |
 | 2026-11-26 | 4 | Use Case 1 now uses the app's labels, "Must have" and "Nice to have", instead of Hard and Soft, as in the tests. |
 | 2026-11-26 | 2 | Re-ran the back-end tests at commit `8f90a68`, after each component got a service that owns its rules, including the input rules (758 interface tests: 116 with mocks, 642 without; NFR tests 5 of 5). Replaced the coverage screenshots and figures, and updated the coverage table for the files that moved: `logic/` became part of each component's `services/`, and the defensive branches of the deals list and the conversations list moved into `dealsService.ts` and `messagingService.ts`. |
+| 2026-11-27 | 2, 4 | The end-to-end tests can run against the deployed backend: the test routes are turned on there from GitHub, test data is hidden from everyone but its tester, and the test seller can only act in its tester's own conversation. Added `tests/no-mock/e2eIsolation.test.ts` for these rules. |
 
 ---
 
@@ -262,6 +263,8 @@ Tests:       5 passed, 5 total
    ```
    The script starts the back-end and the `Pixel_9` emulator (set `AVD_NAME=<name>` for another AVD), then builds and installs the app. When prompted, sign in inside the app on the emulator, wait for the main screen, and press Enter. The full suite takes about 10 minutes.
 4. The report is at `frontend/app/build/reports/androidTests/connected/debug/index.html`.
+
+**Running against the deployed backend:** the test routes can be turned on for the VM from GitHub (see the README's Continuous integration section). Set `API_BASE_URL` in `frontend/local.properties` to the VM's address, sign in with your own Google account, and run `./scripts/run-frontend-e2e-tests.sh` as usual. The tests only see the data they create, and nothing they create is shown to other users.
 
 **Without Docker on Windows** (for example, with Docker installed only in WSL), the script cannot start the backend. Start MongoDB and run `npm run dev` in `backend/` instead, start the `Pixel_9` emulator and sign in inside the app, then run the tests from `frontend/`:
 

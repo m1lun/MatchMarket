@@ -77,7 +77,7 @@ Set at least:
 - `PORT` (optional): defaults to `3000` if unset.
 - `ENABLE_HTTPS` (optional): `true` serves HTTPS using `backend/certs/server.crt` and `backend/certs/server.key` (see [HTTPS](#https)). Leave unset for local HTTP.
 - `ORS_API_KEY` (optional): an [OpenRouteService](https://openrouteservice.org/dev/) API key, used for travel times on the first page of recommendations. Without it, the feed works but shows "Travel time unavailable".
-- `ENABLE_E2E_ROUTES` (optional): `true` turns on the test-only `/api/e2e` routes the end-to-end tests use; leave it unset in production.
+- `ENABLE_E2E_ROUTES` (optional): `true` turns on the test-only `/api/e2e` routes the end-to-end tests use to create their data. It is safe to turn on for the deployed backend: what these routes create is only visible to the user who created it (see [Test routes](#test-routes)). On the VM it is set from GitHub, not by editing `.env` (see [Continuous integration](#continuous-integration)).
 
 ### API
 
@@ -310,12 +310,23 @@ Backend tests use Jest. Frontend tests use the Jetpack Compose testing APIs and 
 
 The end-to-end tests create their data through the test-only `/api/e2e` routes, so set `ENABLE_E2E_ROUTES=true` in `backend/.env` before running them. See [documentation/Testing.md](documentation/Testing.md) for the end-to-end tests: how to run them and how they map to the use cases.
 
+### Test routes
+
+The end-to-end tests create their own data through `/api/e2e`, which exists only when `ENABLE_E2E_ROUTES=true` (404 otherwise). Every route needs a signed-in user, and:
+
+- **Each call replaces the caller's previous test data**, so one user only ever has one set: one listing from a test seller ("E2E lamp"), one conversation about it, and one deal.
+- **Test data is private to its tester.** Test users' ids start with `e2e-` (real users' ids are Google account ids and never do). Feeds and recommendations leave out test posts, except the caller's own test seller's listing, and nobody can start a conversation about another tester's test post.
+- **The test seller only acts in its tester's own conversation.** `/api/e2e/partner/conversations/:id` can only send a message, propose a price or decline, and only in the conversation between the caller and their own test seller. It cannot open conversations, accept proposals, or reach real users.
+
 ## Continuous integration
 
 GitHub Actions runs on every push to `main` and on pull requests:
 
 - `.github/workflows/backend-tests.yml` runs the typecheck and the backend test scripts.
 - `.github/workflows/frontend-build.yml` builds the debug APK.
+- `.github/workflows/deploy-backend.yml` deploys `main` to the VM after the backend tests pass on a push, or when run by hand.
+
+**Turning the test routes on or off on the VM:** set the repository variable `ENABLE_E2E_ROUTES` to `true` or `false` (Settings → Secrets and variables → Actions → Variables; needs admin access), then run **Actions → Deploy backend → Run workflow**. The deploy writes that one line into the VM's `backend/.env` (`scripts/set-e2e-routes.sh`) and restarts the backend; every other line is left as it is. If the variable is not set, the VM's `.env` is not changed.
 
 ## Code review (Codacy)
 

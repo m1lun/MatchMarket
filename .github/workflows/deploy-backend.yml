@@ -22,6 +22,7 @@ jobs:
       DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
       DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
       DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
+      ENABLE_E2E_ROUTES: ${{ vars.ENABLE_E2E_ROUTES }}
     steps:
       - name: Skip when deployment is not configured
         if: env.DEPLOY_HOST == ''
@@ -40,8 +41,12 @@ jobs:
       - name: Pull main and restart the stack on the VM
         if: env.DEPLOY_HOST != ''
         run: |
+          case "$ENABLE_E2E_ROUTES" in
+            ''|true|false) ;;
+            *) echo "The ENABLE_E2E_ROUTES variable must be true or false." >&2; exit 1 ;;
+          esac
           ssh -i ~/.ssh/deploy_key "$DEPLOY_USER@$DEPLOY_HOST" \
-            "cd '${DEPLOY_PATH:-/opt/cpen321}' && git fetch origin main && git reset --hard origin/main && ./scripts/run-backend.sh"
+            "cd '${DEPLOY_PATH:-/opt/cpen321}' && git fetch origin main && git reset --hard origin/main && E2E='$ENABLE_E2E_ROUTES' ./scripts/set-e2e-routes.sh && ./scripts/run-backend.sh"
 
       # The certificate the app pins, so this check fails if the VM ever
       # serves a different one than the app trusts.

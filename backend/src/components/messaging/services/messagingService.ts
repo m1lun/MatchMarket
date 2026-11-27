@@ -1,6 +1,6 @@
 import { BadRequestError, ConflictError, ForbiddenError, NotFoundError } from '../../../shared/errors';
 import { isNumber, isObject, type Body } from '../../../shared/http/checks';
-import { isOneOf } from '../../../shared/models/common';
+import { isOneOf, isTestOwner, testPartnerId } from '../../../shared/models/common';
 import type { DealsService, DealTerms } from '../../deals/services/dealsService';
 import type { Deal } from '../../deals/models/deal';
 import type { Listing } from '../../posts/models/listing';
@@ -226,6 +226,9 @@ export class MessagingService {
       this.posts.findById(postKind, postId),
       myPostId === undefined ? undefined : this.posts.findById(myKind, myPostId),
     ]);
+    if (post !== null && isTestOwner(post.ownerId) && post.ownerId !== testPartnerId(me)) {
+      throw new NotFoundError();
+    }
     checkUsable(post, me, false);
     if (myPost !== undefined) {
       checkUsable(myPost, me, true);
