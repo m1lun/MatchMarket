@@ -32,7 +32,7 @@
 | 2026-11-26 | 2, 4 | Removed content the course does not ask for: the notes on how the back-end tests are organized, the `dealStore.test.ts` and IDE notes, the out-of-date sentence that more tests would be added, the list of `support/` files, five of the front-end setup notes, and the repeated `ManagePostsTest` results in the Use Case 1 log. The Rate a Deal tests now describe the deal they start with. |
 | 2026-11-26 | 4 | Use Case 4 failures 2a1 and 4a1: after going back online, the tests tap "Retry" only if it is still shown. Since live updates reach the whole app, a live connection that broke during the outage reconnects and reloads the inbox and the open conversation, which can remove "Retry" before the test taps it and made both tests flaky. A connection that lasts through the outage does not reload, so the tests cannot simply wait for that reload either. |
 | 2026-11-26 | 4 | Use Case 1 now uses the app's labels, "Must have" and "Nice to have", instead of Hard and Soft, as in the tests. |
-| 2026-11-26 | 2 | Re-ran the back-end tests at commit `e6401d4`, after each component got a service that owns its rules (758 interface tests: 116 with mocks, 642 without; NFR tests 5 of 5). Replaced the coverage screenshots and figures, and updated the coverage table for the files that moved: `logic/` became part of each component's `services/`, and the defensive branches of the deals list and the conversations list moved into `dealsService.ts` and `messagingService.ts`. |
+| 2026-11-26 | 2 | Re-ran the back-end tests at commit `8f90a68`, after each component got a service that owns its rules, including the input rules (758 interface tests: 116 with mocks, 642 without; NFR tests 5 of 5). Replaced the coverage screenshots and figures, and updated the coverage table for the files that moved: `logic/` became part of each component's `services/`, and the defensive branches of the deals list and the conversations list moved into `dealsService.ts` and `messagingService.ts`. |
 
 ---
 
@@ -44,11 +44,11 @@
 
 | **Interface** | **Describe Group Location, No Mocks** | **Describe Group Location, With Mocks** | **Mocked Components** |
 | ------------- | ------------------------------------- | --------------------------------------- | --------------------- |
-| **GET /api/deals** | [`tests/no-mock/getDeals.test.ts#L95`](https://github.com/m1lun/MatchMarket/blob/e6401d48e7f136ad98858e3fc8c4971d9cbb4a7f/backend/tests/no-mock/getDeals.test.ts#L95) | [`tests/mock/getDeals.test.ts#L45`](https://github.com/m1lun/MatchMarket/blob/e6401d48e7f136ad98858e3fc8c4971d9cbb4a7f/backend/tests/mock/getDeals.test.ts#L45) | Deals DB, Ratings DB, Reputations DB, Users DB, Listings DB, Requests DB |
-| **POST /api/deals/:id/ratings** | [`tests/no-mock/ratings.test.ts#L260`](https://github.com/m1lun/MatchMarket/blob/e6401d48e7f136ad98858e3fc8c4971d9cbb4a7f/backend/tests/no-mock/ratings.test.ts#L260) | [`tests/mock/ratings.test.ts#L81`](https://github.com/m1lun/MatchMarket/blob/e6401d48e7f136ad98858e3fc8c4971d9cbb4a7f/backend/tests/mock/ratings.test.ts#L81) | Deals DB, Ratings DB, Reputations DB |
-| **PUT /api/deals/:id/ratings** | [`tests/no-mock/ratings.test.ts#L348`](https://github.com/m1lun/MatchMarket/blob/e6401d48e7f136ad98858e3fc8c4971d9cbb4a7f/backend/tests/no-mock/ratings.test.ts#L348) | [`tests/mock/ratings.test.ts#L116`](https://github.com/m1lun/MatchMarket/blob/e6401d48e7f136ad98858e3fc8c4971d9cbb4a7f/backend/tests/mock/ratings.test.ts#L116) | Deals DB, Ratings DB, Reputations DB |
-| **GET /api/feed/listings/:id** | [`tests/no-mock/dealPost.test.ts#L97`](https://github.com/m1lun/MatchMarket/blob/e6401d48e7f136ad98858e3fc8c4971d9cbb4a7f/backend/tests/no-mock/dealPost.test.ts#L97) | [`tests/mock/dealPost.test.ts#L34`](https://github.com/m1lun/MatchMarket/blob/e6401d48e7f136ad98858e3fc8c4971d9cbb4a7f/backend/tests/mock/dealPost.test.ts#L34) | Listings DB |
-| **GET /api/feed/requests/:id** | [`tests/no-mock/dealPost.test.ts#L102`](https://github.com/m1lun/MatchMarket/blob/e6401d48e7f136ad98858e3fc8c4971d9cbb4a7f/backend/tests/no-mock/dealPost.test.ts#L102) | [`tests/mock/dealPost.test.ts#L54`](https://github.com/m1lun/MatchMarket/blob/e6401d48e7f136ad98858e3fc8c4971d9cbb4a7f/backend/tests/mock/dealPost.test.ts#L54) | Requests DB |
+| **GET /api/deals** | [`tests/no-mock/getDeals.test.ts#L95`](https://github.com/m1lun/MatchMarket/blob/8f90a68cf7d9d0fc1721ab24ab8021ab3448cd45/backend/tests/no-mock/getDeals.test.ts#L95) | [`tests/mock/getDeals.test.ts#L45`](https://github.com/m1lun/MatchMarket/blob/8f90a68cf7d9d0fc1721ab24ab8021ab3448cd45/backend/tests/mock/getDeals.test.ts#L45) | Deals DB, Ratings DB, Reputations DB, Users DB, Listings DB, Requests DB |
+| **POST /api/deals/:id/ratings** | [`tests/no-mock/ratings.test.ts#L260`](https://github.com/m1lun/MatchMarket/blob/8f90a68cf7d9d0fc1721ab24ab8021ab3448cd45/backend/tests/no-mock/ratings.test.ts#L260) | [`tests/mock/ratings.test.ts#L81`](https://github.com/m1lun/MatchMarket/blob/8f90a68cf7d9d0fc1721ab24ab8021ab3448cd45/backend/tests/mock/ratings.test.ts#L81) | Deals DB, Ratings DB, Reputations DB |
+| **PUT /api/deals/:id/ratings** | [`tests/no-mock/ratings.test.ts#L348`](https://github.com/m1lun/MatchMarket/blob/8f90a68cf7d9d0fc1721ab24ab8021ab3448cd45/backend/tests/no-mock/ratings.test.ts#L348) | [`tests/mock/ratings.test.ts#L116`](https://github.com/m1lun/MatchMarket/blob/8f90a68cf7d9d0fc1721ab24ab8021ab3448cd45/backend/tests/mock/ratings.test.ts#L116) | Deals DB, Ratings DB, Reputations DB |
+| **GET /api/feed/listings/:id** | [`tests/no-mock/dealPost.test.ts#L97`](https://github.com/m1lun/MatchMarket/blob/8f90a68cf7d9d0fc1721ab24ab8021ab3448cd45/backend/tests/no-mock/dealPost.test.ts#L97) | [`tests/mock/dealPost.test.ts#L34`](https://github.com/m1lun/MatchMarket/blob/8f90a68cf7d9d0fc1721ab24ab8021ab3448cd45/backend/tests/mock/dealPost.test.ts#L34) | Listings DB |
+| **GET /api/feed/requests/:id** | [`tests/no-mock/dealPost.test.ts#L102`](https://github.com/m1lun/MatchMarket/blob/8f90a68cf7d9d0fc1721ab24ab8021ab3448cd45/backend/tests/no-mock/dealPost.test.ts#L102) | [`tests/mock/dealPost.test.ts#L54`](https://github.com/m1lun/MatchMarket/blob/8f90a68cf7d9d0fc1721ab24ab8021ab3448cd45/backend/tests/mock/dealPost.test.ts#L54) | Requests DB |
 | **POST /api/conversations** | [`tests/no-mock/conversations.test.ts#L53`](../backend/tests/no-mock/conversations.test.ts#L53) | [`tests/mock/conversations.test.ts#L40`](../backend/tests/mock/conversations.test.ts#L40) | Listings DB, Requests DB, Conversations DB |
 | **GET /api/conversations** | [`tests/no-mock/conversations.test.ts#L247`](../backend/tests/no-mock/conversations.test.ts#L247) | [`tests/mock/conversations.test.ts#L65`](../backend/tests/mock/conversations.test.ts#L65) | Conversations DB, Users DB, Listings DB |
 | **GET /api/conversations/:id/messages** | [`tests/no-mock/conversations.test.ts#L353`](../backend/tests/no-mock/conversations.test.ts#L353) | [`tests/mock/conversations.test.ts#L86`](../backend/tests/mock/conversations.test.ts#L86) | Conversations DB, Messages DB |
@@ -102,7 +102,7 @@ The mocked tests use `jest.spyOn` on one store method at a time, so each databas
 
 #### 2.1.2. Commit Hash Where Tests Run
 
-`e6401d48e7f136ad98858e3fc8c4971d9cbb4a7f`
+`8f90a68cf7d9d0fc1721ab24ab8021ab3448cd45`
 
 #### 2.1.3. Explanation on How to Run the Tests
 
@@ -112,7 +112,7 @@ The mocked tests use `jest.spyOn` on one store method at a time, so each databas
      ```
      git clone https://github.com/m1lun/MatchMarket.git
      cd MatchMarket
-     git checkout e6401d48e7f136ad98858e3fc8c4971d9cbb4a7f
+     git checkout 8f90a68cf7d9d0fc1721ab24ab8021ab3448cd45
      ```
 
 2. **Install the Tools**:
@@ -160,7 +160,7 @@ These are the Jest reports for every back-end file at the commit above: 758 test
 
 **Reasons for coverage below 100%:**
 
-These reports cover the whole back-end. Combined, the tests reach 97.68% of statements, 96.32% of branches, 98.37% of functions and 97.61% of lines. Every file not listed below has 100% combined coverage of statements, branches, functions and lines.
+These reports cover the whole back-end. Combined, the tests reach 97.66% of statements, 96.32% of branches, 98.37% of functions and 97.59% of lines. Every file not listed below has 100% combined coverage of statements, branches, functions and lines.
 
 The Uncovered Line # column shows lines of the compiled JavaScript, not the TypeScript source. The line numbers below are the real source lines, with the report's line in brackets where they differ.
 
@@ -176,8 +176,8 @@ The Uncovered Line # column shows lines of the compiled JavaScript, not the Type
 | `components/users/services/googleAuth.ts` | 100% | 91.66% | Line 40 (27 in the report): `payload.email ?? ''` is for a ticket without an email. The line before it rejects an account whose `email_verified` is not `true`, and Google only sends `email_verified` together with `email` (both come from the `email` scope), so a ticket that gets this far always has an email. |
 | `shared/errors.ts` | 95.45% | 88.88% | Line 38 (43 in the report): `errorMessage` turns a thrown value that is not an `Error` into text, but every error in the back-end is an `Error`. Lines 45–47 (48–50): the handler passes an error on to Express when the response has already started, which only happens if a route fails after it began sending; no route writes part of a response and then throws. |
 | `components/deals/routes/deals.ts` | 100% | 95% | One defensive branch cannot be reached through the API. Line 36 (33 in the report): Express always gives `req.query` as an object. |
-| `components/deals/services/dealsService.ts` | 100% | 96.15% | Two defensive branches cannot be reached through the API. Line 55 (12 in the report): a stored post always has an `id`. Line 80 (33): every listing has at least one photo, because the validator requires it. Each one keeps the code safe with the optional types, so removing it would not simplify the logic. |
-| `components/messaging/services/messagingService.ts` | 100% | 98.52% | One defensive branch cannot be reached through the API. Line 59 (10 in the report): `byId` skips a post without an `id`, but Posts' `findByIds` always returns each post's `id`; the check is there because its return type makes every field optional. |
+| `components/deals/services/dealsService.ts` | 100% | 97.29% | Two defensive branches cannot be reached through the API. Line 83 (44 in the report): a stored post always has an `id`. Line 108 (65): every listing has at least one photo, because the validator requires it. Each one keeps the code safe with the optional types, so removing it would not simplify the logic. |
+| `components/messaging/services/messagingService.ts` | 100% | 99.15% | One defensive branch cannot be reached through the API. Line 132 (69 in the report): `byId` skips a post without an `id`, but Posts' `findByIds` always returns each post's `id`; the check is there because its return type makes every field optional. |
 | `components/messaging/routes/paging.ts` | 100% | 95% | One defensive branch cannot be reached through the API. Line 41 (30 in the report): `parsePageQuery` falls back to no parameters if the query is not an object, but Express always gives `req.query` as an object. The same check in `components/deals/routes/deals.ts` is justified above. |
 | `components/matching/services/rank.ts` | 98.18% | 96.29% | One defensive branch cannot be reached through the API. Lines 59–60 (39 in the report): `normaliseWeights` counts the four parts equally when every weight is 0, but the feed always ranks with `DEFAULT_WEIGHTS` (3, 3, 3, 3) until users can save ranking preferences. |
 | `components/matching/services/satisfies.ts` | 97.91% | 97.14% | One defensive branch cannot be reached through the API. Lines 87–88 (83 in the report): `satisfies` rejects a listing in another category, but the feed only fetches candidates in the post's category (`listOpenInCategory`). The check keeps the rule complete on its own, so a listing is in a request's feed exactly when the request is in the listing's. |
