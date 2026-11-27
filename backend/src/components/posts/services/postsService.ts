@@ -1,8 +1,8 @@
 import type { Readable } from 'node:stream';
 
 import { BadRequestError, ConflictError, ForbiddenError, NotFoundError } from '../../../shared/errors';
-import { FIELD_TYPES, isOneOf, normaliseCategory, normaliseKey, type PostField } from '../../../shared/models/common';
-import { isObject } from '../../../shared/http/checks';
+import { FIELD_TYPES, MAX_LABEL_LENGTH, RESERVED_KEYS, isOneOf, normaliseCategory, normaliseKey, type PostField } from '../../../shared/models/common';
+import { isObject, isText } from '../../../shared/http/checks';
 import type { CustomField } from '../models/customField';
 import type { Listing } from '../models/listing';
 import type { Option } from '../models/option';
@@ -143,20 +143,40 @@ export class PostsService {
     return this.store.options.list(normaliseKey(field));
   }
 
-  addOption(field: string, label: string, ownerId: string): Promise<Option> {
-    return this.store.options.ensure(newOption(field, label, ownerId));
+  addOption(ownerId: string, body: unknown): Promise<Option> {
+    const fields = isObject(body) ? body : {};
+    if (!isText(fields.field) || !isText(fields.label) || fields.label.trim().length > MAX_LABEL_LENGTH) {
+      throw new BadRequestError([`field and a label of 1 to ${MAX_LABEL_LENGTH} characters are required`]);
+    }
+    return this.store.options.ensure(newOption(fields.field, fields.label, ownerId));
   }
 
   listCustomFields(ownerId: string): Promise<CustomField[]> {
     return this.store.customFields.list(ownerId);
   }
 
-  async addCustomField(field: CustomField): Promise<CustomField> {
-    const existing = (await this.store.customFields.list(field.ownerId)).find((saved) => saved.key === field.key);
+  async addCustomField(ownerId: string, body: unknown): Promise<CustomField> {
+    const fields = isObject(body) ? body : {};
+    const errors: string[] = [];
+    const label = isText(fields.label) ? fields.label.trim() : '';
+    const key = normaliseKey(label);
+    if (label === '' || label.length > MAX_LABEL_LENGTH) {
+      errors.push(`label must be 1 to ${MAX_LABEL_LENGTH} characters`);
+    } else if (isOneOf(RESERVED_KEYS, key)) {
+      errors.push(`"${label}" is already a built-in field, so there is no need to add it`);
+    }
+    const type = FIELD_TYPES.find((fieldType) => fieldType === fields.type);
+    if (type === undefined) {
+      errors.push(`type must be one of: ${FIELD_TYPES.join(', ')}`);
+    }
+    if (errors.length > 0 || type === undefined) {
+      throw new BadRequestError(errors);
+    }
+    const existing = (await this.store.customFields.list(ownerId)).find((saved) => saved.key === key);
     if (existing !== undefined) {
       throw new ConflictError(`You already have a custom field called "${existing.label}"`);
     }
-    return this.store.customFields.upsert(field);
+    return this.store.customFields.upsert({ ownerId, key, label, type });
   }
 
   async removeCustomField(ownerId: string, key: string): Promise<void> {

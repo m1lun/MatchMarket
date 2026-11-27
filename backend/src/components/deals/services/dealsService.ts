@@ -1,4 +1,6 @@
-import { ConflictError, ForbiddenError, NotFoundError } from '../../../shared/errors';
+import { BadRequestError, ConflictError, ForbiddenError, NotFoundError } from '../../../shared/errors';
+import { isObject } from '../../../shared/http/checks';
+import { MAX_COMMENT_LENGTH, MAX_STARS, MIN_STARS } from '../../../shared/models/common';
 import type { TransactionStore } from '../../../shared/store/types';
 import type { PostsService } from '../../posts/services/postsService';
 import type { PublicUser } from '../../users/models/user';
@@ -14,6 +16,37 @@ const DUPLICATE_KEY = 11000;
 
 class AlreadyRatedError extends Error {}
 
+const RATING_FIELDS = ['stars', 'comment'];
+
+function parseRating(body: unknown): { stars: number; comment: string } {
+  const errors: string[] = [];
+  const fields = isObject(body) ? body : {};
+  if (!isObject(body)) {
+    errors.push('Request body must be a JSON object');
+  }
+  for (const name of Object.keys(fields)) {
+    if (!RATING_FIELDS.includes(name)) {
+      errors.push(`unsupported field "${name}"`);
+    }
+  }
+  const { stars } = fields;
+  if (typeof stars !== 'number' || !Number.isInteger(stars) || stars < MIN_STARS || stars > MAX_STARS) {
+    errors.push(`stars must be a whole number from ${MIN_STARS} to ${MAX_STARS}`);
+  }
+  let comment = '';
+  if (fields.comment !== undefined) {
+    if (typeof fields.comment === 'string' && fields.comment.trim().length <= MAX_COMMENT_LENGTH) {
+      comment = fields.comment.trim();
+    } else {
+      errors.push(`comment must be text of at most ${MAX_COMMENT_LENGTH} characters`);
+    }
+  }
+  if (errors.length > 0 || typeof stars !== 'number') {
+    throw new BadRequestError(errors);
+  }
+  return { stars, comment };
+}
+
 export interface DealsStore {
   deals: DealCollection;
   ratings: RatingCollection;
@@ -22,11 +55,6 @@ export interface DealsStore {
 }
 
 export type DealTerms = Omit<Deal, 'id' | 'createdAt'>;
-
-export interface RatingInput {
-  stars: number;
-  comment: string;
-}
 
 export interface RatingResult {
   rating: Rating;
@@ -124,7 +152,8 @@ export class DealsService {
     return { deals: page.map((deal) => dealView(deal, me, lookups)), nextCursor };
   }
 
-  async rate(id: string, me: string, { stars, comment }: RatingInput): Promise<RatingResult> {
+  async rate(id: string, me: string, body: unknown): Promise<RatingResult> {
+    const { stars, comment } = parseRating(body);
     const { dealId, ratedUserId } = await this.findMyDeal(id, me);
     const now = new Date();
     let saved: { rating: Rating; reputation: Reputation };
@@ -148,7 +177,8 @@ export class DealsService {
     return { rating: saved.rating, otherUser: reputationSummary(ratedUserId, saved.reputation) };
   }
 
-  async editRating(id: string, me: string, { stars, comment }: RatingInput): Promise<RatingResult> {
+  async editRating(id: string, me: string, body: unknown): Promise<RatingResult> {
+    const { stars, comment } = parseRating(body);
     const { dealId, ratedUserId } = await this.findMyDeal(id, me);
     const now = new Date();
     const saved = await this.store.transaction(async (tx) => {

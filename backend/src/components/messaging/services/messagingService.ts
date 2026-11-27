@@ -1,4 +1,6 @@
 import { BadRequestError, ConflictError, ForbiddenError, NotFoundError } from '../../../shared/errors';
+import { isNumber, isObject, type Body } from '../../../shared/http/checks';
+import { isOneOf } from '../../../shared/models/common';
 import type { DealsService, DealTerms } from '../../deals/services/dealsService';
 import type { Deal } from '../../deals/models/deal';
 import type { Listing } from '../../posts/models/listing';
@@ -7,6 +9,9 @@ import type { PostsService } from '../../posts/services/postsService';
 import type { PublicUser } from '../../users/models/user';
 import type { UsersService } from '../../users/services/usersService';
 import {
+  MAX_MESSAGE_LENGTH,
+  MAX_NOTE_LENGTH,
+  POST_KINDS,
   isParticipant,
   otherParticipant,
   type Conversation,
@@ -15,6 +20,11 @@ import {
   type Proposal,
 } from '../models/conversation';
 import type { ConversationCollection, MessageCollection } from '../store/types';
+
+const POST_ID = /^[0-9a-f]{24}$/;
+const OPEN_FIELDS = ['postId', 'postKind', 'myPostId'];
+const MESSAGE_FIELDS = ['text'];
+const PROPOSAL_FIELDS = ['price', 'note'];
 
 export const MESSAGE_CREATED = 'message.created';
 export const PROPOSAL_UPDATED = 'proposal.updated';
@@ -53,6 +63,69 @@ interface Lookups {
   userOf: Map<string, PublicUser>;
   listingOf: Map<string, PostView>;
   requestOf: Map<string, PostView>;
+}
+
+function bodyFields(body: unknown, allowed: string[]): { fields: Body; errors: string[] } {
+  if (!isObject(body)) {
+    return { fields: {}, errors: ['Request body must be a JSON object'] };
+  }
+  const errors = Object.keys(body)
+    .filter((name) => !allowed.includes(name))
+    .map((name) => `unsupported field "${name}"`);
+  return { fields: body, errors };
+}
+
+interface OpenBody {
+  postId: string;
+  postKind: PostKind;
+  myPostId: string | undefined;
+}
+
+function parseOpen(body: unknown): OpenBody {
+  const { fields, errors } = bodyFields(body, OPEN_FIELDS);
+  const postId = typeof fields.postId === 'string' && POST_ID.test(fields.postId) ? fields.postId : undefined;
+  const postKind = typeof fields.postKind === 'string' && isOneOf(POST_KINDS, fields.postKind) ? fields.postKind : undefined;
+  const myPostId = typeof fields.myPostId === 'string' && POST_ID.test(fields.myPostId) ? fields.myPostId : undefined;
+  if (postId === undefined) {
+    errors.push('postId must be the id of a listing or request');
+  }
+  if (postKind === undefined) {
+    errors.push(`postKind must be one of: ${POST_KINDS.join(', ')}`);
+  }
+  if (fields.myPostId !== undefined && myPostId === undefined) {
+    errors.push('myPostId must be the id of one of your posts');
+  }
+  if (errors.length > 0 || postId === undefined || postKind === undefined) {
+    throw new BadRequestError(errors);
+  }
+  return { postId, postKind, myPostId };
+}
+
+function parseMessage(body: unknown): string {
+  const { fields, errors } = bodyFields(body, MESSAGE_FIELDS);
+  const text = typeof fields.text === 'string' ? fields.text.trim() : '';
+  if (text === '' || text.length > MAX_MESSAGE_LENGTH) {
+    errors.push(`text must be 1 to ${MAX_MESSAGE_LENGTH} characters`);
+  }
+  if (errors.length > 0) {
+    throw new BadRequestError(errors);
+  }
+  return text;
+}
+
+function parseProposal(body: unknown): { price: number; note: string } {
+  const { fields, errors } = bodyFields(body, PROPOSAL_FIELDS);
+  const { price, note } = fields;
+  if (!isNumber(price) || price < 0) {
+    errors.push('price must be a number of at least 0');
+  }
+  if (note !== undefined && (typeof note !== 'string' || note.trim().length > MAX_NOTE_LENGTH)) {
+    errors.push(`note must be text of at most ${MAX_NOTE_LENGTH} characters`);
+  }
+  if (errors.length > 0 || !isNumber(price)) {
+    throw new BadRequestError(errors);
+  }
+  return { price, note: typeof note === 'string' ? note.trim() : '' };
 }
 
 function byId(items: PostView[]): Map<string, PostView> {
@@ -146,7 +219,8 @@ export class MessagingService {
     private readonly events: EventPublisher,
   ) {}
 
-  async open(me: string, postId: string, postKind: PostKind, myPostId: string | undefined) {
+  async open(me: string, body: unknown) {
+    const { postId, postKind, myPostId } = parseOpen(body);
     const myKind = postKind === 'listing' ? 'request' : 'listing';
     const [post, myPost] = await Promise.all([
       this.posts.findById(postKind, postId),
@@ -190,7 +264,8 @@ export class MessagingService {
     return { messages: page, nextCursor };
   }
 
-  async send(me: string, conversationId: string, text: string): Promise<Message> {
+  async send(me: string, conversationId: string, body: unknown): Promise<Message> {
+    const text = parseMessage(body);
     const conversation = await this.findMyConversation(conversationId, me);
     const createdAt = new Date();
     const message = await this.store.messages.insert({ conversationId: conversation.id, senderId: me, text, createdAt });
@@ -199,7 +274,8 @@ export class MessagingService {
     return message;
   }
 
-  async propose(me: string, conversationId: string, price: number, note: string): Promise<Proposal> {
+  async propose(me: string, conversationId: string, body: unknown): Promise<Proposal> {
+    const { price, note } = parseProposal(body);
     const conversation = await this.findMyConversation(conversationId, me);
     const proposal: Proposal = { proposerId: me, price, note, status: 'pending', createdAt: new Date() };
     if (!(await this.store.conversations.propose(conversation.id, proposal))) {
