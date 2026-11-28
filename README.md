@@ -162,7 +162,7 @@ The end-to-end tests seed their own data through test-only routes. They exist on
 - `POST /api/e2e/listings`: replaces the E2E Seller's open listing "E2E lamp" ($30), for starting a conversation from the feed. `201` with `{ "listingId" }`.
 - `POST /api/e2e/conversations?messages=<0-40>`: the same listing plus your conversation about it, with that many messages from the E2E Seller ("Message 1" is the oldest). `201` with `{ "listingId", "conversationId" }`; `400` for any other `messages` value.
 - `DELETE /api/e2e/conversations`: removes the E2E Seller's listings and conversations, and any deal and rating made from them. `204`.
-- `/api/e2e/partner/conversations/...`: the conversation and proposal routes above, run as the E2E Seller (for example `POST /api/e2e/partner/conversations/:id/messages`), so a test can reply, propose, accept or decline the way a second phone would, live updates included.
+- `POST /api/e2e/partner/conversations/:id/messages`, `/:id/proposal` and `/:id/proposal/decline`: the E2E Seller replies, proposes or declines in your own conversation with it, through the same code as the real routes, so a test can act like a second phone, live updates included. `403` in any other conversation. The E2E Seller cannot open conversations or accept proposals.
 
 
 ### Option 1: Run locally
