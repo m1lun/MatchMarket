@@ -36,6 +36,7 @@
 | 2026-11-26 | 2, 4 | Use Case 4 steps 7 and 7a1 match the requirements wording. Section 2.2 links the workflow and says what it runs; the note on mocks names every kind of mock used; the macOS note says every other test binds to 127.0.0.1. |
 | 2026-11-27 | 2, 4 | The end-to-end tests can also run against the VM, where the test routes are on; test data is only visible to its tester. |
 | 2026-11-28 | 2 | Back-end tests added for a browse feed filtered by a maximum price alone, a Google account with no email, a photo stream that fails partway, and the test-route isolation rules; unreachable code was removed. Coverage is now measured on the TypeScript source, and the reasons table lists only the start-up code no API reaches (`index.ts`, `env.ts`, `mongoHelpers.ts`). |
+| 2026-11-28 | 4 | The deploy now turns the test routes on for the VM by default, so the end-to-end tests run there without setting a repository variable. |
 
 ---
 
@@ -251,7 +252,7 @@ Tests:       5 passed, 5 total
    The script starts the back-end and the `Pixel_9` emulator (set `AVD_NAME=<name>` for another AVD), then builds and installs the app. When prompted, sign in inside the app on the emulator, wait for the main screen, and press Enter. The full suite takes about 10 minutes.
 4. The report is at `frontend/app/build/reports/androidTests/connected/debug/index.html`.
 
-**Against the deployed backend:** the test routes are already on for the VM. Set `API_BASE_URL` in `frontend/local.properties` to the VM's address and run the script as usual.
+**Against the deployed backend:** the deploy turns the test routes on for the VM by default, so the back-end needs no change. Set `API_BASE_URL` in `frontend/local.properties` to the VM's address and run the script as usual.
 
 **Without Docker on Windows** (for example, with Docker installed only in WSL), the script cannot start the backend. Start MongoDB and run `npm run dev` in `backend/` instead, start the `Pixel_9` emulator and sign in inside the app, then run the tests from `frontend/`:
 

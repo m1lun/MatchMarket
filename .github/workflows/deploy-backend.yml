@@ -22,7 +22,7 @@ jobs:
       DEPLOY_HOST: ${{ secrets.DEPLOY_HOST }}
       DEPLOY_USER: ${{ secrets.DEPLOY_USER }}
       DEPLOY_PATH: ${{ vars.DEPLOY_PATH }}
-      ENABLE_E2E_ROUTES: ${{ vars.ENABLE_E2E_ROUTES }}
+      ENABLE_E2E_ROUTES: ${{ vars.ENABLE_E2E_ROUTES || 'true' }}
     steps:
       - name: Skip when deployment is not configured
         if: env.DEPLOY_HOST == ''
@@ -42,7 +42,7 @@ jobs:
         if: env.DEPLOY_HOST != ''
         run: |
           case "$ENABLE_E2E_ROUTES" in
-            ''|true|false) ;;
+            true|false) ;;
             *) echo "The ENABLE_E2E_ROUTES variable must be true or false." >&2; exit 1 ;;
           esac
           ssh -i ~/.ssh/deploy_key "$DEPLOY_USER@$DEPLOY_HOST" \

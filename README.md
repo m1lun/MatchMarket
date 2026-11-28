@@ -326,7 +326,7 @@ GitHub Actions runs on every push to `main` and on pull requests:
 - `.github/workflows/frontend-build.yml` builds the debug APK.
 - `.github/workflows/deploy-backend.yml` deploys `main` to the VM after the backend tests pass on a push, or when run by hand.
 
-The VM has the test routes on: the deploy sets `ENABLE_E2E_ROUTES` from the repository variable of the same name.
+The deploy turns the test routes on for the VM by default. To turn them off, set the repository variable `ENABLE_E2E_ROUTES` to `false`; the next deploy applies it.
 
 ## Code review (Codacy)
 
