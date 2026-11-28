@@ -47,11 +47,11 @@
 
 | **Interface** | **Describe Group Location, No Mocks** | **Describe Group Location, With Mocks** | **Mocked Components** |
 | ------------- | ------------------------------------- | --------------------------------------- | --------------------- |
-| **GET /api/deals** | [`tests/no-mock/getDeals.test.ts#L95`](https://github.com/m1lun/MatchMarket/blob/f237aa97310d1183090990afd7f1e6f7a886bbc5/backend/tests/no-mock/getDeals.test.ts#L95) | [`tests/mock/getDeals.test.ts#L45`](https://github.com/m1lun/MatchMarket/blob/f237aa97310d1183090990afd7f1e6f7a886bbc5/backend/tests/mock/getDeals.test.ts#L45) | Deals DB, Ratings DB, Reputations DB, Users DB, Listings DB, Requests DB |
-| **POST /api/deals/:id/ratings** | [`tests/no-mock/ratings.test.ts#L260`](https://github.com/m1lun/MatchMarket/blob/f237aa97310d1183090990afd7f1e6f7a886bbc5/backend/tests/no-mock/ratings.test.ts#L260) | [`tests/mock/ratings.test.ts#L81`](https://github.com/m1lun/MatchMarket/blob/f237aa97310d1183090990afd7f1e6f7a886bbc5/backend/tests/mock/ratings.test.ts#L81) | Deals DB, Ratings DB, Reputations DB |
-| **PUT /api/deals/:id/ratings** | [`tests/no-mock/ratings.test.ts#L348`](https://github.com/m1lun/MatchMarket/blob/f237aa97310d1183090990afd7f1e6f7a886bbc5/backend/tests/no-mock/ratings.test.ts#L348) | [`tests/mock/ratings.test.ts#L116`](https://github.com/m1lun/MatchMarket/blob/f237aa97310d1183090990afd7f1e6f7a886bbc5/backend/tests/mock/ratings.test.ts#L116) | Deals DB, Ratings DB, Reputations DB |
-| **GET /api/feed/listings/:id** | [`tests/no-mock/dealPost.test.ts#L97`](https://github.com/m1lun/MatchMarket/blob/f237aa97310d1183090990afd7f1e6f7a886bbc5/backend/tests/no-mock/dealPost.test.ts#L97) | [`tests/mock/dealPost.test.ts#L34`](https://github.com/m1lun/MatchMarket/blob/f237aa97310d1183090990afd7f1e6f7a886bbc5/backend/tests/mock/dealPost.test.ts#L34) | Listings DB |
-| **GET /api/feed/requests/:id** | [`tests/no-mock/dealPost.test.ts#L102`](https://github.com/m1lun/MatchMarket/blob/f237aa97310d1183090990afd7f1e6f7a886bbc5/backend/tests/no-mock/dealPost.test.ts#L102) | [`tests/mock/dealPost.test.ts#L54`](https://github.com/m1lun/MatchMarket/blob/f237aa97310d1183090990afd7f1e6f7a886bbc5/backend/tests/mock/dealPost.test.ts#L54) | Requests DB |
+| **GET /api/deals** | [`tests/no-mock/getDeals.test.ts#L95`](https://github.com/m1lun/MatchMarket/blob/1936f2c49491fa45f0aef4e42526f323746b6f20/backend/tests/no-mock/getDeals.test.ts#L95) | [`tests/mock/getDeals.test.ts#L45`](https://github.com/m1lun/MatchMarket/blob/1936f2c49491fa45f0aef4e42526f323746b6f20/backend/tests/mock/getDeals.test.ts#L45) | Deals DB, Ratings DB, Reputations DB, Users DB, Listings DB, Requests DB |
+| **POST /api/deals/:id/ratings** | [`tests/no-mock/ratings.test.ts#L260`](https://github.com/m1lun/MatchMarket/blob/1936f2c49491fa45f0aef4e42526f323746b6f20/backend/tests/no-mock/ratings.test.ts#L260) | [`tests/mock/ratings.test.ts#L81`](https://github.com/m1lun/MatchMarket/blob/1936f2c49491fa45f0aef4e42526f323746b6f20/backend/tests/mock/ratings.test.ts#L81) | Deals DB, Ratings DB, Reputations DB |
+| **PUT /api/deals/:id/ratings** | [`tests/no-mock/ratings.test.ts#L348`](https://github.com/m1lun/MatchMarket/blob/1936f2c49491fa45f0aef4e42526f323746b6f20/backend/tests/no-mock/ratings.test.ts#L348) | [`tests/mock/ratings.test.ts#L116`](https://github.com/m1lun/MatchMarket/blob/1936f2c49491fa45f0aef4e42526f323746b6f20/backend/tests/mock/ratings.test.ts#L116) | Deals DB, Ratings DB, Reputations DB |
+| **GET /api/feed/listings/:id** | [`tests/no-mock/dealPost.test.ts#L97`](https://github.com/m1lun/MatchMarket/blob/1936f2c49491fa45f0aef4e42526f323746b6f20/backend/tests/no-mock/dealPost.test.ts#L97) | [`tests/mock/dealPost.test.ts#L34`](https://github.com/m1lun/MatchMarket/blob/1936f2c49491fa45f0aef4e42526f323746b6f20/backend/tests/mock/dealPost.test.ts#L34) | Listings DB |
+| **GET /api/feed/requests/:id** | [`tests/no-mock/dealPost.test.ts#L102`](https://github.com/m1lun/MatchMarket/blob/1936f2c49491fa45f0aef4e42526f323746b6f20/backend/tests/no-mock/dealPost.test.ts#L102) | [`tests/mock/dealPost.test.ts#L54`](https://github.com/m1lun/MatchMarket/blob/1936f2c49491fa45f0aef4e42526f323746b6f20/backend/tests/mock/dealPost.test.ts#L54) | Requests DB |
 | **POST /api/conversations** | [`tests/no-mock/conversations.test.ts#L53`](../backend/tests/no-mock/conversations.test.ts#L53), test posts in [`tests/no-mock/e2eIsolation.test.ts#L112`](../backend/tests/no-mock/e2eIsolation.test.ts#L112) | [`tests/mock/conversations.test.ts#L40`](../backend/tests/mock/conversations.test.ts#L40) | Listings DB, Requests DB, Conversations DB |
 | **GET /api/conversations** | [`tests/no-mock/conversations.test.ts#L247`](../backend/tests/no-mock/conversations.test.ts#L247) | [`tests/mock/conversations.test.ts#L65`](../backend/tests/mock/conversations.test.ts#L65) | Conversations DB, Users DB, Listings DB |
 | **GET /api/conversations/:id/messages** | [`tests/no-mock/conversations.test.ts#L353`](../backend/tests/no-mock/conversations.test.ts#L353) | [`tests/mock/conversations.test.ts#L86`](../backend/tests/mock/conversations.test.ts#L86) | Conversations DB, Messages DB |
@@ -106,7 +106,7 @@ The mocked tests use `jest.spyOn` to make one dependency fail at a time: a store
 
 #### 2.1.2. Commit Hash Where Tests Run
 
-`f237aa97310d1183090990afd7f1e6f7a886bbc5`
+`1936f2c49491fa45f0aef4e42526f323746b6f20`
 
 #### 2.1.3. Explanation on How to Run the Tests
 
@@ -116,7 +116,7 @@ The mocked tests use `jest.spyOn` to make one dependency fail at a time: a store
      ```
      git clone https://github.com/m1lun/MatchMarket.git
      cd MatchMarket
-     git checkout f237aa97310d1183090990afd7f1e6f7a886bbc5
+     git checkout 1936f2c49491fa45f0aef4e42526f323746b6f20
      ```
 
 2. **Install the Tools**:
@@ -164,13 +164,12 @@ These are the Jest reports for every back-end file at the commit above: 776 test
 
 **Reasons for coverage below 100%:**
 
-Combined, the tests reach 98.2% of statements, 98.37% of branches, 98.38% of functions and 98.15% of lines. Every file not listed below has 100% combined coverage. What is left is start-up code: it runs once when the server starts, before any request, so the interface tests (which build the app with `createApp` and call it through Supertest) cannot reach it. Line numbers are source lines.
+Combined, the tests reach 98.31% of statements, 98.37% of branches, 98.38% of functions and 98.26% of lines. Every file not listed below has 100% combined coverage. What is left is start-up code: it runs once when the server starts, before any request, so the interface tests (which build the app with `createApp` and call it through Supertest) cannot reach it. Line numbers are source lines.
 
 | **File** | **Statements** | **Branches** | **Reason** |
 | -------- | -------------- | ------------ | ---------- |
 | `index.ts` | 0% | 0% | The start-up file: it connects to MongoDB, runs the start-up data steps, starts the HTTP or HTTPS server and closes it on SIGINT/SIGTERM. The tests never start a real server, as the course's example does, so this file never runs under Jest. |
 | `shared/config/env.ts` | 80% | 68.96% | Start-up checks of the environment. The tests always set valid values (`tests/setup.ts`), so the four errors that stop the server on a bad configuration are not reached: an invalid `PORT` (line 10), a missing variable (16), no `GOOGLE_CLIENT_ID` (34) and a `JWT_SECRET` under 32 characters (46). Nor are the defaults for an unset `PORT` (5), `JWT_SECRET` (43), `MONGODB_DB` (62) and `ORS_API_KEY` (66). |
-| `components/posts/store/seed.ts` | 91.66% | 100% | Lines 34 and 55 add context to an error when the stored categories cannot be normalised or the built-in options cannot be saved. Both only run if MongoDB fails while the server starts, which stops the server. |
 | `shared/store/mongoHelpers.ts` | 95% | 80% | Lines 33–34: `applySchema` updates the validator of a collection that already exists, which happens when the server restarts on an existing database. Each test file starts with a new, empty database, so the collections never exist yet. |
 
 ---
