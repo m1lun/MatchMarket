@@ -4,7 +4,7 @@ import { BadRequestError } from '../../../shared/errors';
 import { DEFAULT_DEALS_PAGE, MAX_DEALS_PAGE } from '../../../shared/models/common';
 import { currentUser } from '../../users/routes/requireAuth';
 import type { DealsService } from '../services/dealsService';
-import { isObject } from '../../../shared/http/checks';
+import type { Body } from '../../../shared/http/checks';
 import { handle } from '../../../shared/http/handle';
 
 const DEAL_ID = /^[0-9a-f]{24}$/;
@@ -32,8 +32,7 @@ function parseBefore(value: unknown, errors: string[]): string | undefined {
   return value;
 }
 
-function parseDealsQuery(query: unknown): { limit: number; before: string | undefined } {
-  const params = isObject(query) ? query : {};
+function parseDealsQuery(params: Body): { limit: number; before: string | undefined } {
   const errors = Object.keys(params)
     .filter((name) => !DEALS_PARAMS.includes(name))
     .map((name) => `unsupported parameter "${name}"`);

@@ -93,4 +93,27 @@ describe('Mocked: GET /api/photos/:id', () => {
     await expect(request(app).get(`/api/photos/${PHOTO_ID}`).set('Authorization', bearer(ME))).rejects.toThrow('socket hang up');
     expect(spy).toHaveBeenCalledTimes(1);
   });
+
+  // Mocked behavior: photos.open finds the photo, but its download stream fails after sending its first bytes
+  // Input: GET /api/photos/:id with a well-formed id
+  // Expected status code: none: the response has started, so the server closes the connection
+  // Expected behavior: the error is passed on to Express instead of sending a second response
+  // Expected output: none
+  test('Photo Stream Fails After Sending Bytes: Connection Closed', async () => {
+    let sent = false;
+    const stream = new Readable({
+      read() {
+        if (sent) {
+          this.destroy(FAILURE);
+          return;
+        }
+        sent = true;
+        this.push(Buffer.from('partial'));
+      },
+    });
+    const spy = jest.spyOn(mongo.store.photos, 'open').mockResolvedValue({ mimeType: 'image/jpeg', stream });
+
+    await expect(request(app).get(`/api/photos/${PHOTO_ID}`).set('Authorization', bearer(ME))).rejects.toThrow();
+    expect(spy).toHaveBeenCalledTimes(1);
+  });
 });

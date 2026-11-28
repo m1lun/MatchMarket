@@ -33,7 +33,7 @@ export interface PostCollection<T extends PostDoc> {
   close(id: string, updatedAt: Date): Promise<void>;
   remove(id: string): Promise<void>;
   // Newest first; passing the last post's id as `before` starts the next page.
-  listOpen(excludeOwnerId: string, limit: number, filter?: OpenPostFilter): Promise<T[]>;
+  listOpen(excludeOwnerId: string, limit: number, filter: OpenPostFilter): Promise<T[]>;
   // Every open post in a category from everyone except excludeOwnerId: the
   // candidates the matching feed filters and ranks.
   listOpenInCategory(category: string, excludeOwnerId: string): Promise<T[]>;
@@ -41,7 +41,7 @@ export interface PostCollection<T extends PostDoc> {
   listCategories(): Promise<string[]>;
   renameCategory(from: string, to: string): Promise<void>;
   // One query for a page of posts; only the named fields are returned.
-  findByIds(ids: string[], fields: (keyof T)[], firstPhotoOnly?: boolean): Promise<Partial<T>[]>;
+  findByIds(ids: string[], fields: (keyof T)[], firstPhotoOnly?: boolean): Promise<(Partial<T> & { id: string })[]>;
 }
 
 export interface OptionCollection {

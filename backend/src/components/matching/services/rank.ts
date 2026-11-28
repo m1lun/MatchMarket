@@ -53,12 +53,9 @@ export function asPair(source: Post, candidate: Post): { request: BuyerRequest; 
 }
 
 // Each importance divided by their total, so the weights add up to 1: 5, 3, 2, 2 gives
-// about 0.42, 0.25, 0.17, 0.17. All zero counts the four parts equally.
+// about 0.42, 0.25, 0.17, 0.17.
 export function normaliseWeights(weights: Weights): Weights {
   const total = weights.price + weights.condition + weights.distance + weights.match;
-  if (total === 0) {
-    return { price: 0.25, condition: 0.25, distance: 0.25, match: 0.25 };
-  }
   return {
     price: weights.price / total,
     condition: weights.condition / total,

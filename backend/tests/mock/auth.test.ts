@@ -1,6 +1,7 @@
 import type { Server } from 'node:http';
 
 import { LoginTicket, OAuth2Client, type TokenPayload } from 'google-auth-library';
+import jwt from 'jsonwebtoken';
 
 import { env } from '../../src/shared/config/env';
 import { SESSION_TTL_SECONDS } from '../../src/components/users/services/sessionService';
@@ -112,6 +113,21 @@ describe('Mocked: POST /api/auth/google', () => {
     expect(await mongo.store.users.findById(GOOGLE_USER.id)).toMatchObject({ firstName: '', lastName: '', pictureUrl: null });
   });
 
+  // Mocked behavior: Google's verifyIdToken accepts the token, for a verified account whose ticket has no email
+  // Input: { idToken }
+  // Expected status code: 200
+  // Expected behavior: the user is saved with an empty email
+  // Expected output: email '', and new tokens
+  test('Google Account Without An Email', async () => {
+    const { iss, aud, sub, iat, exp } = anonymousPayload();
+    googleAccepts({ iss, aud, sub, iat, exp, email_verified: true });
+
+    const response = await postAuth(app, 'google', { idToken: ID_TOKEN });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({ email: '' });
+  });
+
   // Mocked behavior: Google's verifyIdToken rejects the token (expired or forged), returns a ticket for an account
   // whose email is not verified, or returns a ticket with no payload
   // Input: { idToken }
@@ -122,6 +138,7 @@ describe('Mocked: POST /api/auth/google', () => {
     { label: 'Google Rejects The Token', install: () => mockGoogle().mockRejectedValue(new Error('Token used too late')) },
     { label: 'Email Not Verified', install: () => googleAccepts(googlePayload({ email_verified: false })) },
     { label: 'No Payload', install: () => googleAccepts(undefined) },
+    { label: 'Google Rejects With A Non-Error Value', install: () => mockGoogle().mockRejectedValue('network down') },
   ])('$label: 401', async ({ install }: { label: string; install: () => jest.SpyInstance }) => {
     const google = install();
 
@@ -236,5 +253,23 @@ describe('Mocked: POST /api/auth/logout', () => {
     const response = await postAuth(app, 'logout', { refreshToken });
 
     expectServerError(response, spy);
+  });
+});
+
+// Interface GET /api/users/me, as a protected route
+describe('Mocked: session token on protected routes', () => {
+  // Mocked behavior: jwt.verify returns a plain string payload instead of claims
+  // Input: GET /api/users/me with a bearer token
+  // Expected status code: 401
+  // Expected behavior: a payload without the user's claims is refused
+  // Expected output: { error: 'Invalid or expired session token' }
+  test('Token Payload Is A String: 401', async () => {
+    const verify = jest.spyOn(jwt, 'verify').mockImplementation(() => 'not-claims');
+
+    const response = await getMe(app, 'any-token');
+
+    expect(response.status).toBe(401);
+    expect(response.body).toStrictEqual({ error: 'Invalid or expired session token' });
+    expect(verify).toHaveBeenCalledTimes(1);
   });
 });
