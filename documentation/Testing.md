@@ -36,6 +36,7 @@
 | 2026-11-26 | 2, 4 | Use Case 4 steps 7 and 7a1 match the requirements wording. Section 2.2 links the workflow and says what it runs; the note on mocks names every kind of mock used; the macOS note says every other test binds to 127.0.0.1. |
 | 2026-11-27 | 2, 4 | The end-to-end tests can also run against the VM, where the test routes are on; test data is only visible to its tester. |
 | 2026-11-27 | 4 | Added the View deals tests of the deal map: `showsDealLocation` checks the map and address on the deal card, and `opensRequestWithExactLocation` checks that the request opened from the deal shows its address and map, not the approximate area. |
+| 2026-11-28 | 4 | `managesPostFromItsDetailScreen` scrolls to the delete icon before tapping it, as it does for the other buttons, since the post's map can push the icon below the screen. |
 
 ---
 

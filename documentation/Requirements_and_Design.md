@@ -62,7 +62,7 @@
 | 2026-11-26 | 4.1, 4.6 | Following TA feedback, each component now has a service that owns its rules, and other components call that service instead of reading or writing its data. Accepting a proposal now asks Deals to record the deal (`recordDeal`) and Posts to close the posts (`closeForDeal`), instead of Messaging writing both itself. Section 4.1 lists the internal interfaces other components call (Posts' `findById`, `findByIds`, `listOpen`, `listOpenInCategory` and `closeForDeal`, Users' `findPublicByIds`, and Deals' `recordDeal` and `earlierDeal`), and the View Deals, View Recommendations, Send a Message and Filter Feed sequence diagrams now read posts and users through Posts and Users. |
 | 2026-11-26 | 3.2, 3.3, 3.4, 3.5, 4.1, 4.3, 4.4, 4.5, 4.6 | Following the CP3 TA feedback: one User actor, since buying and selling use the same use cases; Google is "Google Sign-In" everywhere, with the interface the backend calls; Manage profile is split into View profile and Edit address, in the text and the use case diagram, so the later use cases are renumbered; Use Case 3 failure 1a and Use Case 4 steps 7 and 7a1 describe only what the user sees; the Matching interface no longer mentions filters that were never built; Section 4.4 names the test libraries in use. In every sequence diagram the app has activation bars, and each call shows its result before the branches on it, so a network failure is a missing response rather than a second reply. After the services refactor, the diagrams pass `firstPhotoOnly` to Posts' `findByIds` as the code does, View Recommendations shows the feed filters it applies (`passesFilter`), and Send a Message sends the live update before it replies 201; Section 4.5 says other components go through Posts' and Deals' services. |
 | 2026-11-27 | 4.1 | Feeds leave out other testers' test posts, and no conversation can be started about one, so the test routes can be on for the VM. |
-| 2026-11-27 | 3.1, 3.4, 4.3, 4.4 | Added maps of where posts are. Another user's post shows only its approximate area, as a circle, instead of its address; a deal card shows the other user's post with a pin and its address, as do the posts opened from it. The app hides the address on screen only: the feed routes still return each post's address and location. The maps are OpenStreetMap's, drawn with osmdroid. |
+| 2026-11-27 | 3.1, 3.4, 4.1, 4.3, 4.4, 4.5 | Added maps of where posts are. Another user's post shows only its approximate area, as a circle, instead of its address; a deal card shows the other user's post with a pin and its address, as do the posts opened from it. The app hides the address on screen only: the feed routes still return each post's address and location. The maps are OpenStreetMap's, drawn with osmdroid; the dependencies diagram shows the app fetching map tiles from OpenStreetMap, and Section 4.1 says the deal cards read the other user's post through Matching's single-post route. |
 
 ---
 
@@ -354,7 +354,7 @@ None. Mock-ups are optional, and the use cases above describe each screen's fiel
         2. `GET /api/feed/listings` and `GET /api/feed/requests`
             - **Purpose**: Return other users' open posts, newest first, with the same filters; `before` pages through them. Posts created by the test routes are left out, except the caller's own test seller's listing.
         3. `GET /api/feed/listings/:id` and `GET /api/feed/requests/:id`
-            - **Purpose**: Return one listing or request, open or closed, to any signed-in user. The Deals tab uses it to open the posts of a deal. 404 for a malformed or unknown id.
+            - **Purpose**: Return one listing or request, open or closed, to any signed-in user. The Deals tab uses it to open the posts of a deal and to show the other user's post on each deal card's map. 404 for a malformed or unknown id.
         4. `boolean satisfies(Request request, Listing listing)`
             - **Purpose**: The single hard-requirement rule (category and straight-line distance within radius, plus price, condition, dimensions or any other field the buyer marked "Must have") used by both feed directions.
         5. `List<RankedMatch> rank(Post source, List<Post> candidates, Weights weights)`
@@ -555,11 +555,13 @@ flowchart LR
     G[Google Sign-In]
     GEO[Android Geocoder]
     ORS[OpenRouteService]
+    OSM[OpenStreetMap]
 
     FE --> UA
     FE --> P
     FE --> M
     FE --> GEO
+    FE --> OSM
     FE --> D
     FE --> MS
     UA --> G
