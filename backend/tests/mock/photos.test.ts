@@ -113,7 +113,7 @@ describe('Mocked: GET /api/photos/:id', () => {
     });
     const spy = jest.spyOn(mongo.store.photos, 'open').mockResolvedValue({ mimeType: 'image/jpeg', stream });
 
-    await expect(request(app).get(`/api/photos/${PHOTO_ID}`).set('Authorization', bearer(ME))).rejects.toThrow();
+    await expect(request(app).get(`/api/photos/${PHOTO_ID}`).set('Authorization', bearer(ME))).rejects.toThrow('socket hang up');
     expect(spy).toHaveBeenCalledTimes(1);
   });
 });
