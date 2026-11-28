@@ -34,7 +34,6 @@ function loadEnv(values: Record<string, string | undefined>): Env {
 describe('Mocked: start-up configuration (env)', () => {
   // Mocked behavior: dotenv loads nothing, so only the variables set here are read
   // Input: no PORT, MONGODB_DB or ORS_API_KEY, then all three set
-  // Expected status code: none, since the configuration is read at start-up rather than on a request
   // Expected behavior: unset optional values fall back to their defaults, and set ones are used
   // Expected output: port 3000, database matchmarket and no routing key; then port 8080, database other and the key
   test('Defaults And Set Values', () => {
@@ -49,7 +48,6 @@ describe('Mocked: start-up configuration (env)', () => {
 
   // Mocked behavior: dotenv loads nothing, so only the variables set here are read
   // Input: an invalid PORT, no MONGODB_URI, no GOOGLE_CLIENT_ID, or no JWT_SECRET
-  // Expected status code: none, since the configuration is read at start-up rather than on a request
   // Expected behavior: the server refuses to start
   // Expected output: an error naming the problem
   test.each([
@@ -125,7 +123,6 @@ async function start(options: { https?: boolean; mongoFails?: boolean; closeFail
 describe('Mocked: server start (index.ts)', () => {
   // Mocked behavior: MongoDB and the seed steps succeed, and the HTTPS server is a fake
   // Input: ENABLE_HTTPS=true
-  // Expected status code: none, since this is the server starting rather than a request
   // Expected behavior: an HTTPS server, rather than an HTTP one, listens on PORT
   // Expected output: listen called with 4321 on the HTTPS server
   test('Starts Over HTTPS', async () => {
@@ -138,7 +135,6 @@ describe('Mocked: server start (index.ts)', () => {
 
   // Mocked behavior: createMongoStore rejects with Error('MongoDB is unreachable')
   // Input: start-up
-  // Expected status code: none, since this is the server starting rather than a request
   // Expected behavior: the error is logged, no server is started, and the process will exit with 1
   // Expected output: process.exitCode 1
   test('MongoDB Fails: Exit Code 1', async () => {
@@ -151,7 +147,6 @@ describe('Mocked: server start (index.ts)', () => {
 
   // Mocked behavior: the server is a fake; store.close resolves, or rejects with Error('MongoDB is unreachable')
   // Input: SIGTERM after start-up
-  // Expected status code: none, since this is the server stopping rather than a request
   // Expected behavior: open connections are closed, the server stops, and MongoDB is closed; a failed close is logged
   // Expected output: process.exitCode unchanged, or 1 when MongoDB could not be closed
   test.each([

@@ -16,7 +16,6 @@ afterAll(async () => {
 // Runs at start-up, so no HTTP interface reaches it.
 describe('Unmocked: createMongoStore', () => {
   // Input: createMongoStore again on a database that already has the collections, as when the server restarts
-  // Expected status code: none, since createMongoStore runs at start-up rather than on a request
   // Expected behavior: the existing collections keep their data and get their validators again
   // Expected output: the stored listing is still there, and a listing without a name is still rejected
   test('Restart On An Existing Database', async () => {
