@@ -108,6 +108,8 @@ dependencies {
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("io.coil-kt.coil3:coil-compose:3.0.4")
     implementation("io.coil-kt.coil3:coil-network-okhttp:3.0.4")
+    // OpenStreetMap maps for post and deal locations; needs no API key.
+    implementation("org.osmdroid:osmdroid-android:6.1.20")
     testImplementation(libs.junit)
     // Android only ships a stub of org.json; JVM unit tests need the real one.
     testImplementation("org.json:json:20240303")

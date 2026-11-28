@@ -209,7 +209,7 @@ class MainActivity : ComponentActivity() {
             viewModel.tab == AppTab.POSTS -> PostScreen(viewModel, innerPadding)
             viewModel.tab == AppTab.DEALS -> DealsTab(dealsViewModel, ::signOut, innerPadding) { raw, mode ->
                 messagesViewModel.offerTarget = null
-                viewModel.open(raw, mode)
+                viewModel.open(raw, mode, fromDeal = true)
             }
             viewModel.tab == AppTab.MESSAGES -> MessagesTab(messagesViewModel, ::signOut, innerPadding)
             else -> ProfileTab(profileViewModel, ::signOut, innerPadding) {
@@ -234,6 +234,7 @@ class MainActivity : ComponentActivity() {
             innerPadding,
             readOnly = true,
             onBack = viewModel::closeOpenPost,
+            exactLocation = viewModel.openPostFromDeal,
             onMessage = target?.let {
                 {
                     messagesViewModel.clearOfferError()

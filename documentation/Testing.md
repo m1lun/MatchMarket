@@ -35,6 +35,8 @@
 | 2026-11-26 | 2 | Re-ran the back-end tests at commit `8f90a68`, after each component got a service that owns its rules, including the input rules (758 interface tests: 116 with mocks, 642 without; NFR tests 5 of 5). Replaced the coverage screenshots and figures, and updated the coverage table for the files that moved: `logic/` became part of each component's `services/`, and the defensive branches of the deals list and the conversations list moved into `dealsService.ts` and `messagingService.ts`. |
 | 2026-11-26 | 2, 4 | Use Case 4 steps 7 and 7a1 match the requirements wording. Section 2.2 links the workflow and says what it runs; the note on mocks names every kind of mock used; the macOS note says every other test binds to 127.0.0.1. |
 | 2026-11-27 | 2, 4 | The end-to-end tests can also run against the VM, where the test routes are on; test data is only visible to its tester. |
+| 2026-11-27 | 4 | Added the View deals tests of the deal map: `showsDealLocation` checks the map and address on the deal card, and `opensRequestWithExactLocation` checks that the request opened from the deal shows its address and map, not the approximate area. |
+| 2026-11-28 | 4 | `managesPostFromItsDetailScreen` scrolls to the delete icon before tapping it, as it does for the other buttons, since the post's map can push the icon below the screen. |
 
 ---
 
@@ -442,6 +444,8 @@ Tests:       5 passed, 5 total
   | -------- | ------------------- |
   | `showsDeal` | Tap "Deals". Check that the card shows the price "$45.00", "You sold to", the other user's score "New" (nobody has rated them), and "Request". |
   | `opensRequestOfDeal` | Tap "Deals" and "Request" on the card. Check that "E2E desk" and "Closed" are shown, and that neither "Delete" nor "Reopen" is shown, since the request is not the tester's. Go back and check that the Deals tab is shown again. |
+  | `showsDealLocation` | Tap "Deals". Check that the card shows a map and the request's address, "6335 Thunderbird Crescent, Vancouver". |
+  | `opensRequestWithExactLocation` | Tap "Deals" and "Request" on the card. Check that "E2E desk", a map and the address "6335 Thunderbird Crescent, Vancouver" are shown, and that "Approximate area" is not. Go back and check that the Deals tab is shown again. |
 
   - **Test Logs:**
     ```

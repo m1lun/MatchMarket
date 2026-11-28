@@ -8,9 +8,13 @@ import androidx.compose.runtime.setValue
 import com.example.cpen321application.components.deals.model.Deal
 import com.example.cpen321application.components.deals.model.DealPost
 import com.example.cpen321application.components.deals.model.DealRating
+import com.example.cpen321application.components.deals.model.DealRole
 import com.example.cpen321application.components.deals.model.DealsApi
 import com.example.cpen321application.components.deals.model.RateRejectedException
 import com.example.cpen321application.components.deals.model.RatingResult
+import com.example.cpen321application.components.deals.model.otherPost
+import com.example.cpen321application.components.posts.model.PostLocation
+import com.example.cpen321application.components.posts.model.locationOf
 import com.example.cpen321application.shared.network.SessionExpiredException
 import java.io.IOException
 import java.net.HttpURLConnection
@@ -78,6 +82,11 @@ class DealsStateHolder(private val api: DealsApi) {
         private set
     var opening by mutableStateOf(OpenPostState())
         private set
+    // The location of each deal's other post, by deal id. Kept across refreshes, since a post's location
+    // shows on its card again after every visit to the tab.
+    var locations by mutableStateOf(emptyMap<String, PostLocation>())
+        private set
+    private val locating = mutableSetOf<String>()
     private var generation = 0
     private var loadedAt = 0L
 
@@ -109,6 +118,16 @@ class DealsStateHolder(private val api: DealsApi) {
 
     fun stopOpening() {
         opening = OpenPostState()
+    }
+
+    // Fetches the other post of the deal for its location, once. Without it the card shows no map.
+    suspend fun loadLocation(deal: Deal) {
+        val post = deal.otherPost ?: return
+        if (deal.id in locations || !locating.add(deal.id)) return
+        val outcome = attempt("load post location") { api.post(isRequest = deal.role == DealRole.SELLER, post.id) }
+        locating.remove(deal.id)
+        val location = (outcome as? Outcome.Done)?.value?.let(::locationOf) ?: return
+        locations = locations + (deal.id to location)
     }
 
     fun startRating(dealId: String) {

@@ -58,6 +58,14 @@ data class PostDetail(
     val photoIds: List<String>,
     val rows: List<DetailRow>,
     val createdAt: String,
+    val location: PostLocation? = null,
+)
+
+/** Where a post is, as its owner picked it. */
+data class PostLocation(
+    val address: String,
+    val latitude: Double,
+    val longitude: Double,
 )
 
 data class PostSummary(

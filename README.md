@@ -282,7 +282,7 @@ cpen321application/
 │   ├── users/             # sign-in (LoginActivity), session tokens, Profile
 │   ├── deals/             # Deals tab and ratings
 │   └── messaging/         # Messages, chat, proposals, live updates
-└── shared/                # HTTP client, photos, address search, theme
+└── shared/                # HTTP client, photos, address search, maps, theme
 ```
 
 Inside each component:

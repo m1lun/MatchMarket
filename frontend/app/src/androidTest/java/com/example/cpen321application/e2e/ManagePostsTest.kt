@@ -8,6 +8,7 @@ import androidx.compose.ui.test.performClick
 import com.example.cpen321application.support.back
 import com.example.cpen321application.support.clearField
 import com.example.cpen321application.support.click
+import com.example.cpen321application.support.scrolled
 import com.example.cpen321application.support.createPost
 import com.example.cpen321application.support.deleteTestPosts
 import com.example.cpen321application.support.mainRule
@@ -119,7 +120,7 @@ class ManagePostsTest(private val form: PostForm) {
         rule.replacePrice(form, "175")
         rule.click("Save changes")
         rule.waitForText("175", substring = true)
-        rule.onNodeWithContentDescription("Delete").performClick()
+        rule.onNodeWithContentDescription("Delete").scrolled().performClick()
         rule.onAllNodesWithText("Delete").onFirst().performClick()
 
         rule.waitUntil(15_000) { rule.postCards().isEmpty() }

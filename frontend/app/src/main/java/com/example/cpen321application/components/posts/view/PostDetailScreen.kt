@@ -62,15 +62,19 @@ import com.example.cpen321application.components.posts.model.PostDetail
 import com.example.cpen321application.components.posts.model.PostSummary
 import com.example.cpen321application.components.posts.model.STATUS_OPEN
 import com.example.cpen321application.components.posts.viewmodel.PostViewModel
+import com.example.cpen321application.shared.view.LocationMap
 import com.example.cpen321application.shared.view.RemoteImage
 
 object PostDetailTags {
     const val MESSAGE = "post_detail_message"
+    const val MAP = "post_detail_map"
 }
 
 /**
  * readOnly shows another user's post (opened from the Feed) without the owner's actions.
  * onMessage, if set, offers to start a conversation about an open post.
+ * exactLocation shows the address and a pin; otherwise only the approximate area is shown,
+ * until the viewer has a deal for the post.
  */
 @Composable
 fun PostDetailScreen(
@@ -81,6 +85,7 @@ fun PostDetailScreen(
     readOnly: Boolean = false,
     onBack: () -> Unit = { viewModel.selected = null },
     onMessage: (() -> Unit)? = null,
+    exactLocation: Boolean = !readOnly,
 ) {
     var confirmDelete by remember { mutableStateOf(false) }
 
@@ -97,7 +102,7 @@ fun PostDetailScreen(
             modifier = Modifier.padding(horizontal = 16.dp),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
-            DetailSummary(post.detail)
+            DetailSummary(post.detail, exactLocation)
             DetailRows(post.detail, mode)
             if (post.detail.createdAt.isNotBlank()) {
                 Text(
@@ -173,7 +178,7 @@ private fun PhotoPager(photoIds: List<String>) {
 }
 
 @Composable
-private fun DetailSummary(detail: PostDetail) {
+private fun DetailSummary(detail: PostDetail, exactLocation: Boolean) {
     Text(
         detail.name,
         style = MaterialTheme.typography.headlineLarge,
@@ -199,7 +204,19 @@ private fun DetailSummary(detail: PostDetail) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
     }
-    AddressBadge(detail.address)
+    AddressBadge(if (exactLocation) detail.address else stringResource(R.string.detail_approximate_area))
+    detail.location?.let {
+        LocationMap(
+            it.latitude,
+            it.longitude,
+            approximate = !exactLocation,
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(180.dp)
+                .clip(RoundedCornerShape(12.dp))
+                .testTag(PostDetailTags.MAP),
+        )
+    }
     if (detail.description.isNotBlank()) {
         Text(detail.description, style = MaterialTheme.typography.bodyLarge)
     }

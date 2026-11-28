@@ -51,6 +51,7 @@ object DealsTags {
     const val RATE = "deals_rate"
     const val EDIT = "deals_edit_rating"
     const val POST_PREFIX = "deals_post_"
+    const val MAP = "deals_map"
 }
 
 @Composable
@@ -75,7 +76,12 @@ fun DealsTab(
         }
     }
     val actions = remember(viewModel, onOpenPost) {
-        DealActions(viewModel::startRating) { post, isRequest -> viewModel.openPost(post, isRequest, onOpenPost) }
+        DealActions(
+            onRate = viewModel::startRating,
+            onOpenPost = { post, isRequest -> viewModel.openPost(post, isRequest, onOpenPost) },
+            location = { viewModel.locations[it.id] },
+            loadLocation = viewModel::loadLocation
+        )
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
