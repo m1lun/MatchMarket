@@ -9,7 +9,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.content.ContextCompat
 import com.example.cpen321application.BuildConfig
+import com.example.cpen321application.R
 import java.io.File
 import kotlin.math.floor
 import org.osmdroid.config.Configuration
@@ -88,5 +90,6 @@ private fun area(map: MapView, centre: GeoPoint, colour: Color): Overlay = Polyg
 
 private fun pin(map: MapView, point: GeoPoint): Overlay = Marker(map).apply {
     position = point
+    icon = ContextCompat.getDrawable(map.context, R.drawable.ic_map_pin)
     setAnchor(Marker.ANCHOR_CENTER, Marker.ANCHOR_BOTTOM)
 }
