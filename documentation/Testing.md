@@ -35,7 +35,7 @@
 | 2026-11-26 | 2 | Re-ran the back-end tests at commit `8f90a68`, after each component got a service that owns its rules, including the input rules (758 interface tests: 116 with mocks, 642 without; NFR tests 5 of 5). Replaced the coverage screenshots and figures, and updated the coverage table for the files that moved: `logic/` became part of each component's `services/`, and the defensive branches of the deals list and the conversations list moved into `dealsService.ts` and `messagingService.ts`. |
 | 2026-11-26 | 2, 4 | Use Case 4 steps 7 and 7a1 match the requirements wording. Section 2.2 links the workflow and says what it runs; the note on mocks names every kind of mock used; the macOS note says every other test binds to 127.0.0.1. |
 | 2026-11-27 | 2, 4 | The end-to-end tests can also run against the VM, where the test routes are on; test data is only visible to its tester. |
-| 2026-11-28 | 2 | Back-end coverage is now 100%: tests added for a browse feed filtered by a maximum price alone, a Google account with no email, a photo stream that fails partway, the test-route isolation rules, and the start-up code; unreachable code was removed. Coverage is measured on the TypeScript source, so the coverage table no longer needs any reasons. |
+| 2026-11-28 | 2 | Back-end coverage is now 100%: tests added for a browse feed filtered by a maximum price alone, a Google account with no email, a photo stream that fails partway, the test-route isolation rules, and the start-up code; unreachable code was removed. Coverage is measured on the TypeScript source. |
 
 ---
 
@@ -164,7 +164,7 @@ These are the Jest reports for every back-end file at the commit above: 789 test
 
 ![Coverage combined](images/deals_coverage_combined.png)
 
-**Coverage:** combined, the tests reach 100% of statements, branches, functions and lines, so no file needs a reason. Coverage is measured on the TypeScript source, so code TypeScript generates, such as import helpers, is not counted.
+**Coverage:** combined, the tests reach 100% of statements, branches, functions and lines, measured on the TypeScript source.
 
 ---
 
