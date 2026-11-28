@@ -6,16 +6,15 @@ import { MongoClient, type Db, type MongoClientOptions } from 'mongodb';
 import { createMongoStore } from '../../src/shared/store/mongoStore';
 import type { Store } from '../../src/shared/store/types';
 
-export const TEST_MONGODB_URI: string = process.env.TEST_MONGODB_URI ?? 'mongodb://127.0.0.1:27018/?directConnection=true';
+const TEST_MONGODB_URI: string = process.env.TEST_MONGODB_URI ?? 'mongodb://127.0.0.1:27018/?directConnection=true';
 const REACH_TIMEOUT_MS = 3000;
 
 // Jest cannot run the driver's dynamic import('os'), so the handshake fails without this.
-export const CLIENT_OPTIONS: MongoClientOptions = { runtimeAdapters: { os } };
+const CLIENT_OPTIONS: MongoClientOptions = { runtimeAdapters: { os } };
 
 export interface TestStore {
   store: Store;
   db: Db;
-  dbName: string;
   dropAndClose: () => Promise<void>;
 }
 
@@ -40,7 +39,6 @@ export async function createTestStore(): Promise<TestStore> {
   return {
     store,
     db: client.db(dbName),
-    dbName,
     dropAndClose: async () => {
       await store.close();
       await client.db(dbName).dropDatabase();
