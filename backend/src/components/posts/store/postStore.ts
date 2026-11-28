@@ -46,7 +46,7 @@ export class MongoPostCollection<T extends PostDoc & { name: string; category: s
     return stored.map((d) => toPostDoc<T>(d));
   }
 
-  async listOpen(excludeOwnerId: string, limit: number, filter: OpenPostFilter = {}): Promise<T[]> {
+  async listOpen(excludeOwnerId: string, limit: number, filter: OpenPostFilter): Promise<T[]> {
     const stored = (await findOpen(this.collection, this.priceQuery, excludeOwnerId, limit, filter)) as Stored<T>[];
     return stored.map((d) => toPostDoc<T>(d));
   }
@@ -67,7 +67,7 @@ export class MongoPostCollection<T extends PostDoc & { name: string; category: s
     return stored.map((d) => toPostDoc<T>(d));
   }
 
-  async findByIds(ids: string[], fields: (keyof T)[], firstPhotoOnly = false): Promise<Partial<T>[]> {
+  async findByIds(ids: string[], fields: (keyof T)[], firstPhotoOnly = false): Promise<(Partial<T> & { id: string })[]> {
     const objectIds: ObjectId[] = [];
     for (const id of ids) {
       if (ObjectId.isValid(id)) {
@@ -115,13 +115,10 @@ export class MongoOptionCollection implements OptionCollection {
       { $setOnInsert: option },
       { upsert: true, returnDocument: 'after', ...WITHOUT_ID },
     );
-    return (stored as Option | null) ?? option;
+    return stored as unknown as Option;
   }
 
   async ensureMany(options: Option[]): Promise<void> {
-    if (options.length === 0) {
-      return;
-    }
     await this.collection.bulkWrite(
       options.map((option) => ({
         updateOne: {

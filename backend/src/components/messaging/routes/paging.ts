@@ -1,5 +1,5 @@
 import { BadRequestError } from '../../../shared/errors';
-import { isObject } from '../../../shared/http/checks';
+import type { Body } from '../../../shared/http/checks';
 
 const OBJECT_ID = /^[0-9a-f]{24}$/;
 const PAGE_PARAMS = ['limit', 'before'];
@@ -37,8 +37,7 @@ function parseBefore(value: unknown, errors: string[]): string | undefined {
 }
 
 // `?limit=&before=` for a list paged newest first by id; any other parameter is rejected.
-export function parsePageQuery(query: unknown, size: PageSize): PageQuery {
-  const params = isObject(query) ? query : {};
+export function parsePageQuery(params: Body, size: PageSize): PageQuery {
   const errors = Object.keys(params)
     .filter((name) => !PAGE_PARAMS.includes(name))
     .map((name) => `unsupported parameter "${name}"`);

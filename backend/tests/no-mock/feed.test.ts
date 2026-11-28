@@ -531,6 +531,20 @@ describe('Unmocked: GET /api/feed/listings', () => {
     expect(browseIds(range.body, 'listings')).toEqual([middle.id]);
     expect(browseIds(exact.body, 'listings')).toEqual([middle.id]);
   });
+
+  // Input: listings at $20 and $90, filtered by maxPrice 50 alone
+  // Expected status code: 200
+  // Expected behavior: a maximum price with no minimum keeps only the cheaper listing
+  // Expected output: only the $20 listing
+  test('Max Price Only', async () => {
+    const cheap = await makeListing(mongo.store, OTHER, { price: 20 });
+    await makeListing(mongo.store, OTHER, { price: 90 });
+
+    const response = await request(app).get('/api/feed/listings?maxPrice=50').set('Authorization', bearer(ME));
+
+    expect(response.status).toBe(200);
+    expect(browseIds(response.body, 'listings')).toEqual([cheap.id]);
+  });
 });
 
 // Interface GET /api/feed/requests

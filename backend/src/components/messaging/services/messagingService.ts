@@ -52,7 +52,7 @@ interface DealPosts {
 // The fields of a listing or request the conversations list shows. Posts saved before posts had names
 // have no name, so they show their category, as the store's findById does.
 interface PostView {
-  id?: string;
+  id: string;
   name?: string;
   category?: string;
   status?: string;
@@ -129,7 +129,7 @@ function parseProposal(body: unknown): { price: number; note: string } {
 }
 
 function byId(items: PostView[]): Map<string, PostView> {
-  return new Map(items.flatMap((item) => (item.id === undefined ? [] : [[item.id, item] as const])));
+  return new Map(items.map((item) => [item.id, item]));
 }
 
 function present(ids: (string | null)[]): string[] {

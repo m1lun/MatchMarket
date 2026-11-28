@@ -1,6 +1,6 @@
 import express, { type Express, type Response } from 'express';
 
-import { errorHandler, errorMessage } from './shared/errors';
+import { errorHandler } from './shared/errors';
 import { EventHub } from './components/messaging/routes/events';
 import { verifyGoogleIdToken } from './components/users/services/googleAuth';
 import { isText } from './shared/http/checks';
@@ -57,7 +57,7 @@ export function createApp({ sessions, store, e2eRoutes = false }: AppDeps): Expr
         sendAuth(res, startSession(sessions, user, store?.users));
       },
       (cause: unknown) => {
-        console.error(`Google sign-in rejected: ${errorMessage(cause)}`);
+        console.error(`Google sign-in rejected: ${String(cause)}`);
         res.status(401).json({ error: 'Invalid or expired Google ID token' });
       }
     );
@@ -151,6 +151,6 @@ function sendAuth(res: Response, pending: Promise<AuthResponse | null>): void {
 }
 
 function sendServerError(res: Response, cause: unknown): void {
-  console.error(`Session store failed: ${errorMessage(cause)}`);
+  console.error(`Session store failed: ${String(cause)}`);
   res.status(500).json({ error: 'Internal Server Error' });
 }

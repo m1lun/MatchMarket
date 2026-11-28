@@ -28,11 +28,7 @@ async function mergeCategoryOptions(store: Store): Promise<void> {
 // Makes categories saved before they were singular match the ones saved now, since the
 // feed compares them exactly; safe to run on every start.
 export async function normaliseStoredCategories(store: Store): Promise<void> {
-  try {
-    await Promise.all([renameStoredCategories(store.listings), renameStoredCategories(store.requests), mergeCategoryOptions(store)]);
-  } catch (error) {
-    throw new Error('Failed to normalise stored categories', { cause: error });
-  }
+  await Promise.all([renameStoredCategories(store.listings), renameStoredCategories(store.requests), mergeCategoryOptions(store)]);
 }
 
 // Inserts the built-in options that are missing, in one round trip;
@@ -49,9 +45,5 @@ export async function seedOptions(store: Store): Promise<void> {
       createdAt,
     })),
   );
-  try {
-    await store.options.ensureMany(options);
-  } catch (error) {
-    throw new Error('Failed to seed built-in options', { cause: error });
-  }
+  await store.options.ensureMany(options);
 }

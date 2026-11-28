@@ -1,5 +1,6 @@
 module.exports = {
   preset: 'ts-jest',
+  transform: { '^.+\\.ts$': ['ts-jest', { tsconfig: { sourceMap: true } }] },
   testEnvironment: 'node',
   roots: ['<rootDir>/src', '<rootDir>/tests'],
   setupFiles: ['<rootDir>/tests/setup.ts'],

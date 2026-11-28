@@ -29,7 +29,7 @@ export async function verifyGoogleIdToken(idToken: string): Promise<GoogleUser> 
     throw new Error('Token carried no payload.');
   }
 
-  if (payload.email_verified !== true) {
+  if (payload.email_verified !== true || payload.email === undefined) {
     throw new Error('Google account has no verified email address.');
   }
 
@@ -37,7 +37,7 @@ export async function verifyGoogleIdToken(idToken: string): Promise<GoogleUser> 
     id: payload.sub,
     firstName: payload.given_name ?? '',
     lastName: payload.family_name ?? '',
-    email: payload.email ?? '',
+    email: payload.email,
     pictureUrl: payload.picture ?? null,
   };
 }

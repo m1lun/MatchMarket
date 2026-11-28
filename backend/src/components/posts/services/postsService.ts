@@ -120,11 +120,11 @@ export class PostsService {
     ids: string[],
     fields: (keyof PostOf<K>)[],
     firstPhotoOnly?: boolean,
-  ): Promise<Partial<PostOf<K>>[]> {
+  ): Promise<(Partial<PostOf<K>> & { id: string })[]> {
     return this.collection(kind).findByIds(ids, fields, firstPhotoOnly);
   }
 
-  listOpen<K extends PostKind>(kind: K, excludeOwnerId: string, limit: number, filter?: OpenPostFilter): Promise<PostOf<K>[]> {
+  listOpen<K extends PostKind>(kind: K, excludeOwnerId: string, limit: number, filter: OpenPostFilter): Promise<PostOf<K>[]> {
     return this.collection(kind).listOpen(excludeOwnerId, limit, filter);
   }
 

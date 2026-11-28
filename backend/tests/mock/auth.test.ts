@@ -58,6 +58,11 @@ function googlePayload(overrides: Partial<TokenPayload> = {}): TokenPayload {
   };
 }
 
+function payloadWithoutEmail(): TokenPayload {
+  const { iss, aud, sub, iat, exp } = anonymousPayload();
+  return { iss, aud, sub, iat, exp, email_verified: true };
+}
+
 // Google's token check, which needs a real Google ID token and Google's keys.
 function mockGoogle(): jest.SpyInstance {
   return jest.spyOn(OAuth2Client.prototype, 'verifyIdToken') as unknown as jest.SpyInstance;
@@ -113,7 +118,7 @@ describe('Mocked: POST /api/auth/google', () => {
   });
 
   // Mocked behavior: Google's verifyIdToken rejects the token (expired or forged), returns a ticket for an account
-  // whose email is not verified, or returns a ticket with no payload
+  // whose email is not verified, a ticket with no email, or a ticket with no payload
   // Input: { idToken }
   // Expected status code: 401
   // Expected behavior: no session is created and no user is saved
@@ -122,6 +127,7 @@ describe('Mocked: POST /api/auth/google', () => {
     { label: 'Google Rejects The Token', install: () => mockGoogle().mockRejectedValue(new Error('Token used too late')) },
     { label: 'Email Not Verified', install: () => googleAccepts(googlePayload({ email_verified: false })) },
     { label: 'No Payload', install: () => googleAccepts(undefined) },
+    { label: 'No Email', install: () => googleAccepts(payloadWithoutEmail()) },
   ])('$label: 401', async ({ install }: { label: string; install: () => jest.SpyInstance }) => {
     const google = install();
 

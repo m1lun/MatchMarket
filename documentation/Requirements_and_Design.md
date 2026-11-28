@@ -62,6 +62,8 @@
 | 2026-11-26 | 4.1, 4.6 | Following TA feedback, each component now has a service that owns its rules, and other components call that service instead of reading or writing its data. Accepting a proposal now asks Deals to record the deal (`recordDeal`) and Posts to close the posts (`closeForDeal`), instead of Messaging writing both itself. Section 4.1 lists the internal interfaces other components call (Posts' `findById`, `findByIds`, `listOpen`, `listOpenInCategory` and `closeForDeal`, Users' `findPublicByIds`, and Deals' `recordDeal` and `earlierDeal`), and the View Deals, View Recommendations, Send a Message and Filter Feed sequence diagrams now read posts and users through Posts and Users. |
 | 2026-11-26 | 3.2, 3.3, 3.4, 3.5, 4.1, 4.3, 4.4, 4.5, 4.6 | Following the CP3 TA feedback: one User actor, since buying and selling use the same use cases; Google is "Google Sign-In" everywhere, with the interface the backend calls; Manage profile is split into View profile and Edit address, in the text and the use case diagram, so the later use cases are renumbered; Use Case 3 failure 1a and Use Case 4 steps 7 and 7a1 describe only what the user sees; the Matching interface no longer mentions filters that were never built; Section 4.4 names the test libraries in use. In every sequence diagram the app has activation bars, and each call shows its result before the branches on it, so a network failure is a missing response rather than a second reply. After the services refactor, the diagrams pass `firstPhotoOnly` to Posts' `findByIds` as the code does, View Recommendations shows the feed filters it applies (`passesFilter`), and Send a Message sends the live update before it replies 201; Section 4.5 says other components go through Posts' and Deals' services. |
 | 2026-11-27 | 4.1 | Feeds leave out other testers' test posts, and no conversation can be started about one, so the test routes can be on for the VM. |
+| 2026-11-28 | 4.1 | `POST /api/auth/google` refuses a Google account with no email (401), instead of saving a user with an empty email. |
+| 2026-11-28 | 4.1 | Matching's `satisfies` no longer checks the category itself, since the feed only passes candidates in the post's category. |
 
 ---
 
@@ -355,7 +357,7 @@ None. Mock-ups are optional, and the use cases above describe each screen's fiel
         3. `GET /api/feed/listings/:id` and `GET /api/feed/requests/:id`
             - **Purpose**: Return one listing or request, open or closed, to any signed-in user. The Deals tab uses it to open the posts of a deal. 404 for a malformed or unknown id.
         4. `boolean satisfies(Request request, Listing listing)`
-            - **Purpose**: The single hard-requirement rule (category and straight-line distance within radius, plus price, condition, dimensions or any other field the buyer marked "Must have") used by both feed directions.
+            - **Purpose**: The single hard-requirement rule (straight-line distance within radius, plus price, condition, dimensions or any other field the buyer marked "Must have") used by both feed directions, on candidates already in the same category.
         5. `List<RankedMatch> rank(Post source, List<Post> candidates, Weights weights)`
             - **Purpose**: Score each candidate on price, condition, distance and preference match, and order the best first by the viewer's weights, which count the four scores equally until users can save ranking preferences. In the preference match, each soft preference counts by its importance from 1 to 5, or 3 if it has none. A listing over a soft maximum price or below a soft minimum condition loses more score the further it misses, which can go below 0; the price penalty stops growing at 50% over the maximum.
         6. `List<Duration> travelTimes(Location origin, List<Location> destinations, TravelMode mode)`
@@ -366,7 +368,7 @@ None. Mock-ups are optional, and the use cases above describe each screen's fiel
     - **Rationale**: Keeps identity and per-user settings in one place so Posts and Matching only depend on a user id; alternative of storing settings on each post was rejected because settings apply across all of a user's posts.
     - **Interfaces**:
         1. `POST /api/auth/google`
-            - **Purpose**: Exchange a Google ID token (`{ idToken }`) for the user's names and email, a session token and a refresh token, and save the user. Returns 400 if no token is sent, 401 if Google rejects the token or the account's email is not verified, and 413 for a body over 4 KB.
+            - **Purpose**: Exchange a Google ID token (`{ idToken }`) for the user's names and email, a session token and a refresh token, and save the user. Returns 400 if no token is sent, 401 if Google rejects the token or the account has no verified email, and 413 for a body over 4 KB.
         2. `POST /api/auth/refresh`
             - **Purpose**: Trade `{ refreshToken }` for a new session token and refresh token without calling Google; the old refresh token stops working. Returns 401 if the token is unknown, expired or already used, and reusing a used token also revokes every token from that sign-in. Returns 400 if no token is sent and 413 for a body over 4 KB.
         3. `POST /api/auth/logout`

@@ -63,7 +63,7 @@ export interface RatingResult {
 
 // The few fields of a listing or request the deals list reads.
 interface PostView {
-  id?: string;
+  id: string;
   name?: string;
   category?: string;
   price?: number;
@@ -79,8 +79,12 @@ interface Lookups {
   requestOf: Map<string, PostView>;
 }
 
-function byId<T extends { id?: string }>(items: T[]): Map<string, T> {
-  return new Map(items.flatMap((item) => (item.id === undefined ? [] : [[item.id, item] as const])));
+function byId<T extends { id: string }>(items: T[]): Map<string, T> {
+  return new Map(items.map((item) => [item.id, item]));
+}
+
+function firstPhotoId(post: PostView): string | null {
+  return post.photoIds?.[0] ?? null;
 }
 
 function present(ids: (string | null)[]): string[] {
@@ -105,9 +109,9 @@ function dealView(deal: Deal, me: string, lookups: Lookups) {
     listing:
       listing === undefined
         ? null
-        : { id: deal.listingId, category: listing.category, price: listing.price, photoId: listing.photoIds?.[0] ?? null },
+        : { id: deal.listingId, category: listing.category, price: listing.price, photoId: firstPhotoId(listing) },
     request:
-      request === undefined ? null : { id: deal.requestId, category: request.category, photoId: request.photoIds?.[0] ?? null },
+      request === undefined ? null : { id: deal.requestId, category: request.category, photoId: firstPhotoId(request) },
     // A user with no profile, e.g. one whose account was removed, has empty names.
     otherUser: {
       ...reputationSummary(other, lookups.reputationOf.get(other)),
