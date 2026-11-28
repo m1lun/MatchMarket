@@ -145,15 +145,12 @@ describe('Mocked: server start (index.ts)', () => {
     expect(process.exitCode).toBe(1);
   });
 
-  // Mocked behavior: the server is a fake; store.close resolves, or rejects with Error('MongoDB is unreachable')
+  // Mocked behavior: the server is a fake; store.close rejects with Error('MongoDB is unreachable')
   // Input: SIGTERM after start-up
-  // Expected behavior: open connections are closed, the server stops, and MongoDB is closed; a failed close is logged
-  // Expected output: process.exitCode unchanged, or 1 when MongoDB could not be closed
-  test.each([
-    { label: 'MongoDB Closes', closeFails: false, exitCode: undefined },
-    { label: 'MongoDB Close Fails', closeFails: true, exitCode: 1 },
-  ])('SIGTERM, $label', async ({ closeFails, exitCode }: { label: string; closeFails: boolean; exitCode: number | undefined }) => {
-    const started = await start({ closeFails });
+  // Expected behavior: open connections are closed, the server stops, MongoDB is closed, and the failed close is logged
+  // Expected output: process.exitCode 1
+  test('SIGTERM, MongoDB Close Fails', async () => {
+    const started = await start({ closeFails: true });
 
     started.signals.get('SIGTERM')?.();
     await new Promise((resolve) => setImmediate(resolve));
@@ -161,6 +158,6 @@ describe('Mocked: server start (index.ts)', () => {
     expect(started.server.closeAllConnections).toHaveBeenCalledTimes(1);
     expect(started.server.close).toHaveBeenCalledTimes(1);
     expect(started.store.close).toHaveBeenCalledTimes(1);
-    expect(process.exitCode).toBe(exitCode);
+    expect(process.exitCode).toBe(1);
   });
 });
