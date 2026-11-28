@@ -77,7 +77,7 @@ Set at least:
 - `PORT` (optional): defaults to `3000` if unset.
 - `ENABLE_HTTPS` (optional): `true` serves HTTPS using `backend/certs/server.crt` and `backend/certs/server.key` (see [HTTPS](#https)). Leave unset for local HTTP.
 - `ORS_API_KEY` (optional): an [OpenRouteService](https://openrouteservice.org/dev/) API key, used for travel times on the first page of recommendations. Without it, the feed works but shows "Travel time unavailable".
-- `ENABLE_E2E_ROUTES` (optional): `true` turns on the test-only `/api/e2e` routes the end-to-end tests use; leave it unset in production.
+- `ENABLE_E2E_ROUTES` (optional): `true` turns on the test-only `/api/e2e` routes the end-to-end tests use. It is already on for the VM, and safe there (see [Test routes](#test-routes)).
 
 ### API
 
@@ -162,7 +162,7 @@ The end-to-end tests seed their own data through test-only routes. They exist on
 - `POST /api/e2e/listings`: replaces the E2E Seller's open listing "E2E lamp" ($30), for starting a conversation from the feed. `201` with `{ "listingId" }`.
 - `POST /api/e2e/conversations?messages=<0-40>`: the same listing plus your conversation about it, with that many messages from the E2E Seller ("Message 1" is the oldest). `201` with `{ "listingId", "conversationId" }`; `400` for any other `messages` value.
 - `DELETE /api/e2e/conversations`: removes the E2E Seller's listings and conversations, and any deal and rating made from them. `204`.
-- `/api/e2e/partner/conversations/...`: the conversation and proposal routes above, run as the E2E Seller (for example `POST /api/e2e/partner/conversations/:id/messages`), so a test can reply, propose, accept or decline the way a second phone would, live updates included.
+- `POST /api/e2e/partner/conversations/:id/messages`, `/:id/proposal` and `/:id/proposal/decline`: the E2E Seller replies, proposes or declines in your own conversation with it, through the same code as the real routes, so a test can act like a second phone, live updates included. `403` in any other conversation. The E2E Seller cannot open conversations or accept proposals.
 
 
 ### Option 1: Run locally
@@ -310,12 +310,23 @@ Backend tests use Jest. Frontend tests use the Jetpack Compose testing APIs and 
 
 The end-to-end tests create their data through the test-only `/api/e2e` routes, so set `ENABLE_E2E_ROUTES=true` in `backend/.env` before running them. See [documentation/Testing.md](documentation/Testing.md) for the end-to-end tests: how to run them and how they map to the use cases.
 
+### Test routes
+
+`/api/e2e` exists only when `ENABLE_E2E_ROUTES=true` (404 otherwise) and needs a signed-in user. It is on for the VM, so the end-to-end tests can run there too. It is safe because:
+
+- each call replaces the caller's earlier test data, so a user only ever has one set;
+- test posts (owners starting with `e2e-`) are only shown to their own tester;
+- the test seller can only message, propose or decline in its tester's own conversation.
+
 ## Continuous integration
 
 GitHub Actions runs on every push to `main` and on pull requests:
 
 - `.github/workflows/backend-tests.yml` runs the typecheck and the backend test scripts.
 - `.github/workflows/frontend-build.yml` builds the debug APK.
+- `.github/workflows/deploy-backend.yml` deploys `main` to the VM after the backend tests pass on a push, or when run by hand.
+
+The VM has the test routes on: the deploy sets `ENABLE_E2E_ROUTES` from the repository variable of the same name.
 
 ## Code review (Codacy)
 

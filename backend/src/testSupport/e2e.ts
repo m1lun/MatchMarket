@@ -1,9 +1,10 @@
 import { Router } from 'express';
-import type { NextFunction, Request, Response } from 'express';
+import type { Request, Response } from 'express';
 
-import { BadRequestError } from '../shared/errors';
-import type { GeoPoint } from '../shared/models/common';
-import type { Message } from '../components/messaging/models/conversation';
+import { BadRequestError, ForbiddenError } from '../shared/errors';
+import { testBuyerId, testPartnerId, type GeoPoint } from '../shared/models/common';
+import { isParticipant, type Message } from '../components/messaging/models/conversation';
+import type { MessagingService } from '../components/messaging/services/messagingService';
 import type { Listing } from '../components/posts/models/listing';
 import { currentUser } from '../components/users/routes/requireAuth';
 import type { Store } from '../shared/store/types';
@@ -23,21 +24,8 @@ const E2E_PHOTO_ID = '6ad40b88e74dd3678bfef8f3';
 
 const LOCATION: GeoPoint = { type: 'Point', coordinates: [-123.25, 49.26] };
 
-export function e2eBuyerId(userId: string): string {
-  return `e2e-buyer-${userId}`;
-}
-
-export function e2ePartnerId(userId: string): string {
-  return `e2e-partner-${userId}`;
-}
-
-// Runs the conversation routes as the caller's seed partner, so tests can reply, propose, accept and
-// decline the way a second phone would, through the same code.
-export function actAsE2ePartner(_req: Request, res: Response, next: NextFunction): void {
-  const partner = e2ePartnerId(currentUser(res).id);
-  res.locals.user = { id: partner, email: `${partner}@example.com` };
-  next();
-}
+export const e2eBuyerId = testBuyerId;
+export const e2ePartnerId = testPartnerId;
 
 // Removes the caller's seeded deals and everything linked to them.
 async function clearSeededDeals(store: Store, me: string): Promise<void> {
@@ -190,6 +178,39 @@ export function createE2eRouter(store: Store): Router {
   router.delete('/conversations', handle(async (_req, res) => {
     await clearSeededConversations(store, currentUser(res).id);
     res.status(204).end();
+  }));
+
+  return router;
+}
+
+async function partnerInOwnConversation(store: Store, req: Request, res: Response): Promise<string> {
+  const me = currentUser(res).id;
+  const partner = e2ePartnerId(me);
+  const conversation = await store.conversations.findById(String(req.params.id));
+  if (conversation !== null && !(isParticipant(conversation, me) && isParticipant(conversation, partner))) {
+    throw new ForbiddenError();
+  }
+  return partner;
+}
+
+// Lets the caller's seed partner reply, propose and decline the way a second phone would, through the same code,
+// but only in the caller's own conversation with that partner.
+export function createE2ePartnerRouter(messaging: MessagingService, store: Store): Router {
+  const router = Router();
+
+  router.post('/:id/messages', handle(async (req, res) => {
+    const partner = await partnerInOwnConversation(store, req, res);
+    res.status(201).json(await messaging.send(partner, String(req.params.id), req.body));
+  }));
+
+  router.post('/:id/proposal', handle(async (req, res) => {
+    const partner = await partnerInOwnConversation(store, req, res);
+    res.status(201).json(await messaging.propose(partner, String(req.params.id), req.body));
+  }));
+
+  router.post('/:id/proposal/decline', handle(async (req, res) => {
+    const partner = await partnerInOwnConversation(store, req, res);
+    res.json(await messaging.decline(partner, String(req.params.id)));
   }));
 
   return router;

@@ -7,7 +7,7 @@ import { isText } from './shared/http/checks';
 import { createConversationsRouter } from './components/messaging/routes/conversations';
 import { createCustomFieldsRouter } from './components/posts/routes/customFields';
 import { createDealsRouter } from './components/deals/routes/deals';
-import { actAsE2ePartner, createE2eRouter } from './testSupport/e2e';
+import { createE2ePartnerRouter, createE2eRouter } from './testSupport/e2e';
 import { createFeedRouter } from './components/matching/routes/feed';
 import { createListingsRouter } from './components/posts/routes/listings';
 import { createPhotosRouter } from './components/posts/routes/photos';
@@ -120,7 +120,7 @@ export function createApp({ sessions, store, e2eRoutes = false }: AppDeps): Expr
     app.use('/api/conversations', ...conversationAuth, ...conversationRoutes);
     if (e2eRoutes) {
       app.use('/api/e2e', requireAuth, createE2eRouter(store));
-      app.use('/api/e2e/partner/conversations', ...conversationAuth, actAsE2ePartner, ...conversationRoutes);
+      app.use('/api/e2e/partner/conversations', ...conversationAuth, createE2ePartnerRouter(services.messaging, store), ratingBodyTooLarge);
     }
   }
 

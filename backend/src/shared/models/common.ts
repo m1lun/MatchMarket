@@ -129,3 +129,18 @@ export function normaliseCategory(text: string): string {
   const lastWord = key.lastIndexOf(' ') + 1;
   return key.slice(0, lastWord) + singular(key.slice(lastWord));
 }
+
+// Owners of the posts the /api/e2e routes create; real users' ids are Google account ids, which never start with this.
+export const TEST_OWNER_PREFIX = 'e2e-';
+
+export function testBuyerId(userId: string): string {
+  return `${TEST_OWNER_PREFIX}buyer-${userId}`;
+}
+
+export function testPartnerId(userId: string): string {
+  return `${TEST_OWNER_PREFIX}partner-${userId}`;
+}
+
+export function isTestOwner(ownerId: string): boolean {
+  return ownerId.startsWith(TEST_OWNER_PREFIX);
+}
