@@ -165,7 +165,7 @@ These are the Jest reports for every back-end file at the commit above: 776 test
 
 **Reasons for coverage below 100%:**
 
-Combined, the tests reach 98.31% of statements, 98.37% of branches, 98.38% of functions and 98.26% of lines, measured on the TypeScript source. Every file not listed below has 100% combined coverage. The 30 uncovered statements (1.7%) are all start-up code: it runs once when the server starts, before it accepts any request, so no back-end API reaches it. The course's project description (section 9) allows this case: "framework/middleware code you cannot fully cover with API testing only", provided it is a small fraction of the code and each case is explained. It is not unreachable: every deployment runs it, so it is kept rather than removed. The interface tests build the app with `createApp` and call it through Supertest, as in the course's example, so they never start a real server.
+Combined, the tests reach 98.31% of statements, 98.37% of branches, 98.38% of functions and 98.26% of lines; every file not listed below is at 100%. The 30 uncovered statements are start-up code, which runs once before the server accepts requests. The interface tests call the app through Supertest without starting a server, so they cannot reach it. Every deployment runs it, so it is not unreachable code.
 
 | **File** | **Statements** | **Branches** | **Uncovered** | **Why the interface tests cannot reach it** |
 | -------- | -------------- | ------------ | ------------- | ------------------------------------------- |
