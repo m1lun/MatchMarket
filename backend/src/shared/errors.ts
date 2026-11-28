@@ -33,11 +33,6 @@ export class ConflictError extends ClientError {
   }
 }
 
-// The message of a thrown value, for logs.
-export function errorMessage(cause: unknown): string {
-  return cause instanceof Error ? cause.message : String(cause);
-}
-
 // MongoDB's code for a document that fails the collection's $jsonSchema.
 const DOCUMENT_VALIDATION_FAILED = 121;
 

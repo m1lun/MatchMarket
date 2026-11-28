@@ -1,9 +1,8 @@
 import { createHash, randomBytes, randomUUID } from 'node:crypto';
 
-import jwt from 'jsonwebtoken';
+import jwt, { type JwtPayload } from 'jsonwebtoken';
 
 import { env } from '../../../shared/config/env';
-import { errorMessage } from '../../../shared/errors';
 import type { GoogleUser } from './googleAuth';
 import type { SignInProfile } from '../models/user';
 import type { SessionRepo, UserCollection } from '../store/types';
@@ -86,14 +85,14 @@ export async function endSession(repo: SessionRepo, refreshToken: string): Promi
 // Returns the user a session token was issued to. Throws if it is forged,
 // expired, or was not issued by this server for the app.
 export function verifySessionToken(token: string): SessionUser {
-  const payload = jwt.verify(token, env.jwtSecret, {
+  const claims = jwt.verify(token, env.jwtSecret, {
     algorithms: ['HS256'],
     issuer: ISSUER,
     audience: AUDIENCE,
-  });
+  }) as JwtPayload;
 
-  const sub: unknown = typeof payload === 'string' ? undefined : payload.sub;
-  const email: unknown = typeof payload === 'string' ? undefined : payload.email;
+  const sub: unknown = claims.sub;
+  const email: unknown = claims.email;
   if (typeof sub !== 'string' || typeof email !== 'string') {
     throw new Error('Session token is missing its claims.');
   }
@@ -147,7 +146,7 @@ async function saveUser(users: UserCollection | undefined, user: SignInProfile):
   try {
     await users?.upsertFromSignIn(user);
   } catch (error) {
-    console.error(`Could not save user ${user.id}: ${errorMessage(error)}`);
+    console.error(`Could not save user ${user.id}: ${String(error)}`);
   }
 }
 

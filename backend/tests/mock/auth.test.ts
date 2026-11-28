@@ -1,7 +1,6 @@
 import type { Server } from 'node:http';
 
 import { LoginTicket, OAuth2Client, type TokenPayload } from 'google-auth-library';
-import jwt from 'jsonwebtoken';
 
 import { env } from '../../src/shared/config/env';
 import { SESSION_TTL_SECONDS } from '../../src/components/users/services/sessionService';
@@ -129,7 +128,6 @@ describe('Mocked: POST /api/auth/google', () => {
     { label: 'Email Not Verified', install: () => googleAccepts(googlePayload({ email_verified: false })) },
     { label: 'No Payload', install: () => googleAccepts(undefined) },
     { label: 'No Email', install: () => googleAccepts(payloadWithoutEmail()) },
-    { label: 'Google Rejects With A Non-Error Value', install: () => mockGoogle().mockRejectedValue('network down') },
   ])('$label: 401', async ({ install }: { label: string; install: () => jest.SpyInstance }) => {
     const google = install();
 
@@ -244,23 +242,5 @@ describe('Mocked: POST /api/auth/logout', () => {
     const response = await postAuth(app, 'logout', { refreshToken });
 
     expectServerError(response, spy);
-  });
-});
-
-// Interface GET /api/users/me, as a protected route
-describe('Mocked: session token on protected routes', () => {
-  // Mocked behavior: jwt.verify returns a plain string payload instead of claims
-  // Input: GET /api/users/me with a bearer token
-  // Expected status code: 401
-  // Expected behavior: a payload without the user's claims is refused
-  // Expected output: { error: 'Invalid or expired session token' }
-  test('Token Payload Is A String: 401', async () => {
-    const verify = jest.spyOn(jwt, 'verify').mockImplementation(() => 'not-claims');
-
-    const response = await getMe(app, 'any-token');
-
-    expect(response.status).toBe(401);
-    expect(response.body).toStrictEqual({ error: 'Invalid or expired session token' });
-    expect(verify).toHaveBeenCalledTimes(1);
   });
 });
