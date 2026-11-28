@@ -25,6 +25,11 @@ data class Deal(
     val theirRating: DealRating?
 )
 
+// The other user's post, whose location the card shows: their request when the user sold, their listing
+// when the user bought. Null when the other user had no post in the deal.
+val Deal.otherPost: DealPost?
+    get() = if (role == DealRole.SELLER) request else listing
+
 data class DealsPage(val deals: List<Deal>, val nextCursor: String?)
 
 data class RatingResult(val rating: DealRating, val otherUser: OtherUser)

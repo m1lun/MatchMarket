@@ -35,6 +35,7 @@
     <string name="detail_condition">Condition: %1$s</string>
     <string name="detail_photo_position">%1$s / %2$s</string>
     <string name="detail_see_recommendations">See recommendations</string>
+    <string name="detail_approximate_area">Approximate area</string>
     <string name="field_must_have">Must have</string>
     <string name="field_nice_to_have">Nice to have</string>
     <string name="fields_requirements">Requirements</string>

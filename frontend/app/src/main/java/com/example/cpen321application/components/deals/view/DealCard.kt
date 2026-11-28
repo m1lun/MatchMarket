@@ -6,12 +6,14 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.filled.LocationOn
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.HorizontalDivider
@@ -21,6 +23,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -41,7 +44,9 @@ import com.example.cpen321application.components.deals.model.DealRating
 import com.example.cpen321application.components.deals.model.DealRole
 import com.example.cpen321application.components.deals.model.MAX_STARS
 import com.example.cpen321application.components.deals.model.OtherUser
+import com.example.cpen321application.components.posts.model.PostLocation
 import com.example.cpen321application.components.posts.model.titleCase
+import com.example.cpen321application.shared.view.LocationMap
 import com.example.cpen321application.shared.view.RemoteImage
 import java.text.NumberFormat
 import java.util.Locale
@@ -49,9 +54,16 @@ import java.util.Locale
 private const val COMMENT_LINES = 2
 private val PHOTO_SIZE = 48.dp
 private val WHO_WIDTH = 48.dp
+private val MAP_HEIGHT = 140.dp
 
 // What a tap on a card can do: rate or edit the deal, or open one of its posts (a request when the flag is true).
-class DealActions(val onRate: (dealId: String) -> Unit, val onOpenPost: (post: DealPost, isRequest: Boolean) -> Unit)
+// location is where the other user's post is, null until loadLocation has fetched it.
+class DealActions(
+    val onRate: (dealId: String) -> Unit,
+    val onOpenPost: (post: DealPost, isRequest: Boolean) -> Unit,
+    val location: (Deal) -> PostLocation? = { null },
+    val loadLocation: (Deal) -> Unit = {}
+)
 
 @Composable
 fun DealCard(deal: Deal, actions: DealActions) {
@@ -65,6 +77,8 @@ fun DealCard(deal: Deal, actions: DealActions) {
             DealHeader(deal)
             deal.listing?.let { PostRow(stringResource(R.string.deals_listing), it, showPrice = true) { actions.onOpenPost(it, false) } }
             deal.request?.let { PostRow(stringResource(R.string.deals_request), it, showPrice = false) { actions.onOpenPost(it, true) } }
+            LaunchedEffect(deal.id) { actions.loadLocation(deal) }
+            actions.location(deal)?.let { DealLocation(it) }
             HorizontalDivider()
             YourRating(deal, actions.onRate)
             deal.theirRating?.let { RatingLine(stringResource(R.string.deals_them), it) }
@@ -121,6 +135,31 @@ private fun PostRow(label: String, post: DealPost, showPrice: Boolean, onClick: 
             Text(text = post.category.titleCase() + price, style = MaterialTheme.typography.titleMedium)
         }
         Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+    }
+}
+
+// Now that there is a deal, the other user's post shows its address and a pin on the map.
+@Composable
+private fun DealLocation(location: PostLocation) {
+    LocationMap(
+        location.latitude,
+        location.longitude,
+        approximate = false,
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(MAP_HEIGHT)
+            .clip(RoundedCornerShape(12.dp))
+            .testTag(DealsTags.MAP)
+    )
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Icon(
+            Icons.Filled.LocationOn,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(18.dp)
+        )
+        Spacer(modifier = Modifier.width(6.dp))
+        Text(text = location.address, style = MaterialTheme.typography.bodyMedium)
     }
 }
 

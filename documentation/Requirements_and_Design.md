@@ -62,6 +62,7 @@
 | 2026-11-26 | 4.1, 4.6 | Following TA feedback, each component now has a service that owns its rules, and other components call that service instead of reading or writing its data. Accepting a proposal now asks Deals to record the deal (`recordDeal`) and Posts to close the posts (`closeForDeal`), instead of Messaging writing both itself. Section 4.1 lists the internal interfaces other components call (Posts' `findById`, `findByIds`, `listOpen`, `listOpenInCategory` and `closeForDeal`, Users' `findPublicByIds`, and Deals' `recordDeal` and `earlierDeal`), and the View Deals, View Recommendations, Send a Message and Filter Feed sequence diagrams now read posts and users through Posts and Users. |
 | 2026-11-26 | 3.2, 3.3, 3.4, 3.5, 4.1, 4.3, 4.4, 4.5, 4.6 | Following the CP3 TA feedback: one User actor, since buying and selling use the same use cases; Google is "Google Sign-In" everywhere, with the interface the backend calls; Manage profile is split into View profile and Edit address, in the text and the use case diagram, so the later use cases are renumbered; Use Case 3 failure 1a and Use Case 4 steps 7 and 7a1 describe only what the user sees; the Matching interface no longer mentions filters that were never built; Section 4.4 names the test libraries in use. In every sequence diagram the app has activation bars, and each call shows its result before the branches on it, so a network failure is a missing response rather than a second reply. After the services refactor, the diagrams pass `firstPhotoOnly` to Posts' `findByIds` as the code does, View Recommendations shows the feed filters it applies (`passesFilter`), and Send a Message sends the live update before it replies 201; Section 4.5 says other components go through Posts' and Deals' services. |
 | 2026-11-27 | 4.1 | Feeds leave out other testers' test posts, and no conversation can be started about one, so the test routes can be on for the VM. |
+| 2026-11-27 | 3.1, 3.4, 4.3, 4.4 | Added maps of where posts are. Another user's post shows only its approximate area, as a circle, instead of its address; a deal card shows the other user's post with a pin and its address, as do the posts opened from it. The app hides the address on screen only: the feed routes still return each post's address and location. The maps are OpenStreetMap's, drawn with osmdroid. |
 
 ---
 
@@ -83,7 +84,7 @@ The primary audience is buyers who know what they want and would rather be match
 
 1. **Buyer Requests and Seller Listings**: Signed-in users create persistent buyer requests and seller listings, view their own posts, edit them, close and reopen them, and delete them. Listings include 1–10 item photos and requests may include up to 10 reference photos. Closed posts stay in the owner's list and are excluded from the feeds.
 2. **Two-Sided Matching and Recommended Feeds**: Users browse other users' open listings or requests, newest first, and narrow them by category, price and distance. For each of their own open posts they also get recommendations: hard-requirement filtering and soft-preference ranking produce a buyer feed of listings for each request and a seller feed of requests for each listing, with the distance to each. Addresses are picked through the Android Geocoder, and travel times are computed with the OpenRouteService API.
-3. **Deals, Ratings and Reputation**: Users see their deals in a Deals tab, with the agreed price, the listing and request behind each deal, and the other user's score. Either side of a deal can rate the other from 1 to 5 stars with an optional comment, and can edit that rating later. A user's reputation is the average of the ratings they have received. A deal is recorded when one user accepts the other user's proposed price in a conversation (Feature 4).
+3. **Deals, Ratings and Reputation**: Users see their deals in a Deals tab, with the agreed price, the listing and request behind each deal, and the other user's score. Each deal shows the other user's post on a map, with its address; before a deal, other users' posts show only their approximate area. Either side of a deal can rate the other from 1 to 5 stars with an optional comment, and can edit that rating later. A user's reputation is the average of the ratings they have received. A deal is recorded when one user accepts the other user's proposed price in a conversation (Feature 4).
 4. **Messaging**: Buyers and sellers message each other in the app about a listing or a request, to ask about the item and arrange collection. Either side can propose a price, which the other side accepts or declines; accepting records the deal (Feature 3) and closes the posts. New messages and proposal changes reach the other user without refreshing: in their open conversation, in their inbox, as an unread dot on the conversation and the Messages tab, and as a banner while they are on another tab. When a proposal is accepted, the proposer's Deals and My Posts tabs update too.
 
 Authentication is a baseline requirement of the app rather than a feature: users sign in with Google, and the backend verifies the Google ID token and issues its own session token.
@@ -121,11 +122,11 @@ Each use case covers one goal, and the user starts each of them directly, so the
 9. **View recommendations for a post** ([Use Case 3](#uc3)): A user sees the posts that fit one of their open posts, ranked by how well they fit, with the distance to each and the travel time for the first page.
 10. **Browse feed**: A user scrolls through other users' open posts, newest first.
 11. **Filter feed** ([Use Case 5](#uc5)): A user narrows the feed by category, price or distance.
-12. **View a post**: A user opens another user's post from the feed or the recommendations to see its details and photos.
+12. **View a post**: A user opens another user's post from the feed or the recommendations to see its details and photos, and a map with a circle around the approximate area it is in. The circle is about 1.6 km in radius and centred on the 0.02° grid cell the post is in, not on the post; the post's address is shown only after a deal (see View deals).
 
 **Feature 3: Deals, Ratings and Reputation**
 
-13. **View deals**: A user opens the Deals tab and sees their deals, newest first, as buyer or seller. Each deal shows its title, agreed price, date, the listing and request it came from, the other user's score, and both ratings. Tapping the listing or request opens it, even if it has since closed. A user with no deals sees "No deals yet".
+13. **View deals**: A user opens the Deals tab and sees their deals, newest first, as buyer or seller. Each deal shows its title, agreed price, date, the listing and request it came from, the other user's score, both ratings, and the other user's post on a map with a pin and its address. Tapping the listing or request opens it, with its address and a pin, even if it has since closed. A user with no deals sees "No deals yet".
 14. **Rate a deal** ([Use Case 2](#uc2)): A user rates the other side of a deal from 1 to 5 stars with an optional comment. The other user's score updates on the card.
 15. **Edit a rating**: A user changes the stars or comment of a rating they gave earlier, and the other user's score updates.
 
@@ -493,6 +494,10 @@ None. Mock-ups are optional, and the use cases above describe each screen's fiel
     - **Purpose**: Travel times between the user's post and the first page of recommended posts, from its matrix API, for walking, cycling or driving. The backend needs an `ORS_API_KEY`; without it the feed is returned without travel times.
     - **Interface**: `POST /v2/matrix/{profile}`, where the profile is `foot-walking`, `cycling-regular` or `driving-car`, with JSON `{ locations, sources, destinations, metrics: ["duration"] }`. Returns `{ durations }`, one row of travel times in seconds from the source to each destination, null where there is no route.
 
+4. **OpenStreetMap**
+    - **Purpose**: Map tiles for the post and deal maps, which osmdroid downloads. It needs no key; the app names itself in its requests (`MatchMarket/<version> (Android)`), as OpenStreetMap's tile usage policy asks. OpenStreetMap blocks the app's `com.example` application id, so the app does not send that.
+    - **Interface**: `GET https://tile.openstreetmap.org/{z}/{x}/{y}.png`, which returns one 256 × 256 map tile.
+
 ### **4.4. Frameworks and Libraries**
 
 1. **Jetpack Compose and Kotlin** (frontend)
@@ -528,6 +533,9 @@ None. Mock-ups are optional, and the use cases above describe each screen's fiel
 11. **dotenv** (backend)
     - **Purpose**: Loads the backend's configuration and secrets, such as `MONGODB_URI`, `GOOGLE_CLIENT_ID` and `JWT_SECRET`, from `backend/.env` at startup.
     - **Reason**: Keeps secrets in a gitignored file instead of in the code or the shell.
+12. **osmdroid** (frontend)
+    - **Purpose**: Shows the post and deal maps, with a circle or a pin.
+    - **Reason**: Draws OpenStreetMap maps without an API key or Google Play services.
 
 ### **4.5. Dependencies Diagram**
 

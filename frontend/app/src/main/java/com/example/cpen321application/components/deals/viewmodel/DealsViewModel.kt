@@ -3,9 +3,11 @@ package com.example.cpen321application.components.deals.viewmodel
 import android.app.Application
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.cpen321application.components.deals.model.Deal
 import com.example.cpen321application.components.deals.model.DealPost
 import com.example.cpen321application.components.deals.model.DealsApi
 import com.example.cpen321application.components.posts.model.Mode
+import com.example.cpen321application.components.posts.model.PostLocation
 import com.example.cpen321application.components.users.model.SessionManager
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.launch
@@ -26,6 +28,9 @@ class DealsViewModel(app: Application) : AndroidViewModel(app) {
     val opening: OpenPostState
         get() = stateHolder.opening
 
+    val locations: Map<String, PostLocation>
+        get() = stateHolder.locations
+
     // Fetches the post, then hands it to the screen that shows it.
     fun openPost(post: DealPost, isRequest: Boolean, onOpened: (JSONObject, Mode) -> Unit) {
         openJob = viewModelScope.launch {
@@ -34,6 +39,11 @@ class DealsViewModel(app: Application) : AndroidViewModel(app) {
     }
 
     fun clearOpenFailure() = stateHolder.stopOpening()
+
+    // Not tied to `job`, so a refresh does not cancel it.
+    fun loadLocation(deal: Deal) {
+        viewModelScope.launch { stateHolder.loadLocation(deal) }
+    }
 
     fun startRating(dealId: String) = stateHolder.startRating(dealId)
 

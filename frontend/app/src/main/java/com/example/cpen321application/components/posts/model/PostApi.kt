@@ -26,6 +26,12 @@ internal fun JSONArray.objects(): List<JSONObject> = (0 until length()).map { ge
 
 internal fun JSONArray.strings(): List<String> = (0 until length()).map { getString(it) }
 
+// A post's address and coordinates, or null if it has none. GeoJSON puts longitude first.
+fun locationOf(post: JSONObject): PostLocation? {
+    val coordinates = post.optJSONObject("location")?.optJSONArray("coordinates") ?: return null
+    return PostLocation(post.optString("address"), latitude = coordinates.getDouble(1), longitude = coordinates.getDouble(0))
+}
+
 class PostApi(
     private val sessions: SessionManager,
     private val resources: Resources,
@@ -99,6 +105,7 @@ class PostApi(
             photoIds = post.optJSONArray("photoIds")?.strings().orEmpty(),
             rows = detailRows,
             createdAt = post.optString("createdAt").take(DATE_CHARS),
+            location = locationOf(post),
         )
     }
 

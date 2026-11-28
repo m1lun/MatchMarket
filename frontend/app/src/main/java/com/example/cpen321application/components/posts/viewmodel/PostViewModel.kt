@@ -131,9 +131,13 @@ class PostViewModel(app: Application) : AndroidViewModel(app) {
         private set
     var openPostMode by mutableStateOf(Mode.SELLING)
         private set
+    /** True when the open post was opened from a deal, so its exact location is shown. */
+    var openPostFromDeal by mutableStateOf(false)
+        private set
 
-    fun open(raw: JSONObject, postMode: Mode) {
+    fun open(raw: JSONObject, postMode: Mode, fromDeal: Boolean = false) {
         openPostMode = postMode
+        openPostFromDeal = fromDeal
         openPost = api.summarise(postMode, raw)
     }
 
