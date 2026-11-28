@@ -45,7 +45,7 @@ Install the following before the frontend or backend setup steps:
 ### Build and Run
 
 - **Debug build**: Click the green play button in the toolbar, to compile the code, package a debug APK, and install it on the connected device or running emulator. Alternatively, from the project root, run `./scripts/run-frontend.sh`.
-- **Release build**: Go to Build -> Generate Signed App Bundle or APK -> APK. Follow the on-screen instructions to create a key, and select the "release" build variant. You will then have to manually install the generated APK on your device or the running emulator.
+- **Release build**: from `frontend/`, run `./gradlew assembleRelease` (`.\gradlew.bat assembleRelease` on Windows). The APK is `frontend/app/build/outputs/apk/release/app-release.apk`; install it with `adb install` or by dragging it onto the emulator. It is signed with `~/.android/debug.keystore` unless `RELEASE_KEYSTORE`, `RELEASE_STORE_PASSWORD`, `RELEASE_KEY_ALIAS` and `RELEASE_KEY_PASSWORD` are set in `frontend/local.properties`. Whichever key signs it, its SHA-1 must be registered as in step 6, or Google sign-in fails.
 
 
 ### Backend Configuration
@@ -304,7 +304,7 @@ Run these from the project root.
 | Backend interface tests (mock, no-mock, and combined, with coverage) | `./scripts/run-backend-interface-tests.sh` |
 | Backend non-functional requirement tests | `./scripts/run-backend-nfr-tests.sh` |
 | Frontend end-to-end tests (needs an emulator or device with the app signed in) | `./scripts/run-frontend-e2e-tests.sh` |
-| Frontend non-functional requirement tests | `./scripts/run-frontend-nfr-tests.sh` |
+| Frontend non-functional requirement tests | None: both non-functional requirements are tested in the backend. `./scripts/run-frontend-nfr-tests.sh` and the empty `androidTest/.../nfr/` folder come from the course template. |
 
 Backend tests use Jest. Frontend tests use the Jetpack Compose testing APIs and UI Automator.
 

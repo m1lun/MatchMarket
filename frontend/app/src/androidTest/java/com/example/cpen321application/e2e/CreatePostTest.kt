@@ -29,6 +29,7 @@ import com.example.cpen321application.support.type
 import com.example.cpen321application.support.valueField
 import com.example.cpen321application.support.waitForText
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
@@ -65,7 +66,7 @@ class CreatePostTest(private val form: PostForm) {
     fun createsPostAndShowsItInMyPosts() {
         rule.createPost(form)
 
-        assertTrue(rule.postCards().size == 1)
+        assertEquals(1, rule.postCards().size)
         rule.waitForText(TEST_NAME, substring = true)
     }
 
@@ -76,7 +77,7 @@ class CreatePostTest(private val form: PostForm) {
         rule.click(form.createButton)
 
         rule.waitForText(form.listHeader, substring = true)
-        assertTrue(rule.postCards().size == 1)
+        assertEquals(1, rule.postCards().size)
         assertTrue(testPosts().single().second.raw.getJSONArray("photoIds").length() == 3)
     }
 
@@ -174,7 +175,7 @@ class CreatePostTest(private val form: PostForm) {
             assertTrue(testPosts().isEmpty())
         } else {
             rule.waitForText(form.listHeader, substring = true)
-            assertTrue(rule.postCards().size == 1)
+            assertEquals(1, rule.postCards().size)
         }
     }
 

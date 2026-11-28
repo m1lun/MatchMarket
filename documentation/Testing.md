@@ -33,6 +33,7 @@
 | 2026-11-26 | 4 | Use Case 4 failures 2a1 and 4a1: after going back online, the tests tap "Retry" only if it is still shown. Since live updates reach the whole app, a live connection that broke during the outage reconnects and reloads the inbox and the open conversation, which can remove "Retry" before the test taps it and made both tests flaky. A connection that lasts through the outage does not reload, so the tests cannot simply wait for that reload either. |
 | 2026-11-26 | 4 | Use Case 1 now uses the app's labels, "Must have" and "Nice to have", instead of Hard and Soft, as in the tests. |
 | 2026-11-26 | 2 | Re-ran the back-end tests at commit `8f90a68`, after each component got a service that owns its rules, including the input rules (758 interface tests: 116 with mocks, 642 without; NFR tests 5 of 5). Replaced the coverage screenshots and figures, and updated the coverage table for the files that moved: `logic/` became part of each component's `services/`, and the defensive branches of the deals list and the conversations list moved into `dealsService.ts` and `messagingService.ts`. |
+| 2026-11-26 | 2, 4 | Use Case 4 steps 7 and 7a1 match the requirements wording. Section 2.2 links the workflow and says what it runs; the note on mocks names every kind of mock used; the macOS note says every other test binds to 127.0.0.1. |
 
 ---
 
@@ -85,7 +86,7 @@
 | **DELETE /api/custom-fields/:key** | [`tests/no-mock/customFields.test.ts#L173`](../backend/tests/no-mock/customFields.test.ts#L173) | [`tests/mock/customFields.test.ts#L77`](../backend/tests/mock/customFields.test.ts#L77) | Custom fields DB |
 | **GET /health** | [`tests/no-mock/health.test.ts#L9`](../backend/tests/no-mock/health.test.ts#L9) | None: the route uses no database or other service, so there is nothing that can fail to mock. | — |
 
-The mocked tests use `jest.spyOn` on one store method at a time, so each database failure is forced on its own. Both groups otherwise run against a real MongoDB.
+The mocked tests use `jest.spyOn` to make one dependency fail at a time: a store method for a database failure, `fetch` for OpenRouteService, or Google's `verifyIdToken`; the `GET /api/events` tests fake the heartbeat timer. Both groups otherwise run against a real MongoDB.
 
 **Test-only routes for the end-to-end tests.** They exist only when the backend runs with `ENABLE_E2E_ROUTES=true`, and the front-end tests in Section 4 create their data through them.
 
@@ -138,11 +139,11 @@ The mocked tests use `jest.spyOn` on one store method at a time, so each databas
 
 The script starts a throwaway MongoDB on port 27018 and runs the tests three times: `tests/mock/`, `tests/no-mock/`, then both together. It writes each coverage report to `backend/coverage/mock/`, `backend/coverage/no-mock/` and `backend/coverage/interface/`, and removes the database when it finishes.
 
-**Known issue on macOS:** `tests/no-mock/postName.test.ts` and `tests/no-mock/health.test.ts` use `request(app)`, which listens on all addresses. macOS can give that server a port another program already holds on `127.0.0.1`, such as Android Studio, so a request occasionally gets an unexpected response and the script stops. If this happens, run the script again. The Deals tests bind to `127.0.0.1` through `tests/helpers/testApp.ts` to avoid it.
+**Known issue on macOS:** `tests/no-mock/postName.test.ts` and `tests/no-mock/health.test.ts` use `request(app)`, which listens on all addresses. macOS can give that server a port another program already holds on `127.0.0.1`, such as Android Studio, so a request occasionally gets an unexpected response and the script stops. If this happens, run the script again. Every other test file binds to `127.0.0.1` through `tests/helpers/testApp.ts` to avoid it.
 
 ### 2.2. GitHub Actions Configuration Location
 
-`~/.github/workflows/backend-tests.yml`
+[`.github/workflows/backend-tests.yml`](../.github/workflows/backend-tests.yml): on every push to `main` it runs the typecheck, then `scripts/run-backend-interface-tests.sh` and `scripts/run-backend-nfr-tests.sh`.
 
 ### 2.3. Jest Coverage Report Screenshots With Mocks
 
@@ -471,9 +472,9 @@ Tests:       5 passed, 5 total
     | 6. The system saves the message, and the app shows it on the right and clears the message box. | Check that the message box is empty and that "Is it still available?" is shown.<br>Check on the backend that the conversation's messages are "Message 1" and "Is it still available?". |
     | 6a. The network or server is unavailable when the message is sent. | (`keepsMessageWhenSendFails`) Input "Is it still available?", turn on airplane mode, and tap "Send". |
     | 6a1. The app shows "Could not send the message. Try again." and the message stays in the message box. | Check that "Could not send the message. Try again." is shown and that the message box still contains "Is it still available?".<br>Turn off airplane mode and check on the backend that the only message is "Message 1". |
-    | 7. The message reaches the other user without refreshing: in the open conversation, or in the inbox, with unread dots on the card and the Messages tab and, on another tab, a banner with "View". | (`showsOtherUsersMessageLive`) Open the conversation and wait two seconds for its live connection. The E2E Seller sends "Yes, still available".<br>Check that "Yes, still available" is shown without refreshing.<br>(`updatesInboxLive`) Open the Messages tab and check that "Message 1" is shown. The E2E Seller sends "Yes, still available". Check that "Yes, still available" and the conversation's unread dot are shown without refreshing.<br>(`marksMessageUnreadOnAnotherTab`) On My Posts, the E2E Seller sends "Yes, still available". Check that the banner "E2E Seller: Yes, still available" and the Messages tab's unread dot are shown. Tap "Messages" and check that the conversation's unread dot and "Yes, still available" are shown.<br>(`bannerOpensConversation`) On My Posts, the E2E Seller sends "Yes, still available". Tap "View" on the banner and check that the conversation opens with "Yes, still available" and that the Messages tab's unread dot is gone. |
+    | 7. The system pushes the message to the other user, whose app shows it without refreshing: in the conversation if it is open; otherwise at the top of their inbox with an unread dot on the conversation and the Messages tab, and, while they are on another tab, in a banner with "View", which opens the conversation. | (`showsOtherUsersMessageLive`) Open the conversation and wait two seconds for its live connection. The E2E Seller sends "Yes, still available".<br>Check that "Yes, still available" is shown without refreshing.<br>(`updatesInboxLive`) Open the Messages tab and check that "Message 1" is shown. The E2E Seller sends "Yes, still available". Check that "Yes, still available" and the conversation's unread dot are shown without refreshing.<br>(`marksMessageUnreadOnAnotherTab`) On My Posts, the E2E Seller sends "Yes, still available". Check that the banner "E2E Seller: Yes, still available" and the Messages tab's unread dot are shown. Tap "Messages" and check that the conversation's unread dot and "Yes, still available" are shown.<br>(`bannerOpensConversation`) On My Posts, the E2E Seller sends "Yes, still available". Tap "View" on the banner and check that the conversation opens with "Yes, still available" and that the Messages tab's unread dot is gone. |
     | 7a. The other user's connection to the server was lost. | (`catchesUpAfterReconnecting`) Open the conversation, turn airplane mode on and off, and wait until the backend can be reached. The E2E Seller sends "Sent while you were offline". |
-    | 7a1. Their app reconnects and reloads their inbox and the conversation they have open, which then show the message, within about a minute. | Check that "Sent while you were offline" is shown within 90 seconds. |
+    | 7a1. Their app reconnects and reloads their inbox and the conversation they have open, which then show the message within about a minute, without an unread dot or a banner. | Check that "Sent while you were offline" is shown within 90 seconds. |
     | 8. When the other user opens the conversation, its unread dot goes away, and so does the Messages tab's once no conversation is unread. | (`marksMessageUnreadOnAnotherTab`, continued) Tap the conversation's card and check that the Messages tab's unread dot is gone. Tap back and check that the conversation's unread dot is gone. |
 
   - **Test Logs:**
