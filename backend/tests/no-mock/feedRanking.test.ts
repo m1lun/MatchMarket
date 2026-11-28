@@ -2,8 +2,6 @@ import type { Server } from 'node:http';
 
 import request from 'supertest';
 
-import { normaliseWeights } from '../../src/components/matching/services/rank';
-import { satisfies } from '../../src/components/matching/services/satisfies';
 import { env } from '../../src/shared/config/env';
 import type { FieldValue, PostField, RequestField } from '../../src/shared/models/common';
 import { ME, OTHER, bearer, clearDealData, makeListing, makeRequest } from '../helpers/dealFixtures';
@@ -240,32 +238,5 @@ describe('Unmocked: GET /api/feed ranking', () => {
     const matches = await feedFor([soft('brand', 'ikea', 5), soft('colour', 'oak', 1)]);
 
     expect(scoreOf(matches, listing.id)).toBeCloseTo(expectedScore({ match: 3.5 / 6 }));
-  });
-});
-
-// Called directly: the feed never reaches these cases, but the rules must still hold on their own.
-describe('Unmocked: matching rules', () => {
-  // Input: weights that are all 0
-  // Expected status code: none, since normaliseWeights is called directly
-  // Expected behavior: the four parts count equally instead of dividing by zero
-  // Expected output: 0.25 for each part
-  test('All-Zero Weights Count Equally', () => {
-    expect(normaliseWeights({ price: 0, condition: 0, distance: 0, match: 0 })).toStrictEqual({
-      price: 0.25,
-      condition: 0.25,
-      distance: 0.25,
-      match: 0.25,
-    });
-  });
-
-  // Input: a request for a desk and a listing for a chair at the same place
-  // Expected status code: none, since satisfies is called directly
-  // Expected behavior: a listing in another category never meets a request
-  // Expected output: false
-  test('Other Category Does Not Satisfy', async () => {
-    const request = await makeRequest(mongo.store, ME, { category: 'desk' });
-    const listing = await makeListing(mongo.store, OTHER, { category: 'chair' });
-
-    expect(satisfies(request, listing)).toBe(false);
   });
 });

@@ -63,6 +63,7 @@
 | 2026-11-26 | 3.2, 3.3, 3.4, 3.5, 4.1, 4.3, 4.4, 4.5, 4.6 | Following the CP3 TA feedback: one User actor, since buying and selling use the same use cases; Google is "Google Sign-In" everywhere, with the interface the backend calls; Manage profile is split into View profile and Edit address, in the text and the use case diagram, so the later use cases are renumbered; Use Case 3 failure 1a and Use Case 4 steps 7 and 7a1 describe only what the user sees; the Matching interface no longer mentions filters that were never built; Section 4.4 names the test libraries in use. In every sequence diagram the app has activation bars, and each call shows its result before the branches on it, so a network failure is a missing response rather than a second reply. After the services refactor, the diagrams pass `firstPhotoOnly` to Posts' `findByIds` as the code does, View Recommendations shows the feed filters it applies (`passesFilter`), and Send a Message sends the live update before it replies 201; Section 4.5 says other components go through Posts' and Deals' services. |
 | 2026-11-27 | 4.1 | Feeds leave out other testers' test posts, and no conversation can be started about one, so the test routes can be on for the VM. |
 | 2026-11-28 | 4.1 | `POST /api/auth/google` refuses a Google account with no email (401), instead of saving a user with an empty email. |
+| 2026-11-28 | 4.1 | Matching's `satisfies` no longer checks the category itself, since the feed only passes candidates in the post's category. |
 
 ---
 
@@ -356,7 +357,7 @@ None. Mock-ups are optional, and the use cases above describe each screen's fiel
         3. `GET /api/feed/listings/:id` and `GET /api/feed/requests/:id`
             - **Purpose**: Return one listing or request, open or closed, to any signed-in user. The Deals tab uses it to open the posts of a deal. 404 for a malformed or unknown id.
         4. `boolean satisfies(Request request, Listing listing)`
-            - **Purpose**: The single hard-requirement rule (category and straight-line distance within radius, plus price, condition, dimensions or any other field the buyer marked "Must have") used by both feed directions.
+            - **Purpose**: The single hard-requirement rule (straight-line distance within radius, plus price, condition, dimensions or any other field the buyer marked "Must have") used by both feed directions, on candidates already in the same category.
         5. `List<RankedMatch> rank(Post source, List<Post> candidates, Weights weights)`
             - **Purpose**: Score each candidate on price, condition, distance and preference match, and order the best first by the viewer's weights, which count the four scores equally until users can save ranking preferences. In the preference match, each soft preference counts by its importance from 1 to 5, or 3 if it has none. A listing over a soft maximum price or below a soft minimum condition loses more score the further it misses, which can go below 0; the price penalty stops growing at 50% over the maximum.
         6. `List<Duration> travelTimes(Location origin, List<Location> destinations, TravelMode mode)`
