@@ -59,6 +59,11 @@ function googlePayload(overrides: Partial<TokenPayload> = {}): TokenPayload {
   };
 }
 
+function payloadWithoutEmail(): TokenPayload {
+  const { iss, aud, sub, iat, exp } = anonymousPayload();
+  return { iss, aud, sub, iat, exp, email_verified: true };
+}
+
 // Google's token check, which needs a real Google ID token and Google's keys.
 function mockGoogle(): jest.SpyInstance {
   return jest.spyOn(OAuth2Client.prototype, 'verifyIdToken') as unknown as jest.SpyInstance;
@@ -113,23 +118,8 @@ describe('Mocked: POST /api/auth/google', () => {
     expect(await mongo.store.users.findById(GOOGLE_USER.id)).toMatchObject({ firstName: '', lastName: '', pictureUrl: null });
   });
 
-  // Mocked behavior: Google's verifyIdToken accepts the token, for a verified account whose ticket has no email
-  // Input: { idToken }
-  // Expected status code: 200
-  // Expected behavior: the user is saved with an empty email
-  // Expected output: email '', and new tokens
-  test('Google Account Without An Email', async () => {
-    const { iss, aud, sub, iat, exp } = anonymousPayload();
-    googleAccepts({ iss, aud, sub, iat, exp, email_verified: true });
-
-    const response = await postAuth(app, 'google', { idToken: ID_TOKEN });
-
-    expect(response.status).toBe(200);
-    expect(response.body).toMatchObject({ email: '' });
-  });
-
   // Mocked behavior: Google's verifyIdToken rejects the token (expired or forged), returns a ticket for an account
-  // whose email is not verified, or returns a ticket with no payload
+  // whose email is not verified, a ticket with no email, or a ticket with no payload
   // Input: { idToken }
   // Expected status code: 401
   // Expected behavior: no session is created and no user is saved
@@ -138,6 +128,7 @@ describe('Mocked: POST /api/auth/google', () => {
     { label: 'Google Rejects The Token', install: () => mockGoogle().mockRejectedValue(new Error('Token used too late')) },
     { label: 'Email Not Verified', install: () => googleAccepts(googlePayload({ email_verified: false })) },
     { label: 'No Payload', install: () => googleAccepts(undefined) },
+    { label: 'No Email', install: () => googleAccepts(payloadWithoutEmail()) },
     { label: 'Google Rejects With A Non-Error Value', install: () => mockGoogle().mockRejectedValue('network down') },
   ])('$label: 401', async ({ install }: { label: string; install: () => jest.SpyInstance }) => {
     const google = install();
