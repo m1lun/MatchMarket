@@ -80,11 +80,13 @@ export function meetsField(field: RequestField, listing: Listing): boolean | und
 }
 
 // The one hard-requirement rule. Both feeds use it, so a listing is in a request's feed
-// exactly when that request is in the listing's feed. The feed only passes posts in the
-// same category; radius always applies, and any other field applies when the buyer marked
-// it hard. A listing that leaves a hard field blank is left out, since it can't be shown
-// to meet it.
+// exactly when that request is in the listing's feed. Category and radius always apply;
+// any other field applies when the buyer marked it hard. A listing that leaves a hard
+// field blank is left out, since it can't be shown to meet it.
 export function satisfies(request: BuyerRequest, listing: Listing): boolean {
+  if (request.category !== listing.category) {
+    return false;
+  }
   if (distanceKm(request.location, listing.location) > radiusKm(request)) {
     return false;
   }
