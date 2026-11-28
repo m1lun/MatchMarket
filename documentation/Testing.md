@@ -35,6 +35,7 @@
 | 2026-11-26 | 2 | Re-ran the back-end tests at commit `8f90a68`, after each component got a service that owns its rules, including the input rules (758 interface tests: 116 with mocks, 642 without; NFR tests 5 of 5). Replaced the coverage screenshots and figures, and updated the coverage table for the files that moved: `logic/` became part of each component's `services/`, and the defensive branches of the deals list and the conversations list moved into `dealsService.ts` and `messagingService.ts`. |
 | 2026-11-26 | 2, 4 | Use Case 4 steps 7 and 7a1 match the requirements wording. Section 2.2 links the workflow and says what it runs; the note on mocks names every kind of mock used; the macOS note says every other test binds to 127.0.0.1. |
 | 2026-11-27 | 2, 4 | The end-to-end tests can also run against the VM, where the test routes are on; test data is only visible to its tester. |
+| 2026-11-28 | 2 | Back-end coverage is now 100%: tests added for the start-up code, a browse feed filtered by a maximum price alone, a store opened on an existing database, and the remaining sign-in and error paths; unused defensive code was removed. Coverage is measured on the TypeScript source, so the coverage table no longer needs any reasons. |
 
 ---
 
@@ -46,12 +47,12 @@
 
 | **Interface** | **Describe Group Location, No Mocks** | **Describe Group Location, With Mocks** | **Mocked Components** |
 | ------------- | ------------------------------------- | --------------------------------------- | --------------------- |
-| **GET /api/deals** | [`tests/no-mock/getDeals.test.ts#L95`](https://github.com/m1lun/MatchMarket/blob/8f90a68cf7d9d0fc1721ab24ab8021ab3448cd45/backend/tests/no-mock/getDeals.test.ts#L95) | [`tests/mock/getDeals.test.ts#L45`](https://github.com/m1lun/MatchMarket/blob/8f90a68cf7d9d0fc1721ab24ab8021ab3448cd45/backend/tests/mock/getDeals.test.ts#L45) | Deals DB, Ratings DB, Reputations DB, Users DB, Listings DB, Requests DB |
-| **POST /api/deals/:id/ratings** | [`tests/no-mock/ratings.test.ts#L260`](https://github.com/m1lun/MatchMarket/blob/8f90a68cf7d9d0fc1721ab24ab8021ab3448cd45/backend/tests/no-mock/ratings.test.ts#L260) | [`tests/mock/ratings.test.ts#L81`](https://github.com/m1lun/MatchMarket/blob/8f90a68cf7d9d0fc1721ab24ab8021ab3448cd45/backend/tests/mock/ratings.test.ts#L81) | Deals DB, Ratings DB, Reputations DB |
-| **PUT /api/deals/:id/ratings** | [`tests/no-mock/ratings.test.ts#L348`](https://github.com/m1lun/MatchMarket/blob/8f90a68cf7d9d0fc1721ab24ab8021ab3448cd45/backend/tests/no-mock/ratings.test.ts#L348) | [`tests/mock/ratings.test.ts#L116`](https://github.com/m1lun/MatchMarket/blob/8f90a68cf7d9d0fc1721ab24ab8021ab3448cd45/backend/tests/mock/ratings.test.ts#L116) | Deals DB, Ratings DB, Reputations DB |
-| **GET /api/feed/listings/:id** | [`tests/no-mock/dealPost.test.ts#L97`](https://github.com/m1lun/MatchMarket/blob/8f90a68cf7d9d0fc1721ab24ab8021ab3448cd45/backend/tests/no-mock/dealPost.test.ts#L97) | [`tests/mock/dealPost.test.ts#L34`](https://github.com/m1lun/MatchMarket/blob/8f90a68cf7d9d0fc1721ab24ab8021ab3448cd45/backend/tests/mock/dealPost.test.ts#L34) | Listings DB |
-| **GET /api/feed/requests/:id** | [`tests/no-mock/dealPost.test.ts#L102`](https://github.com/m1lun/MatchMarket/blob/8f90a68cf7d9d0fc1721ab24ab8021ab3448cd45/backend/tests/no-mock/dealPost.test.ts#L102) | [`tests/mock/dealPost.test.ts#L54`](https://github.com/m1lun/MatchMarket/blob/8f90a68cf7d9d0fc1721ab24ab8021ab3448cd45/backend/tests/mock/dealPost.test.ts#L54) | Requests DB |
-| **POST /api/conversations** | [`tests/no-mock/conversations.test.ts#L53`](../backend/tests/no-mock/conversations.test.ts#L53) | [`tests/mock/conversations.test.ts#L40`](../backend/tests/mock/conversations.test.ts#L40) | Listings DB, Requests DB, Conversations DB |
+| **GET /api/deals** | [`tests/no-mock/getDeals.test.ts#L95`](https://github.com/m1lun/MatchMarket/blob/39112f399194f83cd1e7e488ebc2614143f9af7f/backend/tests/no-mock/getDeals.test.ts#L95) | [`tests/mock/getDeals.test.ts#L45`](https://github.com/m1lun/MatchMarket/blob/39112f399194f83cd1e7e488ebc2614143f9af7f/backend/tests/mock/getDeals.test.ts#L45) | Deals DB, Ratings DB, Reputations DB, Users DB, Listings DB, Requests DB |
+| **POST /api/deals/:id/ratings** | [`tests/no-mock/ratings.test.ts#L260`](https://github.com/m1lun/MatchMarket/blob/39112f399194f83cd1e7e488ebc2614143f9af7f/backend/tests/no-mock/ratings.test.ts#L260) | [`tests/mock/ratings.test.ts#L81`](https://github.com/m1lun/MatchMarket/blob/39112f399194f83cd1e7e488ebc2614143f9af7f/backend/tests/mock/ratings.test.ts#L81) | Deals DB, Ratings DB, Reputations DB |
+| **PUT /api/deals/:id/ratings** | [`tests/no-mock/ratings.test.ts#L348`](https://github.com/m1lun/MatchMarket/blob/39112f399194f83cd1e7e488ebc2614143f9af7f/backend/tests/no-mock/ratings.test.ts#L348) | [`tests/mock/ratings.test.ts#L116`](https://github.com/m1lun/MatchMarket/blob/39112f399194f83cd1e7e488ebc2614143f9af7f/backend/tests/mock/ratings.test.ts#L116) | Deals DB, Ratings DB, Reputations DB |
+| **GET /api/feed/listings/:id** | [`tests/no-mock/dealPost.test.ts#L97`](https://github.com/m1lun/MatchMarket/blob/39112f399194f83cd1e7e488ebc2614143f9af7f/backend/tests/no-mock/dealPost.test.ts#L97) | [`tests/mock/dealPost.test.ts#L34`](https://github.com/m1lun/MatchMarket/blob/39112f399194f83cd1e7e488ebc2614143f9af7f/backend/tests/mock/dealPost.test.ts#L34) | Listings DB |
+| **GET /api/feed/requests/:id** | [`tests/no-mock/dealPost.test.ts#L102`](https://github.com/m1lun/MatchMarket/blob/39112f399194f83cd1e7e488ebc2614143f9af7f/backend/tests/no-mock/dealPost.test.ts#L102) | [`tests/mock/dealPost.test.ts#L54`](https://github.com/m1lun/MatchMarket/blob/39112f399194f83cd1e7e488ebc2614143f9af7f/backend/tests/mock/dealPost.test.ts#L54) | Requests DB |
+| **POST /api/conversations** | [`tests/no-mock/conversations.test.ts#L53`](../backend/tests/no-mock/conversations.test.ts#L53), test posts in [`tests/no-mock/e2eIsolation.test.ts#L112`](../backend/tests/no-mock/e2eIsolation.test.ts#L112) | [`tests/mock/conversations.test.ts#L40`](../backend/tests/mock/conversations.test.ts#L40) | Listings DB, Requests DB, Conversations DB |
 | **GET /api/conversations** | [`tests/no-mock/conversations.test.ts#L247`](../backend/tests/no-mock/conversations.test.ts#L247) | [`tests/mock/conversations.test.ts#L65`](../backend/tests/mock/conversations.test.ts#L65) | Conversations DB, Users DB, Listings DB |
 | **GET /api/conversations/:id/messages** | [`tests/no-mock/conversations.test.ts#L353`](../backend/tests/no-mock/conversations.test.ts#L353) | [`tests/mock/conversations.test.ts#L86`](../backend/tests/mock/conversations.test.ts#L86) | Conversations DB, Messages DB |
 | **POST /api/conversations/:id/messages** | [`tests/no-mock/conversations.test.ts#L427`](../backend/tests/no-mock/conversations.test.ts#L427) | [`tests/mock/conversations.test.ts#L106`](../backend/tests/mock/conversations.test.ts#L106) | Conversations DB, Messages DB |
@@ -59,15 +60,15 @@
 | **POST /api/conversations/:id/proposal/accept** | [`tests/no-mock/proposals.test.ts#L215`](../backend/tests/no-mock/proposals.test.ts#L215) | [`tests/mock/proposals.test.ts#L88`](../backend/tests/mock/proposals.test.ts#L88) | Conversations DB, Listings DB, Requests DB, Deals DB |
 | **POST /api/conversations/:id/proposal/decline** | [`tests/no-mock/proposals.test.ts#L376`](../backend/tests/no-mock/proposals.test.ts#L376) | [`tests/mock/proposals.test.ts#L142`](../backend/tests/mock/proposals.test.ts#L142) | Conversations DB |
 | **GET /api/events** | [`tests/no-mock/events.test.ts#L53`](../backend/tests/no-mock/events.test.ts#L53) | [`tests/mock/events.test.ts#L60`](../backend/tests/mock/events.test.ts#L60) | Timers (the 25-second heartbeat) |
-| **GET /api/users/me** | [`tests/no-mock/users.test.ts#L78`](../backend/tests/no-mock/users.test.ts#L78) | [`tests/mock/users.test.ts#L41`](../backend/tests/mock/users.test.ts#L41) | Users DB |
+| **GET /api/users/me** | [`tests/no-mock/users.test.ts#L78`](../backend/tests/no-mock/users.test.ts#L78) | [`tests/mock/users.test.ts#L41`](../backend/tests/mock/users.test.ts#L41), session token in [`tests/mock/auth.test.ts#L260`](../backend/tests/mock/auth.test.ts#L260) | Users DB |
 | **PATCH /api/users/me** | [`tests/no-mock/users.test.ts#L128`](../backend/tests/no-mock/users.test.ts#L128) | [`tests/mock/users.test.ts#L57`](../backend/tests/mock/users.test.ts#L57) | Users DB |
 | **GET /api/users/:id/reputation** | [`tests/no-mock/reputation.test.ts#L34`](../backend/tests/no-mock/reputation.test.ts#L34) | [`tests/mock/reputation.test.ts#L32`](../backend/tests/mock/reputation.test.ts#L32) | Reputations DB |
-| **GET /api/feed** | [`tests/no-mock/feed.test.ts#L95`](../backend/tests/no-mock/feed.test.ts#L95), ranking in [`tests/no-mock/feedRanking.test.ts#L80`](../backend/tests/no-mock/feedRanking.test.ts#L80) | [`tests/mock/feed.test.ts#L57`](../backend/tests/mock/feed.test.ts#L57) | OpenRouteService, Listings DB, Requests DB |
-| **GET /api/feed/listings** | [`tests/no-mock/feed.test.ts#L514`](../backend/tests/no-mock/feed.test.ts#L514) | [`tests/mock/feed.test.ts#L231`](../backend/tests/mock/feed.test.ts#L231) | Listings DB |
-| **GET /api/feed/requests** | [`tests/no-mock/feed.test.ts#L537`](../backend/tests/no-mock/feed.test.ts#L537) | [`tests/mock/feed.test.ts#L248`](../backend/tests/mock/feed.test.ts#L248) | Requests DB |
-| **POST /api/auth/google** | [`tests/no-mock/auth.test.ts#L92`](../backend/tests/no-mock/auth.test.ts#L92) | [`tests/mock/auth.test.ts#L71`](../backend/tests/mock/auth.test.ts#L71) | Google ID token check (`OAuth2Client.verifyIdToken`), Sessions DB, Users DB |
-| **POST /api/auth/refresh** | [`tests/no-mock/auth.test.ts#L111`](../backend/tests/no-mock/auth.test.ts#L111) | [`tests/mock/auth.test.ts#L184`](../backend/tests/mock/auth.test.ts#L184) | Sessions DB |
-| **POST /api/auth/logout** | [`tests/no-mock/auth.test.ts#L209`](../backend/tests/no-mock/auth.test.ts#L209) | [`tests/mock/auth.test.ts#L218`](../backend/tests/mock/auth.test.ts#L218) | Sessions DB |
+| **GET /api/feed** | [`tests/no-mock/feed.test.ts#L95`](../backend/tests/no-mock/feed.test.ts#L95), ranking in [`tests/no-mock/feedRanking.test.ts#L80`](../backend/tests/no-mock/feedRanking.test.ts#L80), test posts in [`tests/no-mock/e2eIsolation.test.ts#L96`](../backend/tests/no-mock/e2eIsolation.test.ts#L96) | [`tests/mock/feed.test.ts#L57`](../backend/tests/mock/feed.test.ts#L57) | OpenRouteService, Listings DB, Requests DB |
+| **GET /api/feed/listings** | [`tests/no-mock/feed.test.ts#L514`](../backend/tests/no-mock/feed.test.ts#L514), test posts in [`tests/no-mock/e2eIsolation.test.ts#L55`](../backend/tests/no-mock/e2eIsolation.test.ts#L55) | [`tests/mock/feed.test.ts#L231`](../backend/tests/mock/feed.test.ts#L231) | Listings DB |
+| **GET /api/feed/requests** | [`tests/no-mock/feed.test.ts#L551`](../backend/tests/no-mock/feed.test.ts#L551) | [`tests/mock/feed.test.ts#L248`](../backend/tests/mock/feed.test.ts#L248) | Requests DB |
+| **POST /api/auth/google** | [`tests/no-mock/auth.test.ts#L92`](../backend/tests/no-mock/auth.test.ts#L92) | [`tests/mock/auth.test.ts#L72`](../backend/tests/mock/auth.test.ts#L72) | Google ID token check (`OAuth2Client.verifyIdToken`), Sessions DB, Users DB |
+| **POST /api/auth/refresh** | [`tests/no-mock/auth.test.ts#L111`](../backend/tests/no-mock/auth.test.ts#L111) | [`tests/mock/auth.test.ts#L201`](../backend/tests/mock/auth.test.ts#L201) | Sessions DB |
+| **POST /api/auth/logout** | [`tests/no-mock/auth.test.ts#L209`](../backend/tests/no-mock/auth.test.ts#L209) | [`tests/mock/auth.test.ts#L235`](../backend/tests/mock/auth.test.ts#L235) | Sessions DB |
 | **POST /api/listings** | [`tests/no-mock/posts.test.ts#L581`](../backend/tests/no-mock/posts.test.ts#L581) | [`tests/mock/posts.test.ts#L216`](../backend/tests/mock/posts.test.ts#L216) | Listings DB, Options DB, Custom fields DB |
 | **POST /api/requests** | [`tests/no-mock/posts.test.ts#L586`](../backend/tests/no-mock/posts.test.ts#L586) | [`tests/mock/posts.test.ts#L221`](../backend/tests/mock/posts.test.ts#L221) | Requests DB, Options DB, Custom fields DB |
 | **GET /api/listings** | [`tests/no-mock/posts.test.ts#L591`](../backend/tests/no-mock/posts.test.ts#L591) | [`tests/mock/posts.test.ts#L226`](../backend/tests/mock/posts.test.ts#L226) | Listings DB |
@@ -98,13 +99,15 @@ The mocked tests use `jest.spyOn` to make one dependency fail at a time: a store
 | **POST /api/e2e/listings** | [`tests/no-mock/e2eConversations.test.ts#L68`](../backend/tests/no-mock/e2eConversations.test.ts#L68) | [`tests/mock/e2eConversations.test.ts#L46`](../backend/tests/mock/e2eConversations.test.ts#L46) | Listings DB |
 | **POST /api/e2e/conversations** | [`tests/no-mock/e2eConversations.test.ts#L111`](../backend/tests/no-mock/e2eConversations.test.ts#L111) | [`tests/mock/e2eConversations.test.ts#L46`](../backend/tests/mock/e2eConversations.test.ts#L46) | Conversations DB, Messages DB |
 | **DELETE /api/e2e/conversations** | [`tests/no-mock/e2eConversations.test.ts#L168`](../backend/tests/no-mock/e2eConversations.test.ts#L168) | [`tests/mock/e2eConversations.test.ts#L46`](../backend/tests/mock/e2eConversations.test.ts#L46) | Conversations DB |
-| **POST /api/e2e/partner/conversations/:id/messages** | [`tests/no-mock/e2eConversations.test.ts#L212`](../backend/tests/no-mock/e2eConversations.test.ts#L212) | [`tests/mock/e2eConversations.test.ts#L70`](../backend/tests/mock/e2eConversations.test.ts#L70) | Conversations DB |
-| **POST /api/e2e/partner/conversations/:id/proposal** | [`tests/no-mock/e2eConversations.test.ts#L260`](../backend/tests/no-mock/e2eConversations.test.ts#L260) | [`tests/mock/e2eConversations.test.ts#L70`](../backend/tests/mock/e2eConversations.test.ts#L70) | Conversations DB |
-| **POST /api/e2e/partner/conversations/:id/proposal/decline** | [`tests/no-mock/e2eConversations.test.ts#L282`](../backend/tests/no-mock/e2eConversations.test.ts#L282) | [`tests/mock/e2eConversations.test.ts#L70`](../backend/tests/mock/e2eConversations.test.ts#L70) | Conversations DB |
+| **POST /api/e2e/partner/conversations/:id/messages** | [`tests/no-mock/e2eConversations.test.ts#L212`](../backend/tests/no-mock/e2eConversations.test.ts#L212), other conversations in [`tests/no-mock/e2eIsolation.test.ts#L142`](../backend/tests/no-mock/e2eIsolation.test.ts#L142) | [`tests/mock/e2eConversations.test.ts#L70`](../backend/tests/mock/e2eConversations.test.ts#L70) | Conversations DB |
+| **POST /api/e2e/partner/conversations/:id/proposal** | [`tests/no-mock/e2eConversations.test.ts#L260`](../backend/tests/no-mock/e2eConversations.test.ts#L260), other conversations in [`tests/no-mock/e2eIsolation.test.ts#L142`](../backend/tests/no-mock/e2eIsolation.test.ts#L142) | [`tests/mock/e2eConversations.test.ts#L70`](../backend/tests/mock/e2eConversations.test.ts#L70) | Conversations DB |
+| **POST /api/e2e/partner/conversations/:id/proposal/decline** | [`tests/no-mock/e2eConversations.test.ts#L282`](../backend/tests/no-mock/e2eConversations.test.ts#L282), other conversations in [`tests/no-mock/e2eIsolation.test.ts#L142`](../backend/tests/no-mock/e2eIsolation.test.ts#L142) | [`tests/mock/e2eConversations.test.ts#L70`](../backend/tests/mock/e2eConversations.test.ts#L70) | Conversations DB |
+
+Start-up code, which no interface reaches (the configuration, starting the server, seeding and opening the database), is tested in [`tests/mock/startup.test.ts`](../backend/tests/mock/startup.test.ts) and [`tests/no-mock/startup.test.ts`](../backend/tests/no-mock/startup.test.ts).
 
 #### 2.1.2. Commit Hash Where Tests Run
 
-`8f90a68cf7d9d0fc1721ab24ab8021ab3448cd45`
+`39112f399194f83cd1e7e488ebc2614143f9af7f`
 
 #### 2.1.3. Explanation on How to Run the Tests
 
@@ -114,7 +117,7 @@ The mocked tests use `jest.spyOn` to make one dependency fail at a time: a store
      ```
      git clone https://github.com/m1lun/MatchMarket.git
      cd MatchMarket
-     git checkout 8f90a68cf7d9d0fc1721ab24ab8021ab3448cd45
+     git checkout 39112f399194f83cd1e7e488ebc2614143f9af7f
      ```
 
 2. **Install the Tools**:
@@ -148,7 +151,7 @@ The script starts a throwaway MongoDB on port 27018 and runs the tests three tim
 
 ### 2.3. Jest Coverage Report Screenshots With Mocks
 
-These are the Jest reports for every back-end file at the commit above: 758 tests in total, 116 with mocks and 642 without. Each image shows Jest's coverage report from the script.
+These are the Jest reports for every back-end file at the commit above: 793 tests in total, 134 with mocks and 659 without. Each image shows Jest's coverage report from the script.
 
 ![Coverage with mocks](images/deals_coverage_mock.png)
 
@@ -160,32 +163,7 @@ These are the Jest reports for every back-end file at the commit above: 758 test
 
 ![Coverage combined](images/deals_coverage_combined.png)
 
-**Reasons for coverage below 100%:**
-
-These reports cover the whole back-end. Combined, the tests reach 97.66% of statements, 96.32% of branches, 98.37% of functions and 97.59% of lines. Every file not listed below has 100% combined coverage of statements, branches, functions and lines.
-
-The Uncovered Line # column shows lines of the compiled JavaScript, not the TypeScript source. The line numbers below are the real source lines, with the report's line in brackets where they differ.
-
-| **File** | **Statements** | **Branches** | **Reason** |
-| -------- | -------------- | ------------ | ---------- |
-| `index.ts` | 0% | 0% | The start-up file: it loads the configuration and starts the HTTP or HTTPS server. The tests build the app with `createApp` and call it through Supertest without starting a server, as the course's example does, so this file never runs under Jest. |
-| `shared/config/env.ts` | 81.81% | 68.96% | Start-up checks of the environment. The tests always set valid values (`tests/setup.ts`), so the four errors that stop the server on a bad configuration are not reached: an invalid `PORT` (line 10), a missing variable (16), no `GOOGLE_CLIENT_ID` (34) and a `JWT_SECRET` under 32 characters (46). Nor are the defaults for an unset `PORT` (5) and `MONGODB_DB` (62). |
-| `shared/store/types.ts`, `components/posts/store/types.ts`, `components/users/store/types.ts`, `components/deals/store/types.ts`, `components/messaging/store/types.ts` | 0% | 100% | Each file only declares TypeScript interfaces, which compile to nothing. The one line in the report (line 2) is the `__esModule` marker TypeScript adds to every module. |
-| `components/posts/store/seed.ts` | 92% | 100% | Lines 34 and 55 (31 and 50 in the report) add context to an error when the categories cannot be converted or the built-in options cannot be saved at start-up. Both only run if MongoDB fails while the server starts, which stops the server. |
-| `app.ts` | 100% | 96.15% | One branch is code TypeScript adds, not ours. Line 3 of the compiled file is the `__importDefault` helper that `import express from 'express'` compiles to. It returns the module unchanged only for a package compiled from ES modules, and Express is a CommonJS package, so that side is never taken. |
-| `components/posts/routes/photos.ts` | 100% | 96.42% | Line 3 (compiled) is the same `__importDefault` helper, for `import multer from 'multer'`, which is also a CommonJS package. |
-| `components/users/services/sessionService.ts` | 100% | 85.71% | Line 3 (compiled) is the same `__importDefault` helper, for `import jwt from 'jsonwebtoken'`. Lines 95–96 (68–69 in the report): `verifySessionToken` reads no claims from a token whose payload is a plain string, but `jwt.verify` is called with an issuer and audience, and it rejects a string payload because it has neither, so a string never reaches those lines. They stay because `jwt.verify` returns `string \| JwtPayload`. |
-| `components/users/services/googleAuth.ts` | 100% | 91.66% | Line 40 (27 in the report): `payload.email ?? ''` is for a ticket without an email. The line before it rejects an account whose `email_verified` is not `true`, and Google only sends `email_verified` together with `email` (both come from the `email` scope), so a ticket that gets this far always has an email. |
-| `shared/errors.ts` | 95.45% | 88.88% | Line 38 (43 in the report): `errorMessage` turns a thrown value that is not an `Error` into text, but every error in the back-end is an `Error`. Lines 45–47 (48–50): the handler passes an error on to Express when the response has already started, which only happens if a route fails after it began sending; no route writes part of a response and then throws. |
-| `components/deals/routes/deals.ts` | 100% | 95% | One defensive branch cannot be reached through the API. Line 36 (33 in the report): Express always gives `req.query` as an object. |
-| `components/deals/services/dealsService.ts` | 100% | 97.29% | Two defensive branches cannot be reached through the API. Line 83 (44 in the report): a stored post always has an `id`. Line 108 (65): every listing has at least one photo, because the validator requires it. Each one keeps the code safe with the optional types, so removing it would not simplify the logic. |
-| `components/messaging/services/messagingService.ts` | 100% | 99.15% | One defensive branch cannot be reached through the API. Line 132 (69 in the report): `byId` skips a post without an `id`, but Posts' `findByIds` always returns each post's `id`; the check is there because its return type makes every field optional. |
-| `components/messaging/routes/paging.ts` | 100% | 95% | One defensive branch cannot be reached through the API. Line 41 (30 in the report): `parsePageQuery` falls back to no parameters if the query is not an object, but Express always gives `req.query` as an object. The same check in `components/deals/routes/deals.ts` is justified above. |
-| `components/matching/services/rank.ts` | 98.18% | 96.29% | One defensive branch cannot be reached through the API. Lines 59–60 (39 in the report): `normaliseWeights` counts the four parts equally when every weight is 0, but the feed always ranks with `DEFAULT_WEIGHTS` (3, 3, 3, 3) until users can save ranking preferences. |
-| `components/matching/services/satisfies.ts` | 97.91% | 97.14% | One defensive branch cannot be reached through the API. Lines 87–88 (83 in the report): `satisfies` rejects a listing in another category, but the feed only fetches candidates in the post's category (`listOpenInCategory`). The check keeps the rule complete on its own, so a listing is in a request's feed exactly when the request is in the listing's. |
-| `components/posts/store/postStore.ts` | 98.71% | 85% | Three branches. Line 49 (50 in the report): `listOpen` has a default of no filter, but its only caller, the browse feed, always passes one. Line 118 (107): `ensure` falls back to the option it was given if MongoDB returns nothing, which an upsert that returns the document after the write never does. Lines 122–123 (110–111): `ensureMany` returns early for an empty list, but its only caller saves the built-in options, which are never empty. |
-| `shared/store/mongoHelpers.ts` | 95.45% | 80% | Lines 33–34 (31–32 in the report): `applySchema` updates the validator of a collection that already exists, which happens when the server restarts on an existing database. Each test file starts with a new, empty database, so the collections never exist yet. |
-| `components/matching/store/matchingStore.ts` | 100% | 92.85% | Line 24 (19 in the report): the browse feed with a maximum price but no minimum price. The tests filter the browse feed by a price range and by a minimum price alone, which build the same query, but not by a maximum price alone. |
+**Coverage:** combined, the tests reach 100% of statements, branches, functions and lines, so no file needs a reason. Coverage is measured on the TypeScript source, so code TypeScript generates, such as import helpers, is not counted.
 
 ---
 
