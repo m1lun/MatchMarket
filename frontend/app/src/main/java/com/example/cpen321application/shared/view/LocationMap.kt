@@ -17,7 +17,6 @@ import org.osmdroid.tileprovider.tilesource.TileSourceFactory
 import org.osmdroid.util.GeoPoint
 import org.osmdroid.views.CustomZoomButtonsController
 import org.osmdroid.views.MapView
-import org.osmdroid.views.overlay.CopyrightOverlay
 import org.osmdroid.views.overlay.Marker
 import org.osmdroid.views.overlay.Overlay
 import org.osmdroid.views.overlay.Polygon
@@ -55,7 +54,7 @@ fun LocationMap(latitude: Double, longitude: Double, approximate: Boolean, modif
             update = { map ->
                 val shape = if (approximate) area(map, centre, colour) else pin(map, centre)
                 map.overlays.clear()
-                map.overlays.addAll(listOf(shape, CopyrightOverlay(map.context)))
+                map.overlays.add(shape)
                 map.controller.setZoom(if (approximate) AREA_ZOOM else PIN_ZOOM)
                 map.controller.setCenter(centre)
                 map.invalidate()
