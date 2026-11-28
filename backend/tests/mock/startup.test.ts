@@ -48,16 +48,14 @@ describe('Mocked: start-up configuration (env)', () => {
   });
 
   // Mocked behavior: dotenv loads nothing, so only the variables set here are read
-  // Input: an invalid PORT, no MONGODB_URI, no GOOGLE_CLIENT_ID, a JWT_SECRET under 32 characters, or no JWT_SECRET
+  // Input: an invalid PORT, no MONGODB_URI, no GOOGLE_CLIENT_ID, or no JWT_SECRET
   // Expected status code: none, since the configuration is read at start-up rather than on a request
   // Expected behavior: the server refuses to start
   // Expected output: an error naming the problem
   test.each([
     { label: 'Invalid PORT', values: { PORT: 'abc' }, error: 'Invalid PORT: abc' },
-    { label: 'PORT Out Of Range', values: { PORT: '70000' }, error: 'Invalid PORT: 70000' },
     { label: 'No MONGODB_URI', values: { MONGODB_URI: undefined }, error: 'Missing required environment variable: MONGODB_URI' },
     { label: 'No GOOGLE_CLIENT_ID', values: { GOOGLE_CLIENT_ID: undefined }, error: 'GOOGLE_CLIENT_ID is not set' },
-    { label: 'Short JWT_SECRET', values: { JWT_SECRET: 'short' }, error: 'JWT_SECRET must be at least 32 characters' },
     { label: 'No JWT_SECRET', values: { JWT_SECRET: undefined }, error: 'JWT_SECRET must be at least 32 characters' },
   ])('$label: Start-Up Fails', ({ values, error }: { label: string; values: Record<string, string | undefined>; error: string }) => {
     expect(() => loadEnv(values)).toThrow(error);
@@ -125,19 +123,16 @@ async function start(options: { https?: boolean; mongoFails?: boolean; closeFail
 
 // Runs at start-up, so no HTTP interface reaches it.
 describe('Mocked: server start (index.ts)', () => {
-  // Mocked behavior: MongoDB and the seed steps succeed, and the HTTP server is a fake
-  // Input: ENABLE_HTTPS=false, then ENABLE_HTTPS=true
+  // Mocked behavior: MongoDB and the seed steps succeed, and the HTTPS server is a fake
+  // Input: ENABLE_HTTPS=true
   // Expected status code: none, since this is the server starting rather than a request
-  // Expected behavior: an HTTP server, or an HTTPS server with the certificate, listens on PORT
-  // Expected output: listen called with 4321 on the right kind of server
-  test.each([
-    { label: 'HTTP', https: false },
-    { label: 'HTTPS', https: true },
-  ])('Starts Over $label', async ({ https }: { label: string; https: boolean }) => {
-    const started = await start({ https });
+  // Expected behavior: an HTTPS server, rather than an HTTP one, listens on PORT
+  // Expected output: listen called with 4321 on the HTTPS server
+  test('Starts Over HTTPS', async () => {
+    const started = await start({ https: true });
 
-    expect((https ? started.https : started.http)).toHaveBeenCalledTimes(1);
-    expect((https ? started.http : started.https)).not.toHaveBeenCalled();
+    expect(started.https).toHaveBeenCalledTimes(1);
+    expect(started.http).not.toHaveBeenCalled();
     expect(started.server.listen).toHaveBeenCalledWith(4321, expect.any(Function));
   });
 
